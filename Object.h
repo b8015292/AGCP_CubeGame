@@ -45,7 +45,7 @@ struct RenderItem
 class GameObject {
 public:
     //Variables
-    std::shared_ptr<RenderItem> ri;
+    std::shared_ptr<RenderItem> mRI;
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
 
     bool active = false;
@@ -53,16 +53,20 @@ public:
     
     //Functions
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
-    Collision::ColCube GetCoords(const int rItemIndex);
-    void Translate(const int rItemIndex, const float dTime, float x, float y, float z);
+    Collision::ColCube GetCoords();
+    void Translate(const float dTime, float x, float y, float z);
 };
 
 class Entity : protected GameObject {
-    //Data needed to update physics
+public:
     XMFLOAT3 mVel;
     XMFLOAT3 mMaxVel;
 
     bool mOnGround = false;
+
+    void Update(const float dTime);
+
+
 };
 
 class Block : protected GameObject {

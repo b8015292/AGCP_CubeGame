@@ -5,7 +5,7 @@ GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>>
 
 }
 
-Collision::ColCube GameObject::GetCoords(const int rItemIndex) {
+Collision::ColCube GameObject::GetCoords() {
 	//Define constants
 	const UINT vertsPerObj = 24;
 	const UINT vertsNeeded = 8;
@@ -13,10 +13,10 @@ Collision::ColCube GameObject::GetCoords(const int rItemIndex) {
 	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
 
 	//Where the verticies for this item start in the buffer
-	const int vertStart = mAllGObjs->at(rItemIndex)->ri->BaseVertexLocation;
+	const int vertStart = mRI->BaseVertexLocation;
 
 	//A pointer to the buffer of vertices
-	ComPtr<ID3DBlob> verticesBlob = mAllGObjs->at(rItemIndex)->ri->Geo->VertexBufferCPU;
+	ComPtr<ID3DBlob> verticesBlob = mRI->Geo->VertexBufferCPU;
 
 	//Move the data from the buffer onto a vector we can view/manipulate
 	std::vector<Vertex> vs(numbOfVerts);
@@ -24,7 +24,7 @@ Collision::ColCube GameObject::GetCoords(const int rItemIndex) {
 
 	//Get the items world transformation matrix
 	XMMATRIX transform;
-	GameData::StoreFloat4x4InMatrix(transform, mAllGObjs->at(rItemIndex)->ri->World);
+	GameData::StoreFloat4x4InMatrix(transform, mRI->World);
 
 	//Transform each vertex by its world matrix
 	for (int i = vertStart; i < (vertStart + (int)vertsNeeded); i++) {
@@ -41,18 +41,48 @@ Collision::ColCube GameObject::GetCoords(const int rItemIndex) {
 	return c;
 }
 
+//void GameObject::Translate(const int rItemIndex, const float dTime, float x, float y, float z) {
+//	//Gets the translation matrix (scaled by delta time
+//	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
+//
+//	//Gets the world matrix in XMMATRIX form
+//	DirectX::XMMATRIX oldWorldMatrix;
+//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mAllGObjs->at(rItemIndex)->ri->World);
+//
+//	//Multiplies the two matricies together
+//	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, translateMatrix);
+//
+//	//Stores the new matrix, and marks the object as dirty
+//	XMStoreFloat4x4(&mAllGObjs->at(rItemIndex)->ri->World, newWorldMatrix);
+//	mAllGObjs->at(rItemIndex)->ri->NumFramesDirty++;
+//}
+
 void GameObject::Translate(const int rItemIndex, const float dTime, float x, float y, float z) {
 	//Gets the translation matrix (scaled by delta time
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
 
 	//Gets the world matrix in XMMATRIX form
 	DirectX::XMMATRIX oldWorldMatrix;
-	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mAllGObjs->at(rItemIndex)->ri->World);
+	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 
 	//Multiplies the two matricies together
 	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, translateMatrix);
 
 	//Stores the new matrix, and marks the object as dirty
-	XMStoreFloat4x4(&mAllGObjs->at(rItemIndex)->ri->World, newWorldMatrix);
-	mAllGObjs->at(rItemIndex)->ri->NumFramesDirty++;
+	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
+	mRI->NumFramesDirty++;
 }
+
+void Entity::Update(const float dTime) {
+	if (!active) return;
+
+	if (applyGravity) {
+
+	}
+
+	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
+		//Translate(dTime, mVel);
+	}
+}
+
+
