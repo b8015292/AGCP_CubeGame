@@ -54,6 +54,9 @@
     <ClCompile Include="CubeGame.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>GameData\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\d3dApp.h">
@@ -93,6 +96,9 @@
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CubeGame.h">
+      <Filter>GameData\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
