@@ -47,9 +47,10 @@ public:
     //Variables
     std::shared_ptr<RenderItem> mRI;
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
+    //std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mEntities;
 
-    bool active = false;
-    bool applyGravity = false;
+    bool active = true;
+    bool applyGravity = true;
     
     //Functions
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
@@ -57,7 +58,7 @@ public:
     void Translate(const float dTime, float x, float y, float z);
 };
 
-class Entity : protected GameObject {
+class Entity : public GameObject {
 public:
     XMFLOAT3 mVel;
     XMFLOAT3 mMaxVel;
@@ -66,6 +67,7 @@ public:
 
     void Update(const float dTime);
 
+    Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
 
 };
 

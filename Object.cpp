@@ -1,6 +1,8 @@
 #include "Object.h"
 
-GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : ri() {
+const float GameData::sGrav = -9.71f;
+
+GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : mRI() {
 	mAllGObjs = allGObjs;
 
 }
@@ -57,7 +59,7 @@ Collision::ColCube GameObject::GetCoords() {
 //	mAllGObjs->at(rItemIndex)->ri->NumFramesDirty++;
 //}
 
-void GameObject::Translate(const int rItemIndex, const float dTime, float x, float y, float z) {
+void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Gets the translation matrix (scaled by delta time
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
 
@@ -73,15 +75,20 @@ void GameObject::Translate(const int rItemIndex, const float dTime, float x, flo
 	mRI->NumFramesDirty++;
 }
 
+Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
+	mVel = { 0, 0, 0 };
+	mMaxVel = mVel;
+}
+
 void Entity::Update(const float dTime) {
 	if (!active) return;
 
 	if (applyGravity) {
-
+		mVel.y = GameData::sGrav;
 	}
 
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
-		//Translate(dTime, mVel);
+		Translate(dTime, mVel.x, mVel.y, mVel.z);
 	}
 }
 

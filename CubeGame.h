@@ -75,7 +75,7 @@ private:
 
     // List of all the render items.
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
-    std::vector<std::unique_ptr<Entity>> mAllEnts;
+    std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
 
     // Render items divided by PSO.
     std::vector<std::shared_ptr<RenderItem>> mOpaqueRitems;

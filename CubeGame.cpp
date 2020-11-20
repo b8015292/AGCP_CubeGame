@@ -4,6 +4,8 @@
 
 #include "CubeGame.h"
 
+bool GameData::sRunning = true;
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
     PSTR cmdLine, int showCmd)
 {
@@ -43,7 +45,9 @@ bool CubeGame::Initialize()
     if(!D3DApp::Initialize())
         return false;
 
+	GameData::sRunning = true;
 	mAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
+	mAllEnts = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
 
 
     // Reset the command list to prep for initialization commands.
@@ -104,17 +108,10 @@ void CubeGame::Update(const GameTimer& gt)
 
 
 
-	if (!gCollided) {
-		//Apply gravity to cube if it hasn't collided
-		//Translate(0, gt.DeltaTime(), 0, gGrav / 3.0f, 0);
-
-		//Check for collision
-		/*bool col = CheckCollisions(GetCoords(1), GetCoords(0));
-
-		if (col) {
-			gCollided = true;
-		}*/
-
+	if(GameData::sRunning){ 
+		for (int i = 0; i < mAllEnts->size(); i++) {
+			mAllEnts->at(i)->Update(gt.DeltaTime());
+		}
 	}
 
 
@@ -257,18 +254,18 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->ri->NumFramesDirty > 0) {
-			XMMATRIX world = XMLoadFloat4x4(&mAllGObjs->at(i)->ri->World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&mAllGObjs->at(i)->ri->TexTransform);
+		if (mAllGObjs->at(i)->mRI->NumFramesDirty > 0) {
+			XMMATRIX world = XMLoadFloat4x4(&mAllGObjs->at(i)->mRI->World);
+			XMMATRIX texTransform = XMLoadFloat4x4(&mAllGObjs->at(i)->mRI->TexTransform);
 
 			ObjectConstants objConstants;
 			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
 			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
 
-			currObjectCB->CopyData(mAllGObjs->at(i)->ri->ObjCBIndex, objConstants);
+			currObjectCB->CopyData(mAllGObjs->at(i)->mRI->ObjCBIndex, objConstants);
 
 			// Next FrameResource need to be updated too.
-			mAllGObjs->at(i)->ri->NumFramesDirty--;
+			mAllGObjs->at(i)->mRI->NumFramesDirty--;
 		}
 	}
 }
@@ -572,9 +569,13 @@ void CubeGame::BuildRenderItems()
 	boxRitem->StartIndexLocation = boxRitem->Geo->DrawArgs["box"].StartIndexLocation;
 	boxRitem->BaseVertexLocation = boxRitem->Geo->DrawArgs["box"].BaseVertexLocation;
 
-	auto objBox = std::make_shared<GameObject>(mAllGObjs);
-	objBox->ri = boxRitem;
-	mAllGObjs->push_back(std::move(objBox));
+	auto objBox = std::make_shared<Entity>(mAllGObjs);
+	objBox->mRI = boxRitem;
+	//mAllGObjs->push_back(std::move(objBox));
+	mAllGObjs->push_back(objBox);
+	mAllEnts->push_back(objBox);
+
+
 
     auto groundRitem = std::make_shared<RenderItem>();
     groundRitem->World = MathHelper::Identity4x4();
@@ -588,13 +589,13 @@ void CubeGame::BuildRenderItems()
     groundRitem->BaseVertexLocation = groundRitem->Geo->DrawArgs["ground"].BaseVertexLocation;
 
 	auto groundBox = std::make_shared<GameObject>(mAllGObjs);
-	groundBox->ri = groundRitem;
+	groundBox->mRI = groundRitem;
 	mAllGObjs->push_back(std::move(groundBox));
 
 
 	// All the render items are opaque.
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		mOpaqueRitems.push_back(mAllGObjs->at(i)->ri);
+		mOpaqueRitems.push_back(mAllGObjs->at(i)->mRI);
 	}	
 }
 
