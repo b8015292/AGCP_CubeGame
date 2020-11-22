@@ -36,6 +36,13 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
+	for (int i = 0; i < mAllEnts->size(); i++) {
+		mAllEnts->at(i).~shared_ptr(); 
+	}
+	for (int i = 0; i < mAllGObjs->size(); i++) {
+		mAllGObjs->at(i).~shared_ptr();
+	}
+
     if(md3dDevice != nullptr)
         FlushCommandQueue();
 }
@@ -390,64 +397,52 @@ void CubeGame::BuildShadersAndInputLayout()
 void CubeGame::BuildShapeGeometry()
 {
     GeometryGenerator geoGen;
-	GeometryGenerator::MeshData box = geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0);
-	GeometryGenerator::MeshData ground = geoGen.CreateBox(1.5f, 0.5f, 1.5f, 0);
 
+	//Create the mesh
+	std::vector<GeometryGenerator::MeshData> meshData;
+	meshData.push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
+	meshData.push_back(geoGen.CreateBox(6.f, 0.5f, 10.f, 0));
+	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
+	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
+	meshData.push_back(geoGen.CreateBox(0.5f, 1.f, 10.f, 0));
+	meshData.push_back(geoGen.CreateBox(0.5f, 1.f, 10.f, 0));
 
-	//
-	// We are concatenating all the geometry into one big vertex/index buffer.  So
-	// define the regions in the buffer each submesh covers.
-	//
+	//Create a name for each mesh
+	std::vector<std::string> meshNames;
+	meshNames.push_back("box");
+	meshNames.push_back("ground");
+	meshNames.push_back("wallL");
+	meshNames.push_back("wallR");
+	meshNames.push_back("wallT");
+	meshNames.push_back("wallB");
 
-	// Cache the vertex offsets to each object in the concatenated vertex buffer.
-	UINT boxVertexOffset = 0;
-	UINT groundVertexOffset = (UINT)box.Vertices.size();
+	//Get the total number of vertices
+	size_t totalVertexCount = 0;
+	for each (GeometryGenerator::MeshData md in meshData) {
+		totalVertexCount += md.Vertices.size();
+	}
 
-	// Cache the starting index for each object in the concatenated index buffer.
-	UINT boxIndexOffset = 0;
-	UINT groundIndexOffset = (UINT)box.Indices32.size();
-
-	SubmeshGeometry boxSubmesh;
-	boxSubmesh.IndexCount = (UINT)box.Indices32.size();
-	boxSubmesh.StartIndexLocation = boxIndexOffset;
-	boxSubmesh.BaseVertexLocation = boxVertexOffset;
-
-	SubmeshGeometry groundSubmesh;
-	groundSubmesh.IndexCount = (UINT)ground.Indices32.size();
-	groundSubmesh.StartIndexLocation = groundIndexOffset;
-	groundSubmesh.BaseVertexLocation = groundVertexOffset;
-
-	//
-	// Extract the vertex elements we are interested in and pack the
-	// vertices of all the meshes into one vertex buffer.
-	//
-
-	auto totalVertexCount =
-		box.Vertices.size() +
-		ground.Vertices.size();
-
+	//Get a vector of each vertex
 	std::vector<Vertex> vertices(totalVertexCount);
-
 	UINT k = 0;
-	for(size_t i = 0; i < box.Vertices.size(); ++i, ++k)
-	{
-		vertices[k].Pos = box.Vertices[i].Position;
-		vertices[k].Normal = box.Vertices[i].Normal;
+	for each (GeometryGenerator::MeshData md in meshData) {
+		for (size_t i = 0; i < md.Vertices.size(); ++i, ++k) {
+			vertices[k].Pos = md.Vertices[i].Position;
+			vertices[k].Normal = md.Vertices[i].Normal;
+		}
 	}
 
-	for(size_t i = 0; i < ground.Vertices.size(); ++i, ++k)
-	{
-		vertices[k].Pos = ground.Vertices[i].Position;
-		vertices[k].Normal = ground.Vertices[i].Normal;
-	}
-
+	//Get a vector of each index
 	std::vector<std::uint16_t> indices;
-	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
-	indices.insert(indices.end(), std::begin(ground.GetIndices16()), std::end(ground.GetIndices16()));
+	for each (GeometryGenerator::MeshData md in meshData) {
+		indices.insert(indices.end(), std::begin(md.GetIndices16()), std::end(md.GetIndices16()));
+	}
 
+	//Get the total byte size of each vector
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
     const UINT ibByteSize = (UINT)indices.size()  * sizeof(std::uint16_t);
 
+	//Make a MeshGeometry to hold all the data
 	auto geo = std::make_unique<MeshGeometry>();
 	geo->Name = "shapeGeo";
 
@@ -468,8 +463,21 @@ void CubeGame::BuildShapeGeometry()
 	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
 	geo->IndexBufferByteSize = ibByteSize;
 
-	geo->DrawArgs["box"] = boxSubmesh;
-	geo->DrawArgs["ground"] = groundSubmesh;
+
+	//Tell MeshGemotry the location of each mesh
+	UINT indexOffset = 0;
+	UINT vertexOffset = 0;
+	for (int i = 0; i < meshData.size(); i++) {
+		SubmeshGeometry temp;
+		temp.IndexCount = (UINT)meshData.at(i).Indices32.size();
+		temp.StartIndexLocation = indexOffset;
+		temp.BaseVertexLocation = vertexOffset;
+
+		geo->DrawArgs[meshNames.at(i)] = temp;
+
+		indexOffset += (UINT)meshData.at(i).Indices32.size();
+		vertexOffset += (UINT)meshData.at(i).Vertices.size();
+	}
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -558,39 +566,38 @@ void CubeGame::BuildMaterials()
 
 void CubeGame::BuildRenderItems()
 {
-	auto boxRitem = std::make_shared<RenderItem>();
-	XMStoreFloat4x4(&boxRitem->World, XMMatrixTranslation(0.0f, 7.0f, 0.0f));
-	XMStoreFloat4x4(&boxRitem->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
-	boxRitem->ObjCBIndex = 0;
-	boxRitem->Mat = mMaterials["stone0"].get();
-	boxRitem->Geo = mGeometries["shapeGeo"].get();
-	boxRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	boxRitem->IndexCount = boxRitem->Geo->DrawArgs["box"].IndexCount;
-	boxRitem->StartIndexLocation = boxRitem->Geo->DrawArgs["box"].StartIndexLocation;
-	boxRitem->BaseVertexLocation = boxRitem->Geo->DrawArgs["box"].BaseVertexLocation;
+	auto geo = mGeometries["shapeGeo"].get();
 
-	auto objBox = std::make_shared<Entity>(mAllGObjs);
-	objBox->mRI = boxRitem;
-	//mAllGObjs->push_back(std::move(objBox));
-	mAllGObjs->push_back(objBox);
-	mAllEnts->push_back(objBox);
+	//Make each mesh a render item
+	int i = 0;
+	for (std::pair<std::string, SubmeshGeometry> el : geo->DrawArgs) {
+		auto temp = std::make_shared<RenderItem>();
+		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+		temp->ObjCBIndex = (UINT)i;
+		temp->Mat = mMaterials["stone0"].get();
+		temp->Geo = geo;
+		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		temp->IndexCount = temp->Geo->DrawArgs[el.first].IndexCount;
+		temp->StartIndexLocation = temp->Geo->DrawArgs[el.first].StartIndexLocation;
+		temp->BaseVertexLocation = temp->Geo->DrawArgs[el.first].BaseVertexLocation;
 
+		auto tempGO = std::make_shared<GameObject>(mAllGObjs);
+		tempGO->mRI = temp;
+		mAllGObjs->push_back(tempGO);
+		i++;
+	}
 
+	//Player
+	auto player = std::make_shared<Entity>(mAllGObjs->at(0));
+	mAllEnts->push_back(player);
+	XMStoreFloat4x4(&mAllEnts->at(0)->mRI->World, XMMatrixTranslation(0.0f, 7.0f, 0.0f));
 
-    auto groundRitem = std::make_shared<RenderItem>();
-    groundRitem->World = MathHelper::Identity4x4();
-	XMStoreFloat4x4(&groundRitem->TexTransform, XMMatrixIdentity());
-	groundRitem->ObjCBIndex = 1;
-	groundRitem->Mat = mMaterials["tile0"].get();
-	groundRitem->Geo = mGeometries["shapeGeo"].get();
-	groundRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    groundRitem->IndexCount = groundRitem->Geo->DrawArgs["ground"].IndexCount;
-    groundRitem->StartIndexLocation = groundRitem->Geo->DrawArgs["ground"].StartIndexLocation;
-    groundRitem->BaseVertexLocation = groundRitem->Geo->DrawArgs["ground"].BaseVertexLocation;
+	//Walls
+	XMStoreFloat4x4(&mAllGObjs->at(2)->mRI->World, XMMatrixTranslation(3.0f, 0.0f, 0.0f));
+	XMStoreFloat4x4(&mAllGObjs->at(4)->mRI->World, XMMatrixTranslation(-3.0f, 0.0f, 0.0f));
+	XMStoreFloat4x4(&mAllGObjs->at(3)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, 5.0f));
+	XMStoreFloat4x4(&mAllGObjs->at(5)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, -5.0f));
 
-	auto groundBox = std::make_shared<GameObject>(mAllGObjs);
-	groundBox->mRI = groundRitem;
-	mAllGObjs->push_back(std::move(groundBox));
 
 
 	// All the render items are opaque.

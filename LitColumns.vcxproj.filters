@@ -54,6 +54,9 @@
     <ClCompile Include="CubeGame.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Collisions.cpp">
+      <Filter>GameData\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Common\d3dApp.h">

@@ -47,13 +47,16 @@ public:
     //Variables
     std::shared_ptr<RenderItem> mRI;
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
-    //std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mEntities;
+
+    static int sMaxID;
+    int mID = 0;
 
     bool active = true;
     bool applyGravity = true;
     
     //Functions
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
+    GameObject(std::shared_ptr<GameObject> gobj);
     Collision::ColCube GetCoords();
     void Translate(const float dTime, float x, float y, float z);
 };
@@ -64,10 +67,13 @@ public:
     XMFLOAT3 mMaxVel;
 
     bool mOnGround = false;
-
-    void Update(const float dTime);
+    Collision::ColPoints mColPoints;
 
     Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
+    Entity(std::shared_ptr<GameObject> gobj);
+    void Update(const float dTime);
+    std::vector<int> CheckAllCollisions(Collision::ColCube thisCube);
+    Collision::ColPoints GetAllCollisionPoints(Collision::ColCube coordinates);
 
 };
 

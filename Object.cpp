@@ -1,10 +1,16 @@
 #include "Object.h"
 
 const float GameData::sGrav = -9.71f;
+int GameObject::sMaxID = 0;
 
 GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : mRI() {
 	mAllGObjs = allGObjs;
+	if(mID == 0) mID = ++sMaxID;	//Incase a entity is being made from a preconstructed GObj
 
+}
+
+GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
+	*this = *gobj;
 }
 
 Collision::ColCube GameObject::GetCoords() {
@@ -43,22 +49,6 @@ Collision::ColCube GameObject::GetCoords() {
 	return c;
 }
 
-//void GameObject::Translate(const int rItemIndex, const float dTime, float x, float y, float z) {
-//	//Gets the translation matrix (scaled by delta time
-//	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
-//
-//	//Gets the world matrix in XMMATRIX form
-//	DirectX::XMMATRIX oldWorldMatrix;
-//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mAllGObjs->at(rItemIndex)->ri->World);
-//
-//	//Multiplies the two matricies together
-//	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, translateMatrix);
-//
-//	//Stores the new matrix, and marks the object as dirty
-//	XMStoreFloat4x4(&mAllGObjs->at(rItemIndex)->ri->World, newWorldMatrix);
-//	mAllGObjs->at(rItemIndex)->ri->NumFramesDirty++;
-//}
-
 void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Gets the translation matrix (scaled by delta time
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
@@ -78,13 +68,29 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
 	mVel = { 0, 0, 0 };
 	mMaxVel = mVel;
+
+	mID = GameObject::mID;
+}
+
+Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
+	mVel = { 0, 0, 0 };
+	mMaxVel = mVel;
+
+	mID = GameObject::mID;
 }
 
 void Entity::Update(const float dTime) {
 	if (!active) return;
 
+	mColPoints = GetAllCollisionPoints(GetCoords());
+
 	if (applyGravity) {
-		mVel.y = GameData::sGrav;
+		if (mColPoints.AnyBottom()) {
+			mVel.y = 0.0f;
+		}
+		else {
+			mVel.y = GameData::sGrav;
+		}
 	}
 
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
@@ -92,4 +98,28 @@ void Entity::Update(const float dTime) {
 	}
 }
 
+std::vector<int> Entity::CheckAllCollisions(Collision::ColCube thisCube) {
+	std::vector<int> ret;
 
+	for (int i = 0; i < mAllGObjs->size(); i++) {
+		if (mAllGObjs->at(i)->mID != mID) {
+			if (Collision::CheckCollisions(thisCube, mAllGObjs->at(i)->GetCoords())) {
+				ret.push_back(i);
+			}
+		}
+	}
+
+	return ret;
+}
+
+Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinates) {
+	Collision::ColPoints ret;
+
+	for (int i = 0; i < mAllGObjs->size(); i++) {
+		if (mAllGObjs->at(i)->mID != mID) {
+			ret += Collision::CheckCollisionPoints(coordinates, mAllGObjs->at(i)->GetCoords());
+		}
+	}
+
+	return ret;
+}
