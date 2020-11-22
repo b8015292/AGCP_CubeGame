@@ -5,6 +5,10 @@ using namespace DirectX;
 
 class Collision {
 public:
+
+    enum class Directions { FRONT, BACK, TOP, BOTTOM, LEFT, RIGHt};
+
+    //Holds data for a collision cubes position
     struct ColCube
     {
 
@@ -41,6 +45,7 @@ public:
         }
     };
 
+    //Holds data on a collision point data (point and size)
     struct ColPoint {
         XMFLOAT3 ftl; //Front Top Left		- 7th in vertex array
         XMFLOAT3 size; //Width, Height, Depth
@@ -56,7 +61,79 @@ public:
         }
     };
 
-    bool Within(const ColCube cube, const XMFLOAT3 point);
-    bool CheckCollisions(const ColCube a, const ColCube b);
+    //Holds data about which points in a collision cube have been hit
+    class ColPoints {
+    public:
+        bool tfl;//top front left
+        bool tfr;//top front right
+        bool tbl;//top back left
+        bool tbr;//top back right
+
+        bool bfl;//bottom front left
+        bool bfr;//bottom front right
+        bool bbl;//bottom back left
+        bool bbr;//bottom back right
+
+        ColPoints() {
+            tfl = false;
+            tfr = false;
+            tbl = false;
+            tbr = false;
+            bfl = false;
+            bfr = false;
+            bbl = false;
+            bbr = false;
+        }
+
+        ColPoints(bool ntfl, bool ntfr, bool ntbl, bool ntbr, bool nbfl, bool nbfr, bool nbbl, bool nbbr) {
+            tfl = ntfl;
+            tfr = ntfr;
+            tbl = ntbl;
+            tbr = ntbr;
+            bfl = nbfl;
+            bfr = nbfr;
+            bbl = nbbl;
+            bbr = nbbr;
+        }
+
+        ColPoints operator +(ColPoints& b) {
+            ColPoints ret(tfl || b.tfl,
+            tfr || b.tfr,
+            tbl || b.tbl,
+            tbr || b.tbr,
+            bfl || b.bfl,
+            bfr || b.bfr,
+            bbl || b.bbl,
+            bbr || b.bbr);
+            return ret;
+        }
+
+        ColPoints& operator +=(ColPoints& b) {
+            tfl |= b.tfl;
+            tfr |= b.tfr;
+            tbl |= b.tbl;
+            tbr |= b.tbr;
+            bfl |= b.bfl;
+            bfr |= b.bfr;
+            bbl |= b.bbl;
+            bbr |= b.bbr;
+            return *this;
+        }
+
+        void Reset();
+
+        bool AnyBottom();
+        bool AnyTop();
+        bool AnyLeft();
+        bool AnyRight();
+        bool AnyFront();
+        bool AnyBack();
+
+
+    };
+
+    static bool Within(const ColCube cube, const XMFLOAT3 point);
+    static bool CheckCollisions(const ColCube Entity, const ColCube Block);
+    static ColPoints CheckCollisionPoints(const ColCube Entity, const ColCube Block);
 
 };
