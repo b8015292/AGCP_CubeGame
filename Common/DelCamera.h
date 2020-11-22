@@ -7,6 +7,7 @@
 //   -It keeps track of the viewing frustum of the camera so that the projection
 //    matrix can be obtained.
 //***************************************************************************************
+//In Common folder
 
 #ifndef CAMERA_H
 #define CAMERA_H
