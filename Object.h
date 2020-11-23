@@ -71,9 +71,14 @@ public:
 
     Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     Entity(std::shared_ptr<GameObject> gobj);
+    void Init();
     void Update(const float dTime);
     std::vector<int> CheckAllCollisions(Collision::ColCube thisCube);
     Collision::ColPoints GetAllCollisionPoints(Collision::ColCube coordinates);
+    bool IsPointColliding(const XMFLOAT3 point);
+
+
+    bool temp = true;
 
 };
 
