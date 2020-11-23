@@ -229,6 +229,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('D') & 0x8000)
 		mCamera.Strafe(10.0f * dt);
 
+	if (GetAsyncKeyState('E') & 0x8000) {
+		float dist = 0;
+		bool intersects = mAllEnts->at(0)->boundingBox.Intersects(mCamera.GetPosition(), mCamera.GetLook(), dist);
+		if(intersects)
+			OutputDebugStringW(L"intersected\n");
+		else
+			OutputDebugStringW(L"didnt intersect\n");
+
+	}
+
 	mCamera.UpdateViewMatrix();
 }
 
@@ -562,7 +572,6 @@ void CubeGame::BuildRenderItems()
 		temp->IndexCount = temp->Geo->DrawArgs[el.first].IndexCount;
 		temp->StartIndexLocation = temp->Geo->DrawArgs[el.first].StartIndexLocation;
 		temp->BaseVertexLocation = temp->Geo->DrawArgs[el.first].BaseVertexLocation;
-
 		auto tempGO = std::make_shared<GameObject>(mAllGObjs);
 		tempGO->mRI = temp;
 		mAllGObjs->push_back(tempGO);
@@ -580,7 +589,9 @@ void CubeGame::BuildRenderItems()
 	XMStoreFloat4x4(&mAllGObjs->at(3)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, 5.0f));
 	XMStoreFloat4x4(&mAllGObjs->at(5)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, -5.0f));
 
-
+	for (int i = 0; i < mAllGObjs->size(); i++) {
+		mAllGObjs->at(i)->CreateBoundingBox();
+	}
 
 	// All the render items are opaque.
 	for (int i = 0; i < mAllGObjs->size(); i++) {

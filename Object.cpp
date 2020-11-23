@@ -9,6 +9,23 @@ GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>>
 
 }
 
+void GameObject::CreateBoundingBox() {
+	Collision::ColCube coords = GetCoords();
+
+	XMFLOAT3 topFrontRight = coords.list[Collision::EPos::tfr];
+	XMFLOAT3 backBottomLeft = coords.list[Collision::EPos::bbl];
+
+	float xDist = topFrontRight.x - backBottomLeft.x;
+	float yDist = topFrontRight.y - backBottomLeft.y;
+	float zDist = topFrontRight.z - backBottomLeft.z;
+
+	XMFLOAT3 origin = { topFrontRight.x - (xDist / 2), topFrontRight.y - (yDist / 2), topFrontRight.z - (zDist / 2) };
+	XMFLOAT3 extents = { xDist / 2, yDist / 2, zDist / 2 };
+
+	BoundingBox box = BoundingBox(origin, extents);
+	boundingBox = box;
+}
+
 GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
 	*this = *gobj;
 }
@@ -63,6 +80,7 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 	mRI->NumFramesDirty++;
+	boundingBox.Center = { boundingBox.Center.x + x, boundingBox.Center.y + y,  boundingBox.Center.z + z };
 }
 
 Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
