@@ -53,12 +53,15 @@ public:
 
     bool active = true;
     bool applyGravity = true;
+
+    BoundingBox boundingBox;
     
     //Functions
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     GameObject(std::shared_ptr<GameObject> gobj);
     Collision::ColCube GetCoords();
     void Translate(const float dTime, float x, float y, float z);
+    void CreateBoundingBox();
 };
 
 class Entity : public GameObject {
