@@ -9,6 +9,23 @@ GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>>
 
 }
 
+void GameObject::CreateBoundingBox() {
+	Collision::ColCube coords = GetCoords();
+
+	XMFLOAT3 topFrontRight = coords.list[Collision::EPos::tfr];
+	XMFLOAT3 backBottomLeft = coords.list[Collision::EPos::bbl];
+
+	float xDist = topFrontRight.x - backBottomLeft.x;
+	float yDist = topFrontRight.y - backBottomLeft.y;
+	float zDist = topFrontRight.z - backBottomLeft.z;
+
+	XMFLOAT3 origin = { topFrontRight.x - (xDist / 2), topFrontRight.y - (yDist / 2), topFrontRight.z - (zDist / 2) };
+	XMFLOAT3 extents = { xDist / 2, yDist / 2, zDist / 2 };
+
+	BoundingBox box = BoundingBox(origin, extents);
+	boundingBox = box;
+}
+
 GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
 	*this = *gobj;
 }
@@ -42,7 +59,7 @@ Collision::ColCube GameObject::GetCoords() {
 
 		XMStoreFloat3(&vs.at(i).Pos, temp);
 	}
-	
+
 	////Store all the proper positions in a struct
 	Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
 
@@ -63,33 +80,42 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 	mRI->NumFramesDirty++;
+	boundingBox.Center = { boundingBox.Center.x + x, boundingBox.Center.y + y,  boundingBox.Center.z + z };
 }
 
 Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
-	mVel = { 0, 0, 0 };
-	mMaxVel = mVel;
-
-	mID = GameObject::mID;
+	Init();
 }
 
 Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
-	mVel = { 0, 0, 0 };
-	mMaxVel = mVel;
+	Init();
+}
 
+void Entity::Init() {
 	mID = GameObject::mID;
+	mVel = { 0, 0, 0 };
+	mMaxVel = { 10.f, 10.f, 10.f };
 }
 
 void Entity::Update(const float dTime) {
 	if (!active) return;
 
-	mColPoints = GetAllCollisionPoints(GetCoords());
+	Collision::ColCube coords = GetCoords();
+	Collision::ColCube nextCoords = coords;
+	nextCoords.Translate({ mVel.x * dTime, mVel.y * dTime, mVel.z * dTime });
+
+	mColPoints = GetAllCollisionPoints(nextCoords);
+
+
 
 	if (applyGravity) {
 		if (mColPoints.AnyBottom()) {
 			mVel.y = 0.0f;
 		}
 		else {
-			mVel.y = GameData::sGrav;
+			//if (mVel.y < -mMaxVel.y) {
+				mVel.y = GameData::sGrav;
+			//}
 		}
 	}
 
@@ -122,4 +148,13 @@ Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinate
 	}
 
 	return ret;
+}
+
+bool Entity::IsPointColliding(const XMFLOAT3 point) {
+
+	for (int i = 0; i < mAllGObjs->size(); i++) {
+		if(Collision::Within(mAllGObjs->at(i)->GetCoords(), point)) return true;
+	}
+
+	return false;
 }

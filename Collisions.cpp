@@ -5,9 +5,9 @@ bool Collision::Within(const ColCube cube, const XMFLOAT3 point) {
 	bool inY = false;
 	bool inZ = false;
 
-	if (cube.tfl.x <= point.x && cube.tfr.x >= point.x) inX = true;
-	if (cube.bfl.y <= point.y && cube.tfr.y >= point.y) inY = true;
-	if (cube.bbl.z <= point.z && cube.tfr.z >= point.z) inZ = true;
+	if (cube.list[EPos::tfl].x <= point.x && cube.list[EPos::tfr].x >= point.x) inX = true;
+	if (cube.list[EPos::bfl].y <= point.y && cube.list[EPos::tfr].y >= point.y) inY = true;
+	if (cube.list[EPos::bbl].z <= point.z && cube.list[EPos::tfr].z >= point.z) inZ = true;
 
 	if (inX && inY && inZ) return true;
 
@@ -16,91 +16,58 @@ bool Collision::Within(const ColCube cube, const XMFLOAT3 point) {
 
 bool Collision::CheckCollisions(const ColCube a, const ColCube b) {
 	
-	//HOLD THIS INFORMATION TO DETERMINE THE DIRECTION OF COLLISION
-
-	if (Within(b, a.bbl)) {
-		return true;
-	}
-	else if (Within(b, a.bbr)) {
-		return true;
-	}
-	else if (Within(b, a.bfl)) {
-		return true;
-	}
-	else if (Within(b, a.bfr)) {
-		return true;
-	}
-	else if (Within(b, a.tbl)) {
-		return true;
-	}
-	else if (Within(b, a.tbr)) {
-		return true;
-	}
-	else if (Within(b, a.tfl)) {
-		return true;
-	}
-	else if (Within(b, a.tfr)) {
-		return true;
+	for each (XMFLOAT3 f3 in a.list) {
+		if (Within(b, f3)) {
+			return true;
+		}
 	}
 
 	return false;
 }
 
+void Collision::ColCube::Translate(XMFLOAT3 move) {
+	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(move.x, move.y, move.z);
+
+	for each (auto& el in list) {
+		XMVECTOR temp = XMLoadFloat3(&el);
+		temp = XMVector3TransformCoord(temp, translateMatrix);
+		XMStoreFloat3(&el, temp);
+	}
+}
+
 Collision::ColPoints Collision::CheckCollisionPoints(const ColCube Entity, const ColCube Block) {
 	Collision::ColPoints ret;
-	if (Within(Block, Entity.bbl)) {
-		ret.bbl = true;
+
+	for (int i = 0; i < (int)EPos::size; i++) {
+		if (Within(Block, Entity.list[i])) {
+			ret.list[i] = true;
+		}
 	}
-	else if (Within(Block, Entity.bbr)) {
-		ret.bbr = true;
-	}
-	else if (Within(Block, Entity.bfl)) {
-		ret.bfl = true;
-	}
-	else if (Within(Block, Entity.bfr)) {
-		ret.bfr = true;
-	}
-	else if (Within(Block, Entity.tbl)) {
-		ret.tbl = true;
-	}
-	else if (Within(Block, Entity.tbr)) {
-		ret.tbr = true;
-	}
-	else if (Within(Block, Entity.tfl)) {
-		ret.tfl = true;
-	}
-	else if (Within(Block, Entity.tfr)) {
-		ret.tfr = true;
-	}
+
 	return ret;
 }
 
 void Collision::ColPoints::Reset() {
-	tfl = false;
-	tfr = false;
-	tbl = false;
-	tbr = false;
-	bfl = false;
-	bfr = false;
-	bbl = false;
-	bbr = false;
+	for each (bool b in list) {
+		b = false;
+	}
 }
 
 bool Collision::ColPoints::AnyBottom() {
-	return bbl || bbr || bfl || bfr;
+	return list[EPos::bbl] || list[EPos::bbr] || list[EPos::bfl] || list[EPos::bfr];
 }
 bool Collision::ColPoints::AnyTop() {
-	return tbl || tbr || tfl || tfr;
+	return list[EPos::tbl] || list[EPos::tbr] || list[EPos::tfl] || list[EPos::tfr];
 }
 bool Collision::ColPoints::AnyLeft() {
-	return bbl || bfl || tbl || tfl;
+	return list[EPos::bbl] || list[EPos::bfl] || list[EPos::tbl] || list[EPos::tfl];
 }
 bool Collision::ColPoints::AnyRight() {
-	return bbr || bfr || tbr || tfr;
+	return list[EPos::bbr] || list[EPos::bfr] || list[EPos::tbr] || list[EPos::tfr];
 }
 bool Collision::ColPoints::AnyFront() {
-	return bfl || bfr || tfl || tfr;
+	return list[EPos::bfl] || list[EPos::bfr] || list[EPos::tfl] || list[EPos::tfr];
 }
 bool Collision::ColPoints::AnyBack() {
-	return bbl || bbr || tbl || tbr;
+	return list[EPos::bbl] || list[EPos::bbr] || list[EPos::tbl] || list[EPos::tbr];
 }

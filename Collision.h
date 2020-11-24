@@ -6,43 +6,34 @@ using namespace DirectX;
 class Collision {
 public:
 
-    enum class Directions { FRONT, BACK, TOP, BOTTOM, LEFT, RIGHt};
+    enum EPos {tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8};    //Postion
 
     //Holds data for a collision cubes position
-    struct ColCube
+    class ColCube
     {
-
-        XMFLOAT3 tfl;//top front left
-        XMFLOAT3 tfr;//top front right
-        XMFLOAT3 tbl;//top back left
-        XMFLOAT3 tbr;//top back right
-
-        XMFLOAT3 bfl;//bottom front left
-        XMFLOAT3 bfr;//bottom front right
-        XMFLOAT3 bbl;//bottom back left
-        XMFLOAT3 bbr;//bottom back right
+    public:
+        
+        XMFLOAT3 list[8];
 
         ColCube() {
-            tfl = XMFLOAT3(0, 0, 0);
-            tfr = XMFLOAT3(0, 0, 0);
-            tbl = XMFLOAT3(0, 0, 0);
-            tbr = XMFLOAT3(0, 0, 0);
-            bfl = XMFLOAT3(0, 0, 0);
-            bfr = XMFLOAT3(0, 0, 0);
-            bbl = XMFLOAT3(0, 0, 0);
-            bbr = XMFLOAT3(0, 0, 0);
+            for (int i = 0; i < (int)EPos::size; i++) {
+                list[i] = XMFLOAT3(0, 0, 0);
+            }
+
         }
 
         ColCube(XMFLOAT3 ntfl, XMFLOAT3 ntfr, XMFLOAT3 ntbl, XMFLOAT3 ntbr, XMFLOAT3 nbfl, XMFLOAT3 nbfr, XMFLOAT3 nbbl, XMFLOAT3 nbbr) {
-            tfl = ntfl;
-            tfr = ntfr;
-            tbl = ntbl;
-            tbr = ntbr;
-            bfl = nbfl;
-            bfr = nbfr;
-            bbl = nbbl;
-            bbr = nbbr;
+            list[EPos::tfl] = ntfl;
+            list[EPos::tfr] = ntfr;
+            list[EPos::tbl] = ntbl;
+            list[EPos::tbr] = ntbr;
+            list[EPos::bfl] = nbfl;
+            list[EPos::bfr] = nbfr;
+            list[EPos::bbl] = nbbl;
+            list[EPos::bbr] = nbbr;
         }
+
+        void Translate(XMFLOAT3 move);
     };
 
     //Holds data on a collision point data (point and size)
@@ -64,59 +55,46 @@ public:
     //Holds data about which points in a collision cube have been hit
     class ColPoints {
     public:
-        bool tfl;//top front left
-        bool tfr;//top front right
-        bool tbl;//top back left
-        bool tbr;//top back right
-
-        bool bfl;//bottom front left
-        bool bfr;//bottom front right
-        bool bbl;//bottom back left
-        bool bbr;//bottom back right
+        bool list[8];
 
         ColPoints() {
-            tfl = false;
-            tfr = false;
-            tbl = false;
-            tbr = false;
-            bfl = false;
-            bfr = false;
-            bbl = false;
-            bbr = false;
+            for (int i = 0; i < (int)EPos::size; i++) {
+                list[i] = false;
+            }
         }
 
         ColPoints(bool ntfl, bool ntfr, bool ntbl, bool ntbr, bool nbfl, bool nbfr, bool nbbl, bool nbbr) {
-            tfl = ntfl;
-            tfr = ntfr;
-            tbl = ntbl;
-            tbr = ntbr;
-            bfl = nbfl;
-            bfr = nbfr;
-            bbl = nbbl;
-            bbr = nbbr;
+            list[EPos::tfl] = ntfl;
+            list[EPos::tfr] = ntfr;
+            list[EPos::tbl] = ntbl;
+            list[EPos::tbr] = ntbr;
+            list[EPos::bfl] = nbfl;
+            list[EPos::bfr] = nbfr;
+            list[EPos::bbl] = nbbl;
+            list[EPos::bbr] = nbbr;
         }
 
         ColPoints operator +(ColPoints& b) {
-            ColPoints ret(tfl || b.tfl,
-            tfr || b.tfr,
-            tbl || b.tbl,
-            tbr || b.tbr,
-            bfl || b.bfl,
-            bfr || b.bfr,
-            bbl || b.bbl,
-            bbr || b.bbr);
+            ColPoints ret(list[EPos::tfl] || b.list[EPos::tfl],
+                list[EPos::tfr] || b.list[EPos::tfr],
+                list[EPos::tbl] || b.list[EPos::tbl],
+                list[EPos::tbr] || b.list[EPos::tbr],
+                list[EPos::bfl] || b.list[EPos::bfl],
+                list[EPos::bfr] || b.list[EPos::bfr],
+                list[EPos::bbl] || b.list[EPos::bbl],
+                list[EPos::bbr] || b.list[EPos::bbr]);
             return ret;
         }
 
         ColPoints& operator +=(ColPoints& b) {
-            tfl |= b.tfl;
-            tfr |= b.tfr;
-            tbl |= b.tbl;
-            tbr |= b.tbr;
-            bfl |= b.bfl;
-            bfr |= b.bfr;
-            bbl |= b.bbl;
-            bbr |= b.bbr;
+            list[EPos::tfl] |= b.list[EPos::tfl];
+            list[EPos::tfr] |= b.list[EPos::tfr];
+            list[EPos::tbl] |= b.list[EPos::tbl];
+            list[EPos::tbr] |= b.list[EPos::tbr];
+            list[EPos::bfl] |= b.list[EPos::bfl];
+            list[EPos::bfr] |= b.list[EPos::bfr];
+            list[EPos::bbl] |= b.list[EPos::bbl];
+            list[EPos::bbr] |= b.list[EPos::bbr];
             return *this;
         }
 
