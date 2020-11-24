@@ -55,6 +55,7 @@ bool CubeGame::Initialize()
 	GameData::sRunning = true;
 	mAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 	mAllEnts = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
+	InitFont();
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -67,11 +68,17 @@ bool CubeGame::Initialize()
 
     BuildRootSignature();
     BuildShadersAndInputLayout();
+
+	LoadTextures();
+	BuildDescriptorHeaps();
+
     BuildShapeGeometry();
 	BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
     BuildPSOs();
+
+
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -84,6 +91,42 @@ bool CubeGame::Initialize()
     return true;
 }
  
+void CubeGame::LoadTextures() {
+	auto fontTex = std::make_unique<Texture>();
+	fontTex->Name = "font";
+	fontTex->Filename = fnt.filePath;
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), fontTex->Filename.c_str(),
+		fontTex->Resource, fontTex->UploadHeap));
+
+	mTextures[fontTex->Name] = std::move(fontTex);
+}
+
+void CubeGame::InitFont() {
+	fnt.filePath = L"data/font.dds";
+	int w = 110;
+	int h = 120;
+
+	int rows = 3;
+	int cols = 9;
+	int row = 0;
+	int col = 0;
+
+	//Capitals
+	for (int i = 65; i <= 65 + 25; i++) {
+		char c = (char)i;
+
+		Font::myChar temp(col * w, row * h, w, h);
+		fnt.chars[c] = temp;
+		
+		col++;
+		if (col >= cols) {
+			col = 0;
+			row++;
+		}
+	}
+}
+
 void CubeGame::OnResize()
 {
     D3DApp::OnResize();
@@ -113,6 +156,10 @@ void CubeGame::Update(const GameTimer& gt)
 
 
 	if(GameData::sRunning){ 
+
+
+		mAllEnts->at(0)->AddVelocity(2.f, 0, 0);
+
 		for (int i = 0; i < mAllEnts->size(); i++) {
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
@@ -136,7 +183,7 @@ void CubeGame::Draw(const GameTimer& gt)
 
     // A command list can be reset after it has been added to the command queue via ExecuteCommandList.
     // Reusing the command list reuses memory.
-    ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mOpaquePSO.Get()));
+	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
 
     mCommandList->RSSetViewports(1, &mScreenViewport);
     mCommandList->RSSetScissorRects(1, &mScissorRect);
@@ -154,10 +201,20 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
+	//Set Pass Data
 	auto passCB = mCurrFrameResource->PassCB->Resource();
 	mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
-    DrawRenderItems(mCommandList.Get(), mOpaqueRitems);
+	//Set Font Data
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+	mCommandList->SetGraphicsRootDescriptorTable(3, tex);
+
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
+    DrawUI(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -253,7 +310,7 @@ void CubeGame::AnimateMaterials(const GameTimer& gt)
 void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 {
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
-
+	
 	for (int i = 0; i < mAllGObjs->size(); i++) {
 		if (mAllGObjs->at(i)->mRI->NumFramesDirty > 0) {
 			XMMATRIX world = XMLoadFloat4x4(&mAllGObjs->at(i)->mRI->World);
@@ -269,6 +326,23 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 			mAllGObjs->at(i)->mRI->NumFramesDirty--;
 		}
 	}
+
+	for (int i = 0; i < mRitemLayer[(int)RenderLayer::Transparent].size(); i++) {
+		if (mRitemLayer[(int)RenderLayer::Transparent].at(i)->NumFramesDirty > 0) {
+			XMMATRIX world = XMLoadFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(i)->World);
+			XMMATRIX texTransform = XMLoadFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(i)->TexTransform);
+
+			ObjectConstants objConstants;
+			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+
+			currObjectCB->CopyData(mRitemLayer[(int)RenderLayer::Transparent].at(i)->ObjCBIndex, objConstants);
+
+			// Next FrameResource need to be updated too.
+			mRitemLayer[(int)RenderLayer::Transparent].at(i)->NumFramesDirty--;
+		}
+	}
+
 }
 
 void CubeGame::UpdateMaterialCBs(const GameTimer& gt)
@@ -339,16 +413,26 @@ void CubeGame::UpdateMainPassCB(const GameTimer& gt)
 
 void CubeGame::BuildRootSignature()
 {
+	CD3DX12_DESCRIPTOR_RANGE texTable;
+	texTable.Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+		1,  // number of descriptors
+		0); // register t0
+
 	// Root parameter can be a table, root descriptor or root constants.
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 
 	// Create root CBV.
 	slotRootParameter[0].InitAsConstantBufferView(0);
 	slotRootParameter[1].InitAsConstantBufferView(1);
 	slotRootParameter[2].InitAsConstantBufferView(2);
+	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+
+	auto staticSamplers = GetStaticSamplers();
+
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -379,6 +463,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["transparentPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TransparentPS", "ps_5_1");
 	
     mInputLayout =
     {
@@ -388,12 +473,36 @@ void CubeGame::BuildShadersAndInputLayout()
     };
 }
 
+void CubeGame::BuildDescriptorHeaps() {
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.NumDescriptors = 1;
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
+
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+	auto fontTex = mTextures["font"]->Resource;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = fontTex->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = fontTex->GetDesc().MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	md3dDevice->CreateShaderResourceView(fontTex.Get(), &srvDesc, hDescriptor);
+	//hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+}
+
 void CubeGame::BuildShapeGeometry()
 {
     GeometryGenerator geoGen;
 
 	//Create the mesh
 	std::vector<GeometryGenerator::MeshData> meshData;
+
 	meshData.push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
 	meshData.push_back(geoGen.CreateBox(6.f, 0.5f, 10.f, 0));
 	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
@@ -403,12 +512,14 @@ void CubeGame::BuildShapeGeometry()
 
 	//Create a name for each mesh
 	std::vector<std::string> meshNames;
+
 	meshNames.push_back("box");
 	meshNames.push_back("ground");
 	meshNames.push_back("wallL");
 	meshNames.push_back("wallR");
 	meshNames.push_back("wallT");
 	meshNames.push_back("wallB");
+	meshNames.push_back("wallX");
 
 	//Get the total number of vertices
 	size_t totalVertexCount = 0;
@@ -423,6 +534,7 @@ void CubeGame::BuildShapeGeometry()
 		for (size_t i = 0; i < md.Vertices.size(); ++i, ++k) {
 			vertices[k].Pos = md.Vertices[i].Position;
 			vertices[k].Normal = md.Vertices[i].Normal;
+			vertices[k].TexC = md.Vertices[i].TexC;
 		}
 	}
 
@@ -474,15 +586,102 @@ void CubeGame::BuildShapeGeometry()
 	}
 
 	mGeometries[geo->Name] = std::move(geo);
+
+
+	//UI stuff------------------------------------------------------------------
+	std::vector<GeometryGenerator::MeshData>uiData;
+
+	//uiData.push_back(geoGen.CreateGrid(10.f, 10.f, 2, 2));
+	uiData.push_back(geoGen.CreateGrid(1.f, 1.f, 10, 10));
+
+	auto ui = std::make_unique<MeshGeometry>();
+	ui->Name = "uiGeo";
+
+
+	//Get the total number of vertices
+	size_t totalVertexCountu = 0;
+	for each (GeometryGenerator::MeshData md in uiData) {
+		totalVertexCountu += md.Vertices.size();
+	}
+
+	//Get a vector of each vertex
+	std::vector<Vertex> verticesu(totalVertexCountu);
+	UINT l = 0;
+	for each (GeometryGenerator::MeshData md in uiData) {
+		for (size_t i = 0; i < md.Vertices.size(); ++i, ++l) {
+			verticesu[l].Pos = md.Vertices[i].Position;
+			verticesu[l].Normal = md.Vertices[i].Normal;
+			//verticesu[l].TexC = md.Vertices[i].TexC;
+			verticesu[l].TexC = { 0.1f, 0.1f };
+		}
+	}
+
+	//Get a vector of each index
+	std::vector<std::uint16_t> indicesu;
+	for each (GeometryGenerator::MeshData md in uiData) {
+		indicesu.insert(indicesu.end(), std::begin(md.GetIndices16()), std::end(md.GetIndices16()));
+	}
+
+	//Get the total byte size of each vector
+	const UINT vbByteSizeu = (UINT)verticesu.size() * sizeof(Vertex);
+	const UINT ibByteSizeu = (UINT)indicesu.size() * sizeof(std::uint16_t);
+
+	ThrowIfFailed(D3DCreateBlob(vbByteSizeu, &ui->VertexBufferCPU));
+	CopyMemory(ui->VertexBufferCPU->GetBufferPointer(), verticesu.data(), vbByteSizeu);
+
+	ThrowIfFailed(D3DCreateBlob(ibByteSizeu, &ui->IndexBufferCPU));
+	CopyMemory(ui->IndexBufferCPU->GetBufferPointer(), indicesu.data(), ibByteSizeu);
+
+	ui->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), verticesu.data(), vbByteSizeu, ui->VertexBufferUploader);
+
+	ui->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), indicesu.data(), ibByteSizeu, ui->IndexBufferUploader);
+
+	ui->VertexByteStride = sizeof(Vertex);
+	ui->VertexBufferByteSize = vbByteSizeu;
+	ui->IndexFormat = DXGI_FORMAT_R16_UINT;
+	ui->IndexBufferByteSize = ibByteSizeu;
+
+	//Tell MeshGemotry the location of each mesh
+	UINT indexOffsetu = 0;
+	UINT vertexOffsetu = 0;
+	for (int i = 0; i < uiData.size(); i++) {
+		SubmeshGeometry temp;
+		temp.IndexCount = (UINT)uiData.at(i).Indices32.size();
+		temp.StartIndexLocation = indexOffsetu;
+		temp.BaseVertexLocation = vertexOffsetu;
+
+		ui->DrawArgs["tempString"] = temp;
+
+		indexOffsetu += (UINT)uiData.at(i).Indices32.size();
+		vertexOffsetu += (UINT)uiData.at(i).Vertices.size();
+	}
+
+	mGeometries[ui->Name] = std::move(ui);
 }
 
 void CubeGame::BuildPSOs()
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
 
-	//
-	// PSO for opaque objects.
-	//
+	D3D12_RENDER_TARGET_BLEND_DESC rtb;
+	rtb.BlendEnable = true;
+	rtb.LogicOpEnable = false;
+	rtb.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	rtb.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	rtb.BlendOp = D3D12_BLEND_OP_ADD;
+	rtb.SrcBlendAlpha = D3D12_BLEND_ONE;
+	rtb.DestBlendAlpha = D3D12_BLEND_ZERO;
+	rtb.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	rtb.LogicOp = D3D12_LOGIC_OP_NOOP;
+	rtb.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	CD3DX12_BLEND_DESC blendDesc;
+	blendDesc.AlphaToCoverageEnable = false;
+	blendDesc.IndependentBlendEnable = false;
+	blendDesc.RenderTarget[0] = rtb;
+
     ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	opaquePsoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
 	opaquePsoDesc.pRootSignature = mRootSignature.Get();
@@ -497,7 +696,7 @@ void CubeGame::BuildPSOs()
 		mShaders["opaquePS"]->GetBufferSize()
 	};
 	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	opaquePsoDesc.BlendState = blendDesc;
 	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.SampleMask = UINT_MAX;
 	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -506,7 +705,31 @@ void CubeGame::BuildPSOs()
 	opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mOpaquePSO)));
+    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
+
+	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
+	transparencyBlendDesc.BlendEnable = true;
+	transparencyBlendDesc.LogicOpEnable = false;
+	transparencyBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	transparencyBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	transparencyBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+	transparencyBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+	transparencyBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+	transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	transparentPsoDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["transparentPS"]->GetBufferPointer()),
+		mShaders["transparentPS"]->GetBufferSize()
+	};
+
+	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&mPSOs["transparent"])));
+
 }
 
 void CubeGame::BuildFrameResources()
@@ -514,7 +737,7 @@ void CubeGame::BuildFrameResources()
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-            1, (UINT)mAllGObjs->size(), (UINT)mMaterials.size()));
+            1, (UINT)mAllGObjs->size() + (UINT)mRitemLayer[(int)RenderLayer::Transparent].size(), (UINT)mMaterials.size()));
     }
 }
 
@@ -580,6 +803,8 @@ void CubeGame::BuildRenderItems()
 		i++;
 	}
 
+
+
 	//Player
 	auto player = std::make_shared<Entity>(mAllGObjs->at(0));
 	mAllEnts->push_back(player);
@@ -597,8 +822,39 @@ void CubeGame::BuildRenderItems()
 
 	// All the render items are opaque.
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		mOpaqueRitems.push_back(mAllGObjs->at(i)->mRI);
+		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllGObjs->at(i)->mRI);
 	}	
+
+
+	//UI---------------------------
+	auto ui = mGeometries["uiGeo"].get();
+
+
+	//Make each mesh a render item
+	int j = 0;
+	for (std::pair<std::string, SubmeshGeometry> el : ui->DrawArgs) {
+		auto temp = std::make_shared<RenderItem>();
+		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+		temp->ObjCBIndex = mAllGObjs->size() + j;
+		temp->Mat = mMaterials["stone0"].get();
+		temp->Geo = ui;
+		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		temp->IndexCount = temp->Geo->DrawArgs[el.first].IndexCount;
+		temp->StartIndexLocation = temp->Geo->DrawArgs[el.first].StartIndexLocation;
+		temp->BaseVertexLocation = temp->Geo->DrawArgs[el.first].BaseVertexLocation;
+		j++;
+
+		mRitemLayer[(int)RenderLayer::Transparent].push_back(temp);
+	}
+
+	//Rotate and scale the UI plane
+	XMMATRIX uiTransform = XMMatrixMultiply(XMMatrixRotationX(XMConvertToRadians(-90.f)), XMMatrixScalingFromVector({ mCamera.GetNearWindowWidth(), mCamera.GetNearWindowHeight(), 1}));
+	//Move the plane infnfront of the camera
+	XMVECTOR camPos = mCamera.GetPosition();
+	camPos.m128_f32[2] += 1.0001f;
+	uiTransform = XMMatrixMultiply(uiTransform, XMMatrixTranslationFromVector(camPos));
+	//Apply the matrix to the UI plane
+	XMStoreFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(0)->World, uiTransform);
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
@@ -619,12 +875,99 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
-		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex*matCBByteSize;
-
         cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+
+		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex*matCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
 }
-//Max's Test Push
+
+void CubeGame::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems) {
+	
+	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+	UINT matCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
+
+	auto objectCB = mCurrFrameResource->ObjectCB->Resource();
+	auto matCB = mCurrFrameResource->MaterialCB->Resource();
+
+	// For each render item...
+	for (size_t i = 0; i < ritems.size(); ++i)
+	{
+		auto ri = ritems[i];
+
+		cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
+		cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
+		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
+
+		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex * objCBByteSize;
+		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+
+		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex * matCBByteSize;
+		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+
+		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
+	}
+}
+
+std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
+{
+	// Applications usually only need a handful of samplers.  So just define them all up front
+	// and keep them available as part of the root signature.  
+
+	const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
+		0, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC pointClamp(
+		1, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC linearWrap(
+		2, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC linearClamp(
+		3, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC anisotropicWrap(
+		4, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
+		0.0f,                             // mipLODBias
+		8);                               // maxAnisotropy
+
+	const CD3DX12_STATIC_SAMPLER_DESC anisotropicClamp(
+		5, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
+		0.0f,                              // mipLODBias
+		8);                                // maxAnisotropy
+
+	return {
+		pointWrap, pointClamp,
+		linearWrap, linearClamp,
+		anisotropicWrap, anisotropicClamp };
+}
+
+void CubeGame::SetString(std::string str, XMFLOAT2 pos) {
+
+}

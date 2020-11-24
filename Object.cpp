@@ -106,21 +106,29 @@ void Entity::Update(const float dTime) {
 
 	mColPoints = GetAllCollisionPoints(nextCoords);
 
-
-
 	if (applyGravity) {
 		if (mColPoints.AnyBottom()) { 
 			mVel.y = 0.0f;
 		}
 		else {
-			//if (mVel.y < -mMaxVel.y) {
-				mVel.y = GameData::sGrav;
-			//}
+			AddVelocity(0, GameData::sGrav / 10.f, 0);
 		}
 	}
 
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
 		Translate(dTime, mVel.x, mVel.y, mVel.z);
+	}
+}
+
+void Entity::AddVelocity(float x, float y, float z) {
+	if (x != 0 && mVel.x < abs(mMaxVel.x)) {
+		mVel.x += x;
+	}
+	if (y != 0 && mVel.y < abs(mMaxVel.y)) {
+		mVel.y += y;
+	}
+	if (z != 0 && mVel.z < abs(mMaxVel.z)) {
+		mVel.z += z;
 	}
 }
 
@@ -142,7 +150,7 @@ Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinate
 	Collision::ColPoints ret;
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->mID != mID) {
+		if (mAllGObjs->at(i)->active && mAllGObjs->at(i)->mID != mID) {
 			ret += Collision::CheckCollisionPoints(coordinates, mAllGObjs->at(i)->GetCoords());
 		}
 	}

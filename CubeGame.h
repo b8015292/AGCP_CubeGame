@@ -45,14 +45,28 @@ private:
 
     void BuildRootSignature();
     void BuildShadersAndInputLayout();
+    void BuildDescriptorHeaps();
     void BuildShapeGeometry();
     void BuildPSOs();
     void BuildFrameResources();
     void BuildMaterials();
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
+    void DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
+
+    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+    void InitFont();
+    void LoadTextures();
+    void SetString(std::string str, XMFLOAT2 pos);
 
 private:
+
+    enum class RenderLayer : int
+    {
+        Opaque = 0,
+        Transparent,
+        Count
+    };
 
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrFrameResource = nullptr;
@@ -68,17 +82,18 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
     std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
+    std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
-    ComPtr<ID3D12PipelineState> mOpaquePSO = nullptr;
+    //ComPtr<ID3D12PipelineState> mOpaquePSO = nullptr;
 
     // List of all the render items.
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
     std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
 
     // Render items divided by PSO.
-    std::vector<std::shared_ptr<RenderItem>> mOpaqueRitems;
+    std::vector<std::shared_ptr<RenderItem>> mRitemLayer[(int)RenderLayer::Count];
 
     PassConstants mMainPassCB;
 
@@ -96,8 +111,7 @@ private:
 
     Camera mCamera;
 
-    //Game values
-    const float gGrav = -9.81f;
-    bool gCollided = false;
+    Font fnt;
+
 
 };

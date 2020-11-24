@@ -52,6 +52,14 @@ float D3DApp::AspectRatio()const
 	return static_cast<float>(mClientWidth) / mClientHeight;
 }
 
+float D3DApp::GetWidth()const
+{ 
+	return (float)mClientWidth; 
+};
+float D3DApp::GetHeight()const
+{
+	return (float)mClientHeight;
+};
 bool D3DApp::Get4xMsaaState()const
 {
     return m4xMsaaState;

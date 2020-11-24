@@ -33,6 +33,8 @@ public:
 	HINSTANCE AppInst()const;
 	HWND      MainWnd()const;
 	float     AspectRatio()const;
+    float     GetWidth()const;
+    float     GetHeight()const;
 
     bool Get4xMsaaState()const;
     void Set4xMsaaState(bool value);
