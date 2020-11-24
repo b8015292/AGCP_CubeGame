@@ -238,6 +238,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 	}
 
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		//mAllEnts->at()
+
 	mCamera.UpdateViewMatrix();
 }
 

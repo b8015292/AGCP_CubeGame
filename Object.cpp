@@ -109,7 +109,7 @@ void Entity::Update(const float dTime) {
 
 
 	if (applyGravity) {
-		if (mColPoints.AnyBottom()) {
+		if (mColPoints.AnyBottom()) { 
 			mVel.y = 0.0f;
 		}
 		else {
