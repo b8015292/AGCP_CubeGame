@@ -77,6 +77,7 @@ public:
     Collision::ColPoints GetAllCollisionPoints(Collision::ColCube coordinates);
     bool IsPointColliding(const XMFLOAT3 point);
 
+    void AddVelocity(float x, float y, float z);
 
     bool temp = true;
 
