@@ -113,15 +113,17 @@ float Camera::GetFarWindowHeight()const
 void Camera::SetLens(float fovY, float aspect, float zn, float zf)
 {
 	// cache properties
-	mFovY = fovY;
-	mAspect = aspect;
-	mNearZ = zn;
-	mFarZ = zf;
+	mFovY = fovY;		//vertical field of view angle
+	mAspect = aspect;	//aspect ratio = width/height
+	mNearZ = zn;		//distance to near plane
+	mFarZ = zf;			//distance to far plane
 
 	mNearWindowHeight = 2.0f * mNearZ * tanf(0.5f * mFovY);
 	mFarWindowHeight = 2.0f * mFarZ * tanf(0.5f * mFovY);
 
+	//create persepective projection matrix
 	XMMATRIX P = XMMatrixPerspectiveFovLH(mFovY, mAspect, mNearZ, mFarZ);
+	//store it in cached mProj
 	XMStoreFloat4x4(&mProj, P);
 }
 
@@ -188,7 +190,7 @@ void Camera::Walk(float d)
 {
 	// mPosition += d*mLook
 	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR l = XMLoadFloat3(&mLook);
+	XMVECTOR l = { mLook.x, 0.0f, mLook.z }; //dont move  up along the y
 	XMVECTOR p = XMLoadFloat3(&mPosition);
 	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
 

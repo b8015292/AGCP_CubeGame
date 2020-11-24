@@ -96,7 +96,6 @@ void CubeGame::Update(const GameTimer& gt)
 {
     OnKeyboardInput(gt);
 
-
     // Cycle through the circular frame resource array.
     mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % GameData::sNumFrameResources;
     mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
@@ -218,16 +217,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	const float dt = gt.DeltaTime();
 
 	if (GetAsyncKeyState('W') & 0x8000)
-		mCamera.Walk(10.0f * dt);
+		mCamera.Walk(5.0f * dt);
 
 	if (GetAsyncKeyState('S') & 0x8000)
-		mCamera.Walk(-10.0f * dt);
+		mCamera.Walk(-5.0f * dt);
 
 	if (GetAsyncKeyState('A') & 0x8000)
-		mCamera.Strafe(-10.0f * dt);
+		mCamera.Strafe(-5.0f * dt);
 
 	if (GetAsyncKeyState('D') & 0x8000)
-		mCamera.Strafe(10.0f * dt);
+		mCamera.Strafe(5.0f * dt);
 
 	mCamera.UpdateViewMatrix();
 }
