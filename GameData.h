@@ -17,14 +17,14 @@ class Font {
 public:
 
     struct myChar {
-        int posX;
-        int posY;
-        int width;
-        int height;
+        float posX;
+        float posY;
+        float width;
+        float height;
 
         myChar() = default;
 
-        myChar(int pX, int pY, int w, int h) {
+        myChar(float pX, float pY, float w, float h) {
             posX = pX;
             posY = pY;
             width = w;

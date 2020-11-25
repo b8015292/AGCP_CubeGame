@@ -94,7 +94,7 @@ Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 void Entity::Init() {
 	mID = GameObject::mID;
 	mVel = { 0, 0, 0 };
-	mMaxVel = { 10.f, 10.f, 10.f };
+	mMaxVel = { 1.f, 1.f, 1.f };
 }
 
 void Entity::Update(const float dTime) {
@@ -165,4 +165,37 @@ bool Entity::IsPointColliding(const XMFLOAT3 point) {
 	}
 
 	return false;
+}
+
+Player::Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : Entity(allGObjs) {
+
+}
+Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
+
+}
+void Player::Update(const float dTime) {
+	if (!active) return;
+
+	Collision::ColCube coords = GetCoords();
+	Collision::ColCube nextCoords = coords;
+	nextCoords.Translate({ mVel.x * dTime, mVel.y * dTime, mVel.z * dTime });
+
+	mColPoints = GetAllCollisionPoints(nextCoords);
+
+	if (applyGravity) {
+		if (mColPoints.AnyBottom()) {
+			mVel.y = 0.0f;
+		}
+		else {
+			AddVelocity(0, GameData::sGrav / 10.f, 0);
+		}
+	}
+
+	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
+		Translate(dTime, mVel.x, mVel.y, mVel.z);
+		//Translate camera
+
+		//Translate ui
+		//???
+	}
 }

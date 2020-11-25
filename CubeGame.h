@@ -4,7 +4,6 @@
 #include "Common/UploadBuffer.h"
 #include "Common/GeometryGenerator.h"
 #include "FrameResource.h"
-#include "Camera.h"
 
 #include "GameData.h"
 #include "Object.h"
@@ -110,6 +109,7 @@ private:
     POINT mLastMousePos;
 
     Camera mCamera;
+    std::shared_ptr<Player> mPlayer;
 
     Font fnt;
 
