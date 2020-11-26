@@ -36,6 +36,8 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
+	//Because each gameobject points to the list of gameobjects, there's an infinate loop of pointing.
+	//To prevent a data leak, the pointers a manually destroyed
 	for (int i = 0; i < mAllEnts->size(); i++) {
 		mAllEnts->at(i).~shared_ptr(); 
 	}
@@ -64,8 +66,6 @@ bool CubeGame::Initialize()
 	// so we have to query this information.
     mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
-
     BuildRootSignature();
     BuildShadersAndInputLayout();
 
@@ -78,7 +78,10 @@ bool CubeGame::Initialize()
     BuildFrameResources();
     BuildPSOs();
 
+	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+	mPlayer->GetCam()->SetPosition(0.0f, 2.0f, -15.0f);
 
+	//SetString("ABCDE", {0, 0});
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -104,8 +107,8 @@ void CubeGame::LoadTextures() {
 
 void CubeGame::InitFont() {
 	fnt.filePath = L"data/font.dds";
-	int w = 110;
-	int h = 120;
+	float w = 1.f / 110.f;
+	float h = 1.f / 120.f;
 
 	int rows = 3;
 	int cols = 9;
@@ -132,7 +135,9 @@ void CubeGame::OnResize()
     D3DApp::OnResize();
 
     // The window resized, so update the aspect ratio and recompute the projection matrix.
-	mCamera.SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+	//If the player has been set
+	if(mPlayer)
+		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
 }
 
 void CubeGame::Update(const GameTimer& gt)
@@ -156,10 +161,6 @@ void CubeGame::Update(const GameTimer& gt)
 
 
 	if(GameData::sRunning){ 
-
-
-		mAllEnts->at(0)->AddVelocity(2.f, 0, 0);
-
 		for (int i = 0; i < mAllEnts->size(); i++) {
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
@@ -261,8 +262,8 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
         float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
-		mCamera.Pitch(dy);
-		mCamera.RotateY(dx);
+		mPlayer->GetCam()->Pitch(dy);
+		mPlayer->GetCam()->RotateY(dx);
     }
 
     mLastMousePos.x = x;
@@ -274,20 +275,20 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	const float dt = gt.DeltaTime();
 
 	if (GetAsyncKeyState('W') & 0x8000)
-		mCamera.Walk(5.0f * dt);
+		mPlayer->GetCam()->Walk(5.0f * dt);
 
 	if (GetAsyncKeyState('S') & 0x8000)
-		mCamera.Walk(-5.0f * dt);
+		mPlayer->GetCam()->Walk(-5.0f * dt);
 
 	if (GetAsyncKeyState('A') & 0x8000)
-		mCamera.Strafe(-5.0f * dt);
+		mPlayer->GetCam()->Strafe(-5.0f * dt);
 
 	if (GetAsyncKeyState('D') & 0x8000)
-		mCamera.Strafe(5.0f * dt);
+		mPlayer->GetCam()->Strafe(5.0f * dt);
 
 	if (GetAsyncKeyState('E') & 0x8000) {
 		float dist = 0;
-		bool intersects = mAllEnts->at(0)->boundingBox.Intersects(mCamera.GetPosition(), mCamera.GetLook(), dist);
+		bool intersects = mAllEnts->at(0)->boundingBox.Intersects(mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook(), dist);
 		if(intersects)
 			OutputDebugStringW(L"intersected\n");
 		else
@@ -295,10 +296,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 	}
 
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-		//mAllEnts->at()
-
-	mCamera.UpdateViewMatrix();
+	mPlayer->GetCam()->UpdateViewMatrix();
 }
 
 
@@ -373,8 +371,8 @@ void CubeGame::UpdateMaterialCBs(const GameTimer& gt)
 
 void CubeGame::UpdateMainPassCB(const GameTimer& gt)
 {
-	XMMATRIX view = mCamera.GetView();
-	XMMATRIX proj = mCamera.GetProj();
+	XMMATRIX view = mPlayer->GetCam()->GetView();
+	XMMATRIX proj = mPlayer->GetCam()->GetProj();
 
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
 	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
@@ -387,7 +385,7 @@ void CubeGame::UpdateMainPassCB(const GameTimer& gt)
 	XMStoreFloat4x4(&mMainPassCB.InvProj, XMMatrixTranspose(invProj));
 	XMStoreFloat4x4(&mMainPassCB.ViewProj, XMMatrixTranspose(viewProj));
 	XMStoreFloat4x4(&mMainPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
-	mMainPassCB.EyePosW = mCamera.GetPosition3f();
+	mMainPassCB.EyePosW = mPlayer->GetCam()->GetPosition3f();
 	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
 	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
 	mMainPassCB.NearZ = 1.0f;
@@ -608,12 +606,33 @@ void CubeGame::BuildShapeGeometry()
 	std::vector<Vertex> verticesu(totalVertexCountu);
 	UINT l = 0;
 	for each (GeometryGenerator::MeshData md in uiData) {
+		int rows = 9;
+		int cols = 3;
+		int row = 0;
+		int col = 0;
+		float r = (float)rows / 10.f;
+		float c = (float)cols / 10.f;
+
+		float val = 0.0001f;
+
 		for (size_t i = 0; i < md.Vertices.size(); ++i, ++l) {
 			verticesu[l].Pos = md.Vertices[i].Position;
 			verticesu[l].Normal = md.Vertices[i].Normal;
+
 			//verticesu[l].TexC = md.Vertices[i].TexC;
 			verticesu[l].TexC = { 0.1f, 0.1f };
+
+			//verticesu[l].TexC = { col * c, row * r };
+			
+			col += val;
+			if (c <= cols) {
+				col = 0;
+				row += val;
+			}
 		}
+		//verticesu[0].TexC = { 0.0f, 0.0f };
+		//verticesu[verticesu.size()-1].TexC = { 1.0f, 1.0f };
+
 	}
 
 	//Get a vector of each index
@@ -806,7 +825,8 @@ void CubeGame::BuildRenderItems()
 
 
 	//Player
-	auto player = std::make_shared<Entity>(mAllGObjs->at(0));
+	auto player = std::make_shared<Player>(mAllGObjs->at(0));
+	mPlayer = player;
 	mAllEnts->push_back(player);
 	XMStoreFloat4x4(&mAllEnts->at(0)->mRI->World, XMMatrixTranslation(0.0f, 7.0f, 0.0f));
 
@@ -848,13 +868,15 @@ void CubeGame::BuildRenderItems()
 	}
 
 	//Rotate and scale the UI plane
-	XMMATRIX uiTransform = XMMatrixMultiply(XMMatrixRotationX(XMConvertToRadians(-90.f)), XMMatrixScalingFromVector({ mCamera.GetNearWindowWidth(), mCamera.GetNearWindowHeight(), 1}));
+	XMMATRIX uiTransform = XMMatrixMultiply(XMMatrixRotationX(XMConvertToRadians(-90.f)), XMMatrixScalingFromVector({ mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight(), 1}));
 	//Move the plane infnfront of the camera
-	XMVECTOR camPos = mCamera.GetPosition();
+	XMVECTOR camPos = mPlayer->GetCam()->GetPosition();
 	camPos.m128_f32[2] += 1.0001f;
 	uiTransform = XMMatrixMultiply(uiTransform, XMMatrixTranslationFromVector(camPos));
 	//Apply the matrix to the UI plane
 	XMStoreFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(0)->World, uiTransform);
+
+
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
@@ -969,5 +991,33 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
 }
 
 void CubeGame::SetString(std::string str, XMFLOAT2 pos) {
+	//Get the UI plane render item
+	auto ui = mRitemLayer[(int)RenderLayer::Transparent].at(0);
 
+	//Define constants
+	const UINT vertsPerObj = 10 * 10;
+	const UINT numbOfVerts = vertsPerObj * (UINT)(mAllGObjs->size());
+	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
+
+	//Where the verticies for this item start in the buffer
+	const int vertStart = ui->BaseVertexLocation;
+
+	//A pointer to the buffer of vertices
+	ComPtr<ID3DBlob> verticesBlob = ui->Geo->VertexBufferCPU;
+
+	//Move the data from the buffer onto a vector we can view/manipulate
+	std::vector<Vertex> vs(numbOfVerts);
+	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
+
+	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
+	int i = 0;
+	for each (char c in str) {
+		vs.at(i).TexC = { fnt.chars[c].width, fnt.chars[c].height };
+		i++;
+	}
+
+	CopyMemory(verticesBlob->GetBufferPointer(), vs.data(), vbByteSize);
+
+	//Make sure the render item is updated in the constant buffer
+	ui->NumFramesDirty += 3;
 }
