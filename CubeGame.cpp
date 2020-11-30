@@ -68,19 +68,22 @@ bool CubeGame::Initialize()
     BuildRootSignature();
     BuildShadersAndInputLayout();
 
+	//Load the fonts
 	mUI.InitFont();
 	LoadTextures();
-	BuildDescriptorHeaps();
 
+	BuildDescriptorHeaps();
     BuildShapeGeometry();
 	BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
     BuildPSOs();
 
+	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
 	mPlayer->GetCam()->SetPosition(0.0f, 2.0f, -15.0f);
 
+	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
 	mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
 	mUI.UpdateRotation(0.0f, 0.0f, mPlayer->GetCam()->GetLook());
@@ -147,6 +150,7 @@ void CubeGame::Update(const GameTimer& gt)
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
 
+		// Should be put in the player VVV
 		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 	}
 
@@ -775,7 +779,7 @@ void CubeGame::BuildRenderItems()
 	auto temp = std::make_shared<RenderItem>();
 	XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
 	temp->ObjCBIndex = (UINT)0;
-	temp->Mat = mMaterials["stone0"].get();
+	temp->Mat = mMaterials["tile0"].get();
 	temp->Geo = geo;
 	temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	temp->IndexCount = temp->Geo->DrawArgs["player"].IndexCount;
@@ -790,7 +794,7 @@ void CubeGame::BuildRenderItems()
 	XMStoreFloat4x4(&mAllEnts->at(0)->mRI->World, XMMatrixTranslation(0.0f, 7.0f, 0.0f));
 
 	//Blocks
-	const float size = 6;
+	const float size = 7;
 	float row = 0;
 	float col = 0;
 	for (int i = 0; i < size * size; ) {
@@ -798,12 +802,14 @@ void CubeGame::BuildRenderItems()
 		auto temp = std::make_shared<RenderItem>();
 		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
 		temp->ObjCBIndex = (UINT)++i;
-		temp->Mat = mMaterials["stone0"].get();
 		temp->Geo = geo;
 		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		temp->IndexCount = temp->Geo->DrawArgs["block"].IndexCount;
 		temp->StartIndexLocation = temp->Geo->DrawArgs["block"].StartIndexLocation;
 		temp->BaseVertexLocation = temp->Geo->DrawArgs["block"].BaseVertexLocation;
+
+		if (i % 2 == 0) temp->Mat = mMaterials["stone0"].get();
+		else temp->Mat = mMaterials["bricks0"].get();
 
 		//Create a game object from the render item
 		auto tempGO = std::make_shared<GameObject>(mAllGObjs);
