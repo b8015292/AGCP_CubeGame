@@ -57,7 +57,6 @@ bool CubeGame::Initialize()
 	GameData::sRunning = true;
 	mAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 	mAllEnts = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
-	InitFont();
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -69,6 +68,7 @@ bool CubeGame::Initialize()
     BuildRootSignature();
     BuildShadersAndInputLayout();
 
+	mUI.InitFont();
 	LoadTextures();
 	BuildDescriptorHeaps();
 
@@ -81,7 +81,12 @@ bool CubeGame::Initialize()
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
 	mPlayer->GetCam()->SetPosition(0.0f, 2.0f, -15.0f);
 
-	//SetString("ABCDE", {0, 0});
+	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
+	mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
+	mUI.UpdateRotation(0.0f, 0.0f, mPlayer->GetCam()->GetLook());
+	mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
+
+	mUI.SetString(mCommandList.Get(), "Hello", 0.0f, 0.0f);
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -97,37 +102,12 @@ bool CubeGame::Initialize()
 void CubeGame::LoadTextures() {
 	auto fontTex = std::make_unique<Texture>();
 	fontTex->Name = "font";
-	fontTex->Filename = fnt.filePath;
+	fontTex->Filename = mUI.GetFont()->filePath;
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
 		mCommandList.Get(), fontTex->Filename.c_str(),
 		fontTex->Resource, fontTex->UploadHeap));
 
 	mTextures[fontTex->Name] = std::move(fontTex);
-}
-
-void CubeGame::InitFont() {
-	fnt.filePath = L"data/font.dds";
-	float w = 1.f / 110.f;
-	float h = 1.f / 120.f;
-
-	int rows = 3;
-	int cols = 9;
-	int row = 0;
-	int col = 0;
-
-	//Capitals
-	for (int i = 65; i <= 65 + 25; i++) {
-		char c = (char)i;
-
-		Font::myChar temp(col * w, row * h, w, h);
-		fnt.chars[c] = temp;
-		
-		col++;
-		if (col >= cols) {
-			col = 0;
-			row++;
-		}
-	}
 }
 
 void CubeGame::OnResize()
@@ -136,8 +116,10 @@ void CubeGame::OnResize()
 
     // The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
-	if(mPlayer)
+	if (mPlayer) {
 		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+		mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
+	}
 }
 
 void CubeGame::Update(const GameTimer& gt)
@@ -164,6 +146,8 @@ void CubeGame::Update(const GameTimer& gt)
 		for (int i = 0; i < mAllEnts->size(); i++) {
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
+
+		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 	}
 
 
@@ -264,6 +248,8 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 
 		mPlayer->GetCam()->Pitch(dy);
 		mPlayer->GetCam()->RotateY(dx);
+		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
+
     }
 
     mLastMousePos.x = x;
@@ -461,7 +447,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
-	mShaders["transparentPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TransparentPS", "ps_5_1");
+	mShaders["UIPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "UIPS", "ps_5_1");
 	
     mInputLayout =
     {
@@ -477,7 +463,6 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
-
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
@@ -502,22 +487,13 @@ void CubeGame::BuildShapeGeometry()
 	std::vector<GeometryGenerator::MeshData> meshData;
 
 	meshData.push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
-	meshData.push_back(geoGen.CreateBox(6.f, 0.5f, 10.f, 0));
-	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
-	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
-	meshData.push_back(geoGen.CreateBox(0.5f, 1.f, 10.f, 0));
-	meshData.push_back(geoGen.CreateBox(0.5f, 1.f, 10.f, 0));
+	meshData.push_back(geoGen.CreateBox(1.f, 1.f, 1.f, 0));
 
 	//Create a name for each mesh
 	std::vector<std::string> meshNames;
 
-	meshNames.push_back("box");
-	meshNames.push_back("ground");
-	meshNames.push_back("wallL");
-	meshNames.push_back("wallR");
-	meshNames.push_back("wallT");
-	meshNames.push_back("wallB");
-	meshNames.push_back("wallX");
+	meshNames.push_back("player");
+	meshNames.push_back("block");
 
 	//Get the total number of vertices
 	size_t totalVertexCount = 0;
@@ -562,6 +538,7 @@ void CubeGame::BuildShapeGeometry()
 	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
 		mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
 
+
 	geo->VertexByteStride = sizeof(Vertex);
 	geo->VertexBufferByteSize = vbByteSize;
 	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
@@ -590,7 +567,7 @@ void CubeGame::BuildShapeGeometry()
 	std::vector<GeometryGenerator::MeshData>uiData;
 
 	//uiData.push_back(geoGen.CreateGrid(10.f, 10.f, 2, 2));
-	uiData.push_back(geoGen.CreateGrid(1.f, 1.f, 10, 10));
+	uiData.push_back(mUI.CreateUIPlane(1.f, 1.f, 10, 10));
 
 	auto ui = std::make_unique<MeshGeometry>();
 	ui->Name = "uiGeo";
@@ -598,6 +575,7 @@ void CubeGame::BuildShapeGeometry()
 
 	//Get the total number of vertices
 	size_t totalVertexCountu = 0;
+
 	for each (GeometryGenerator::MeshData md in uiData) {
 		totalVertexCountu += md.Vertices.size();
 	}
@@ -618,21 +596,9 @@ void CubeGame::BuildShapeGeometry()
 		for (size_t i = 0; i < md.Vertices.size(); ++i, ++l) {
 			verticesu[l].Pos = md.Vertices[i].Position;
 			verticesu[l].Normal = md.Vertices[i].Normal;
-
 			//verticesu[l].TexC = md.Vertices[i].TexC;
 			verticesu[l].TexC = { 0.1f, 0.1f };
-
-			//verticesu[l].TexC = { col * c, row * r };
-			
-			col += val;
-			if (c <= cols) {
-				col = 0;
-				row += val;
-			}
 		}
-		//verticesu[0].TexC = { 0.0f, 0.0f };
-		//verticesu[verticesu.size()-1].TexC = { 1.0f, 1.0f };
-
 	}
 
 	//Get a vector of each index
@@ -656,6 +622,7 @@ void CubeGame::BuildShapeGeometry()
 
 	ui->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
 		mCommandList.Get(), indicesu.data(), ibByteSizeu, ui->IndexBufferUploader);
+
 
 	ui->VertexByteStride = sizeof(Vertex);
 	ui->VertexBufferByteSize = vbByteSizeu;
@@ -742,8 +709,8 @@ void CubeGame::BuildPSOs()
 
 	transparentPsoDesc.PS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["transparentPS"]->GetBufferPointer()),
-		mShaders["transparentPS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mShaders["UIPS"]->GetBufferPointer()),
+		mShaders["UIPS"]->GetBufferSize()
 	};
 
 	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
@@ -804,37 +771,72 @@ void CubeGame::BuildRenderItems()
 {
 	auto geo = mGeometries["shapeGeo"].get();
 
-	//Make each mesh a render item
-	int i = 0;
-	for (std::pair<std::string, SubmeshGeometry> el : geo->DrawArgs) {
-		auto temp = std::make_shared<RenderItem>();
-		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
-		temp->ObjCBIndex = (UINT)i;
-		temp->Mat = mMaterials["stone0"].get();
-		temp->Geo = geo;
-		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		temp->IndexCount = temp->Geo->DrawArgs[el.first].IndexCount;
-		temp->StartIndexLocation = temp->Geo->DrawArgs[el.first].StartIndexLocation;
-		temp->BaseVertexLocation = temp->Geo->DrawArgs[el.first].BaseVertexLocation;
-		auto tempGO = std::make_shared<GameObject>(mAllGObjs);
-		tempGO->mRI = temp;
-		mAllGObjs->push_back(tempGO);
-		i++;
-	}
-
-
-
 	//Player
+	auto temp = std::make_shared<RenderItem>();
+	XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	temp->ObjCBIndex = (UINT)0;
+	temp->Mat = mMaterials["stone0"].get();
+	temp->Geo = geo;
+	temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	temp->IndexCount = temp->Geo->DrawArgs["player"].IndexCount;
+	temp->StartIndexLocation = temp->Geo->DrawArgs["player"].StartIndexLocation;
+	temp->BaseVertexLocation = temp->Geo->DrawArgs["player"].BaseVertexLocation;
+	auto tempGO = std::make_shared<GameObject>(mAllGObjs);
+	tempGO->mRI = temp;
+	mAllGObjs->push_back(tempGO);
 	auto player = std::make_shared<Player>(mAllGObjs->at(0));
 	mPlayer = player;
 	mAllEnts->push_back(player);
 	XMStoreFloat4x4(&mAllEnts->at(0)->mRI->World, XMMatrixTranslation(0.0f, 7.0f, 0.0f));
 
-	//Walls
-	XMStoreFloat4x4(&mAllGObjs->at(2)->mRI->World, XMMatrixTranslation(3.0f, 0.0f, 0.0f));
-	XMStoreFloat4x4(&mAllGObjs->at(4)->mRI->World, XMMatrixTranslation(-3.0f, 0.0f, 0.0f));
-	XMStoreFloat4x4(&mAllGObjs->at(3)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, 5.0f));
-	XMStoreFloat4x4(&mAllGObjs->at(5)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, -5.0f));
+	//Blocks
+	const float size = 6;
+	float row = 0;
+	float col = 0;
+	for (int i = 0; i < size * size; ) {
+		//Initialise render item
+		auto temp = std::make_shared<RenderItem>();
+		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+		temp->ObjCBIndex = (UINT)++i;
+		temp->Mat = mMaterials["stone0"].get();
+		temp->Geo = geo;
+		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		temp->IndexCount = temp->Geo->DrawArgs["block"].IndexCount;
+		temp->StartIndexLocation = temp->Geo->DrawArgs["block"].StartIndexLocation;
+		temp->BaseVertexLocation = temp->Geo->DrawArgs["block"].BaseVertexLocation;
+
+		//Create a game object from the render item
+		auto tempGO = std::make_shared<GameObject>(mAllGObjs);
+		tempGO->mRI = temp;
+
+		//Position
+		XMStoreFloat4x4(&tempGO->mRI->World, XMMatrixTranslation(row, 0.0f, col));
+		col++;
+		if (col >= size) {
+			col = 0;
+			row++;
+		}
+
+		//Add to the game object list
+		mAllGObjs->push_back(tempGO);
+	}
+
+	//TEMP
+	auto temp2 = std::make_shared<RenderItem>();
+	XMStoreFloat4x4(&temp2->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	temp2->ObjCBIndex = (UINT)size * size + 1;
+	temp2->Mat = mMaterials["stone0"].get();
+	temp2->Geo = geo;
+	temp2->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	temp2->IndexCount = temp2->Geo->DrawArgs["block"].IndexCount;
+	temp2->StartIndexLocation = temp2->Geo->DrawArgs["block"].StartIndexLocation;
+	temp2->BaseVertexLocation = temp2->Geo->DrawArgs["block"].BaseVertexLocation;
+	auto tempGO2 = std::make_shared<GameObject>(mAllGObjs);
+	tempGO2->mRI = temp2;
+	XMStoreFloat4x4(&tempGO2->mRI->World, XMMatrixTranslation(size-1, 1.f, size-1));
+	mAllGObjs->push_back(tempGO2);
+	//TEMP END
+
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
 		mAllGObjs->at(i)->CreateBoundingBox();
@@ -845,7 +847,6 @@ void CubeGame::BuildRenderItems()
 		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllGObjs->at(i)->mRI);
 	}	
 
-
 	//UI---------------------------
 	auto ui = mGeometries["uiGeo"].get();
 
@@ -855,7 +856,7 @@ void CubeGame::BuildRenderItems()
 	for (std::pair<std::string, SubmeshGeometry> el : ui->DrawArgs) {
 		auto temp = std::make_shared<RenderItem>();
 		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
-		temp->ObjCBIndex = mAllGObjs->size() + j;
+		temp->ObjCBIndex = (UINT)mAllGObjs->size() + (UINT)j;
 		temp->Mat = mMaterials["stone0"].get();
 		temp->Geo = ui;
 		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -866,17 +867,6 @@ void CubeGame::BuildRenderItems()
 
 		mRitemLayer[(int)RenderLayer::Transparent].push_back(temp);
 	}
-
-	//Rotate and scale the UI plane
-	XMMATRIX uiTransform = XMMatrixMultiply(XMMatrixRotationX(XMConvertToRadians(-90.f)), XMMatrixScalingFromVector({ mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight(), 1}));
-	//Move the plane infnfront of the camera
-	XMVECTOR camPos = mPlayer->GetCam()->GetPosition();
-	camPos.m128_f32[2] += 1.0001f;
-	uiTransform = XMMatrixMultiply(uiTransform, XMMatrixTranslationFromVector(camPos));
-	//Apply the matrix to the UI plane
-	XMStoreFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(0)->World, uiTransform);
-
-
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
@@ -897,10 +887,10 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
-        cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+        cmdList->SetGraphicsRootConstantBufferView((UINT)0, objCBAddress);
 
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex*matCBByteSize;
-		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView((UINT)1, matCBAddress);
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
@@ -918,7 +908,7 @@ void CubeGame::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std:
 	for (size_t i = 0; i < ritems.size(); ++i)
 	{
 		auto ri = ritems[i];
-
+		
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
@@ -988,36 +978,4 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
 		pointWrap, pointClamp,
 		linearWrap, linearClamp,
 		anisotropicWrap, anisotropicClamp };
-}
-
-void CubeGame::SetString(std::string str, XMFLOAT2 pos) {
-	//Get the UI plane render item
-	auto ui = mRitemLayer[(int)RenderLayer::Transparent].at(0);
-
-	//Define constants
-	const UINT vertsPerObj = 10 * 10;
-	const UINT numbOfVerts = vertsPerObj * (UINT)(mAllGObjs->size());
-	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
-
-	//Where the verticies for this item start in the buffer
-	const int vertStart = ui->BaseVertexLocation;
-
-	//A pointer to the buffer of vertices
-	ComPtr<ID3DBlob> verticesBlob = ui->Geo->VertexBufferCPU;
-
-	//Move the data from the buffer onto a vector we can view/manipulate
-	std::vector<Vertex> vs(numbOfVerts);
-	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
-
-	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
-	int i = 0;
-	for each (char c in str) {
-		vs.at(i).TexC = { fnt.chars[c].width, fnt.chars[c].height };
-		i++;
-	}
-
-	CopyMemory(verticesBlob->GetBufferPointer(), vs.data(), vbByteSize);
-
-	//Make sure the render item is updated in the constant buffer
-	ui->NumFramesDirty += 3;
 }

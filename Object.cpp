@@ -194,8 +194,12 @@ void Player::Update(const float dTime) {
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
 		Translate(dTime, mVel.x, mVel.y, mVel.z);
 		//Translate camera
-
+		TranslateCamera(dTime, mVel.x, mVel.y, mVel.z);
 		//Translate ui
 		//???
 	}
+}
+
+void Player::TranslateCamera(float dTime, float x, float y, float z) {
+	
 }

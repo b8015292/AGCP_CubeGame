@@ -2,11 +2,11 @@
 
 #include "Common/MathHelper.h"
 #include "Common/UploadBuffer.h"
-#include "Common/GeometryGenerator.h"
 #include "FrameResource.h"
 
 #include "GameData.h"
 #include "Object.h"
+#include "UI.h"
 
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;
@@ -53,10 +53,13 @@ private:
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
     void DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
 
-    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
-    void InitFont();
     void LoadTextures();
-    void SetString(std::string str, XMFLOAT2 pos);
+    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+
+    //void InitFont();
+    //void SetString(std::string str, XMFLOAT2 pos);
+    //GeometryGenerator::MeshData CreateUIPlane(float width, float depth, int m, int n);
+    //void UpdateUIPos();
 
 private:
 
@@ -110,6 +113,7 @@ private:
 
     Camera mCamera;
     std::shared_ptr<Player> mPlayer;
+    UI mUI;
 
     Font fnt;
 
