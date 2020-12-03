@@ -20,7 +20,7 @@ public:
     static int sMaxID;
     int mID = 0;
 
-    bool active = true;
+
     bool applyGravity = true;
 
     BoundingBox boundingBox;
@@ -31,6 +31,11 @@ public:
     Collision::ColCube GetCoords();
     void Translate(const float dTime, float x, float y, float z);
     void CreateBoundingBox();
+    bool GetActive() { return active; };
+    void SetActive(bool val);
+
+private:
+    bool active = true;
 };
 
 class Entity : public GameObject {

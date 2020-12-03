@@ -30,6 +30,11 @@ GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
 	*this = *gobj;
 }
 
+void GameObject::SetActive(bool val) {
+	active = val;
+	mRI->active = val;
+}
+
 Collision::ColCube GameObject::GetCoords() {
 	//Define constants
 	const UINT vertsPerObj = 24;
@@ -98,7 +103,7 @@ void Entity::Init() {
 }
 
 void Entity::Update(const float dTime) {
-	if (!active) return;
+	if (!GetActive()) return;
 
 	Collision::ColCube coords = GetCoords();
 	Collision::ColCube nextCoords = coords;
@@ -150,7 +155,7 @@ Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinate
 	Collision::ColPoints ret;
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->active && mAllGObjs->at(i)->mID != mID) {
+		if (mAllGObjs->at(i)->GetActive() && mAllGObjs->at(i)->mID != mID) {
 			ret += Collision::CheckCollisionPoints(coordinates, mAllGObjs->at(i)->GetCoords());
 		}
 	}
@@ -174,7 +179,7 @@ Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
 }
 void Player::Update(const float dTime) {
-	if (!active) return;
+	if (!GetActive()) return;
 
 	Collision::ColCube coords = GetCoords();
 	Collision::ColCube nextCoords = coords;
