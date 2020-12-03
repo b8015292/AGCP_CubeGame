@@ -5,6 +5,9 @@
 #include "CubeGame.h"
 
 bool GameData::sRunning = true;
+const int worldWidthLength = 100;
+const int worldHeight = 50;
+const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
     PSTR cmdLine, int showCmd)
@@ -57,6 +60,7 @@ bool CubeGame::Initialize()
 	GameData::sRunning = true;
 	mAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 	mAllEnts = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
+	mAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
 	InitFont();
 
     // Reset the command list to prep for initialization commands.
@@ -500,24 +504,15 @@ void CubeGame::BuildShapeGeometry()
 
 	//Create the mesh
 	std::vector<GeometryGenerator::MeshData> meshData;
-
-	meshData.push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
-	meshData.push_back(geoGen.CreateBox(6.f, 0.5f, 10.f, 0));
-	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
-	meshData.push_back(geoGen.CreateBox(6.f, 1.f, 0.5f, 0));
-	meshData.push_back(geoGen.CreateBox(0.5f, 1.f, 10.f, 0));
-	meshData.push_back(geoGen.CreateBox(0.5f, 1.f, 10.f, 0));
-
 	//Create a name for each mesh
 	std::vector<std::string> meshNames;
 
+	meshData.push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
 	meshNames.push_back("box");
-	meshNames.push_back("ground");
-	meshNames.push_back("wallL");
-	meshNames.push_back("wallR");
-	meshNames.push_back("wallT");
-	meshNames.push_back("wallB");
-	meshNames.push_back("wallX");
+	meshData.push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
+	meshNames.push_back("cube");
+
+
 
 	//Get the total number of vertices
 	size_t totalVertexCount = 0;
@@ -805,36 +800,67 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Make each mesh a render item
-	int i = 0;
-	for (std::pair<std::string, SubmeshGeometry> el : geo->DrawArgs) {
-		auto temp = std::make_shared<RenderItem>();
-		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
-		temp->ObjCBIndex = (UINT)i;
-		temp->Mat = mMaterials["stone0"].get();
-		temp->Geo = geo;
-		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		temp->IndexCount = temp->Geo->DrawArgs[el.first].IndexCount;
-		temp->StartIndexLocation = temp->Geo->DrawArgs[el.first].StartIndexLocation;
-		temp->BaseVertexLocation = temp->Geo->DrawArgs[el.first].BaseVertexLocation;
-		auto tempGO = std::make_shared<GameObject>(mAllGObjs);
-		tempGO->mRI = temp;
-		mAllGObjs->push_back(tempGO);
-		i++;
-	}
-
-
+	//int i = 0;
+	//for (std::pair<std::string, SubmeshGeometry> el : geo->DrawArgs) {
+	//	auto temp = std::make_shared<RenderItem>();
+	//	XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	//	temp->ObjCBIndex = (UINT)i;
+	//	temp->Mat = mMaterials["stone0"].get();
+	//	temp->Geo = geo;
+	//	temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	//	temp->IndexCount = temp->Geo->DrawArgs[el.first].IndexCount;
+	//	temp->StartIndexLocation = temp->Geo->DrawArgs[el.first].StartIndexLocation;
+	//	temp->BaseVertexLocation = temp->Geo->DrawArgs[el.first].BaseVertexLocation;
+	//	auto tempGO = std::make_shared<GameObject>(mAllGObjs);
+	//	tempGO->mRI = temp;
+	//	mAllGObjs->push_back(tempGO);
+	//	i++;
+	//}
 
 	//Player
-	auto player = std::make_shared<Player>(mAllGObjs->at(0));
-	mPlayer = player;
-	mAllEnts->push_back(player);
-	XMStoreFloat4x4(&mAllEnts->at(0)->mRI->World, XMMatrixTranslation(0.0f, 7.0f, 0.0f));
+	auto tempPlayer = std::make_shared<RenderItem>();
+	XMStoreFloat4x4(&tempPlayer->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	tempPlayer->ObjCBIndex = (UINT)0;
+	tempPlayer->Mat = mMaterials["stone0"].get();
+	tempPlayer->Geo = geo;
+	tempPlayer->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	tempPlayer->IndexCount = tempPlayer->Geo->DrawArgs["box"].IndexCount;
+	tempPlayer->StartIndexLocation = tempPlayer->Geo->DrawArgs["box"].StartIndexLocation;
+	tempPlayer->BaseVertexLocation = tempPlayer->Geo->DrawArgs["box"].BaseVertexLocation;
+	auto tempPlayerGO = std::make_shared<GameObject>(mAllGObjs);
+	tempPlayerGO->mRI = tempPlayer;
+	mAllGObjs->push_back(tempPlayerGO);
+	mPlayer = std::make_shared<Player>(mAllGObjs->at(0));
+	mAllEnts->push_back(mPlayer);
+	XMStoreFloat4x4(&mAllEnts->at(0)->mRI->World, XMMatrixTranslation(0.0f, 30.0f, 0.0f));
 
-	//Walls
-	XMStoreFloat4x4(&mAllGObjs->at(2)->mRI->World, XMMatrixTranslation(3.0f, 0.0f, 0.0f));
-	XMStoreFloat4x4(&mAllGObjs->at(4)->mRI->World, XMMatrixTranslation(-3.0f, 0.0f, 0.0f));
-	XMStoreFloat4x4(&mAllGObjs->at(3)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, 5.0f));
-	XMStoreFloat4x4(&mAllGObjs->at(5)->mRI->World, XMMatrixTranslation(0.0f, 0.0f, -5.0f));
+	//Blocks
+	int cubeIndex = 1;
+	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
+	{
+		for (int worldY = 0; worldY < worldHeight; ++worldY)
+		{
+			for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
+			{
+				auto temp = std::make_shared<RenderItem>();
+				XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+				temp->ObjCBIndex = (UINT)cubeIndex;
+				temp->Mat = mMaterials["stone0"].get();
+				temp->Geo = geo;
+				temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+				temp->IndexCount = temp->Geo->DrawArgs["cube"].IndexCount;
+				temp->StartIndexLocation = temp->Geo->DrawArgs["cube"].StartIndexLocation;
+				temp->BaseVertexLocation = temp->Geo->DrawArgs["cube"].BaseVertexLocation;
+				auto tempGO = std::make_shared<Block>(mAllGObjs, temp);
+				tempGO->mRI = temp;
+				XMStoreFloat4x4(&tempGO->mRI->World, XMMatrixTranslation(1.0f * worldX, 1.0f * worldY, 1.0f * worldZ));
+				mAllBlocks->push_back(tempGO);
+				mAllGObjs->push_back(tempGO);
+
+				++cubeIndex;
+			}
+		}
+	}
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
 		mAllGObjs->at(i)->CreateBoundingBox();

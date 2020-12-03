@@ -6,10 +6,19 @@
 #include "GameData.h"
 #include "Collision.h"
 #include "Camera.h"
+//#include "CubeGame.h"
 
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+enum blockType {
+    type_Default = 0,
+    type_Grass,
+    type_Dirt,
+    type_Stone,
+    type_Wood,
+};
 
 struct RenderItem
 {
@@ -101,8 +110,20 @@ private:
     Camera mCamera;
 };
 
-class Block : protected GameObject {
-    int type;
+
+class Block : public GameObject {
+public:
+    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri);
+    Block(std::shared_ptr<GameObject> GObj);
+
+    void Init();
+    void activate(blockType newType);
+    void deactivate();
+    
+private:
+    const float blockDimension = 1.0f;
+    blockType type;
+    float worldCoord[3];
 };
 
 class Item : protected GameObject {
