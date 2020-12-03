@@ -5,8 +5,8 @@
 #include "CubeGame.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 100;
-const int worldHeight = 50;
+const int worldWidthLength = 20;
+const int worldHeight = 10;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
