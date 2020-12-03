@@ -73,19 +73,28 @@ bool CubeGame::Initialize()
     BuildRootSignature();
     BuildShadersAndInputLayout();
 
+	//Load the fonts
+	mUI.InitFont();
 	LoadTextures();
-	BuildDescriptorHeaps();
 
+	BuildDescriptorHeaps();
     BuildShapeGeometry();
 	BuildMaterials();
     BuildRenderItems();
     BuildFrameResources();
     BuildPSOs();
 
+	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
 	mPlayer->GetCam()->SetPosition(0.0f, 2.0f, -15.0f);
 
-	//SetString("ABCDE", {0, 0});
+	//Initialise the user interface
+	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
+	mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
+	mUI.UpdateRotation(0.0f, 0.0f, mPlayer->GetCam()->GetLook());
+	mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
+
+	mUI.SetString(mCommandList.Get(), "Hello", 0.0f, 0.0f);
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -101,7 +110,7 @@ bool CubeGame::Initialize()
 void CubeGame::LoadTextures() {
 	auto fontTex = std::make_unique<Texture>();
 	fontTex->Name = "font";
-	fontTex->Filename = fnt.filePath;
+	fontTex->Filename = mUI.GetFont()->filePath;
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
 		mCommandList.Get(), fontTex->Filename.c_str(),
 		fontTex->Resource, fontTex->UploadHeap));
@@ -140,8 +149,10 @@ void CubeGame::OnResize()
 
     // The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
-	if(mPlayer)
+	if (mPlayer) {
 		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+		mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
+	}
 }
 
 void CubeGame::Update(const GameTimer& gt)
@@ -168,6 +179,9 @@ void CubeGame::Update(const GameTimer& gt)
 		for (int i = 0; i < mAllEnts->size(); i++) {
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
+
+		// Should be put in the player VVV
+		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 	}
 
 
@@ -268,6 +282,8 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 
 		mPlayer->GetCam()->Pitch(dy);
 		mPlayer->GetCam()->RotateY(dx);
+		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
+
     }
 
     mLastMousePos.x = x;
@@ -465,7 +481,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
-	mShaders["transparentPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TransparentPS", "ps_5_1");
+	mShaders["UIPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "UIPS", "ps_5_1");
 	
     mInputLayout =
     {
@@ -481,7 +497,6 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
-
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
@@ -557,6 +572,7 @@ void CubeGame::BuildShapeGeometry()
 	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
 		mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
 
+
 	geo->VertexByteStride = sizeof(Vertex);
 	geo->VertexBufferByteSize = vbByteSize;
 	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
@@ -585,7 +601,7 @@ void CubeGame::BuildShapeGeometry()
 	std::vector<GeometryGenerator::MeshData>uiData;
 
 	//uiData.push_back(geoGen.CreateGrid(10.f, 10.f, 2, 2));
-	uiData.push_back(geoGen.CreateGrid(1.f, 1.f, 10, 10));
+	uiData.push_back(mUI.CreateUIPlane(1.f, 1.f, 10, 10));
 
 	auto ui = std::make_unique<MeshGeometry>();
 	ui->Name = "uiGeo";
@@ -593,6 +609,7 @@ void CubeGame::BuildShapeGeometry()
 
 	//Get the total number of vertices
 	size_t totalVertexCountu = 0;
+
 	for each (GeometryGenerator::MeshData md in uiData) {
 		totalVertexCountu += md.Vertices.size();
 	}
@@ -651,6 +668,7 @@ void CubeGame::BuildShapeGeometry()
 
 	ui->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
 		mCommandList.Get(), indicesu.data(), ibByteSizeu, ui->IndexBufferUploader);
+
 
 	ui->VertexByteStride = sizeof(Vertex);
 	ui->VertexBufferByteSize = vbByteSizeu;
@@ -737,8 +755,8 @@ void CubeGame::BuildPSOs()
 
 	transparentPsoDesc.PS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["transparentPS"]->GetBufferPointer()),
-		mShaders["transparentPS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mShaders["UIPS"]->GetBufferPointer()),
+		mShaders["UIPS"]->GetBufferSize()
 	};
 
 	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
@@ -871,7 +889,6 @@ void CubeGame::BuildRenderItems()
 		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllGObjs->at(i)->mRI);
 	}	
 
-
 	//UI---------------------------
 	auto ui = mGeometries["uiGeo"].get();
 
@@ -881,7 +898,7 @@ void CubeGame::BuildRenderItems()
 	for (std::pair<std::string, SubmeshGeometry> el : ui->DrawArgs) {
 		auto temp = std::make_shared<RenderItem>();
 		XMStoreFloat4x4(&temp->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
-		temp->ObjCBIndex = mAllGObjs->size() + j;
+		temp->ObjCBIndex = (UINT)mAllGObjs->size() + (UINT)j;
 		temp->Mat = mMaterials["stone0"].get();
 		temp->Geo = ui;
 		temp->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -923,10 +940,10 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
-        cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+        cmdList->SetGraphicsRootConstantBufferView((UINT)0, objCBAddress);
 
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex*matCBByteSize;
-		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView((UINT)1, matCBAddress);
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
@@ -944,7 +961,7 @@ void CubeGame::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std:
 	for (size_t i = 0; i < ritems.size(); ++i)
 	{
 		auto ri = ritems[i];
-
+		
 		cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
 		cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
