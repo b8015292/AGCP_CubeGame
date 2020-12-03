@@ -6,10 +6,51 @@
 #include "GameData.h"
 #include "Collision.h"
 #include "Camera.h"
+//#include "CubeGame.h"
 
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+enum blockType {
+    type_Default = 0,
+    type_Grass,
+    type_Dirt,
+    type_Stone,
+    type_Wood,
+};
+
+struct RenderItem
+{
+    RenderItem() = default;
+
+    // World matrix of the shape that describes the object's local space
+    // relative to the world space, which defines the position, orientation,
+    // and scale of the object in the world.
+    XMFLOAT4X4 World = MathHelper::Identity4x4();
+
+    XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+
+    // Dirty flag indicating the object data has changed and we need to update the constant buffer.
+    // Because we have an object cbuffer for each FrameResource, we have to apply the
+    // update to each FrameResource.  Thus, when we modify obect data we should set 
+    // NumFramesDirty = GameData.sNumFrameResources so that each frame resource gets the update.
+    int NumFramesDirty = gNumFrameResources;
+
+    // Index into GPU constant buffer corresponding to the ObjectCB for this render item.
+    UINT ObjCBIndex = -1;
+
+    Material* Mat = nullptr;
+    MeshGeometry* Geo = nullptr;
+
+    // Primitive topology.
+    D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    // DrawIndexedInstanced parameters.
+    UINT IndexCount = 0;
+    UINT StartIndexLocation = 0;
+    int BaseVertexLocation = 0;
+};
 
 class GameObject {
 public:
@@ -74,8 +115,20 @@ private:
     Camera mCamera;
 };
 
-class Block : protected GameObject {
-    int type;
+
+class Block : public GameObject {
+public:
+    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri);
+    Block(std::shared_ptr<GameObject> GObj);
+
+    void Init();
+    void activate(blockType newType);
+    void deactivate();
+    
+private:
+    const float blockDimension = 1.0f;
+    blockType type;
+    float worldCoord[3];
 };
 
 class Item : protected GameObject {

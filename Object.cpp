@@ -1,11 +1,12 @@
 #include "Object.h"
+#include <algorithm>
 
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
 
 GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : mRI() {
 	mAllGObjs = allGObjs;
-	if(mID == 0) mID = ++sMaxID;	//Incase a entity is being made from a preconstructed GObj
+	if(mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 
 }
 
@@ -39,7 +40,7 @@ Collision::ColCube GameObject::GetCoords() {
 	//Define constants
 	const UINT vertsPerObj = 24;
 	const UINT vertsNeeded = 8;
-	const UINT numbOfVerts = vertsPerObj * (UINT)(mAllGObjs->size());
+	const UINT numbOfVerts = vertsPerObj * (UINT)(mRI->Geo->DrawArgs.size());
 	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
 
 	//Where the verticies for this item start in the buffer
@@ -205,6 +206,27 @@ void Player::Update(const float dTime) {
 	}
 }
 
-void Player::TranslateCamera(float dTime, float x, float y, float z) {
-	
+Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri) : GameObject(allGObjs) {
+	mRI = ri;
+	Init();
+}
+
+Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
+	Init();
+}
+
+void Block::Init() {
+	mID = GameObject::mID;
+}
+
+void Block::activate(blockType newType)
+{
+	active = true;
+	type = newType;
+}
+
+void Block::deactivate()
+{
+	active = false;
+	type = type_Default;
 }
