@@ -933,7 +933,7 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
     // For each render item...
     for(size_t i = 0; i < ritems.size(); ++i)
     {
-		if (ritems[i]->active) {
+		//if (ritems[i]->GetActive()) {
 			auto ri = ritems[i];
 
 			cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
@@ -947,7 +947,7 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 			cmdList->SetGraphicsRootConstantBufferView((UINT)1, matCBAddress);
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
-		}
+		//}
 	}
 }
 
@@ -962,7 +962,7 @@ void CubeGame::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std:
 	// For each render item...
 	for (size_t i = 0; i < ritems.size(); ++i)
 	{
-		if (ritems[i]->active) {
+		//if (ritems[i]->active) {
 			auto ri = ritems[i];
 
 			cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
@@ -976,7 +976,7 @@ void CubeGame::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std:
 			cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
-		}
+		//}
 	}
 }
 
