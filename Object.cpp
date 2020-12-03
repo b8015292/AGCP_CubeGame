@@ -201,6 +201,10 @@ void Player::Update(const float dTime) {
 	}
 }
 
+void Player::TranslateCamera(float dTime, float x, float y, float z) {
+
+}
+
 Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri) : GameObject(allGObjs) {
 	mRI = ri;
 	Init();
