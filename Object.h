@@ -25,7 +25,6 @@ public:
     static int sMaxID;
 
     //Constructor & Initializer
-    GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     GameObject(std::shared_ptr<GameObject> gobj);
     ~GameObject();
@@ -61,7 +60,6 @@ class Entity : public GameObject {
 public:
 
     //Constructors
-    Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     Entity(std::shared_ptr<GameObject> gobj);
     ~Entity();
     void Init();
@@ -90,7 +88,6 @@ protected:
 
 class Player : public Entity {
 public:
-    Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     Player(std::shared_ptr<GameObject> gobj);
     ~Player();
 
@@ -106,7 +103,6 @@ private:
 
 class Block : public GameObject {
 public:
-    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri);
     Block(std::shared_ptr<GameObject> GObj);
     ~Block();
 

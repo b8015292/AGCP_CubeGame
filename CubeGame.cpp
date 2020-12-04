@@ -295,38 +295,23 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 {
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
 	
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->GetRI()->NumFramesDirty > 0) {
-			XMMATRIX world = XMLoadFloat4x4(&mAllGObjs->at(i)->GetRI()->World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&mAllGObjs->at(i)->GetRI()->TexTransform);
+	for (int j = 0; j < (int)RenderLayer::Count; j++) {
+		for (int i = 0; i < mRitemLayer[j].size(); i++) {
+			if (mRitemLayer[j].at(i)->NumFramesDirty > 0) {
+				XMMATRIX world = XMLoadFloat4x4(&mRitemLayer[j].at(i)->World);
+				XMMATRIX texTransform = XMLoadFloat4x4(&mRitemLayer[j].at(i)->TexTransform);
 
-			ObjectConstants objConstants;
-			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
+				ObjectConstants objConstants;
+				XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+				XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
 
-			currObjectCB->CopyData(mAllGObjs->at(i)->GetRI()->ObjCBIndex, objConstants);
+				currObjectCB->CopyData(mRitemLayer[j].at(i)->ObjCBIndex, objConstants);
 
-			// Next FrameResource need to be updated too.
-			mAllGObjs->at(i)->GetRI()->NumFramesDirty--;
+				// Next FrameResource need to be updated too.
+				mRitemLayer[j].at(i)->NumFramesDirty--;
+			}
 		}
 	}
-
-	for (int i = 0; i < mRitemLayer[(int)RenderLayer::Transparent].size(); i++) {
-		if (mRitemLayer[(int)RenderLayer::Transparent].at(i)->NumFramesDirty > 0) {
-			XMMATRIX world = XMLoadFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(i)->World);
-			XMMATRIX texTransform = XMLoadFloat4x4(&mRitemLayer[(int)RenderLayer::Transparent].at(i)->TexTransform);
-
-			ObjectConstants objConstants;
-			XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
-			XMStoreFloat4x4(&objConstants.TexTransform, XMMatrixTranspose(texTransform));
-
-			currObjectCB->CopyData(mRitemLayer[(int)RenderLayer::Transparent].at(i)->ObjCBIndex, objConstants);
-
-			// Next FrameResource need to be updated too.
-			mRitemLayer[(int)RenderLayer::Transparent].at(i)->NumFramesDirty--;
-		}
-	}
-
 }
 
 void CubeGame::UpdateMaterialCBs(const GameTimer& gt)
@@ -481,182 +466,92 @@ void CubeGame::BuildDescriptorHeaps() {
 
 void CubeGame::BuildShapeGeometry()
 {
-    GeometryGenerator geoGen;
+	GeometryGenerator geoGen;
 
-	//Create the mesh
-	std::vector<GeometryGenerator::MeshData> meshData;
-	//Create a name for each mesh
-	std::vector<std::string> meshNames;
+	const int numb = 2;
+	std::string geoHolderNames[numb] = { "shapeGeo", "uiGeo" };
+	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
+	std::vector<std::string> meshNames[numb];
 
-	meshData.push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
-	meshNames.push_back("player");
-	meshData.push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
-	meshNames.push_back("cube");
+	//Shape Geos
+	meshDatas[0].push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
+	meshNames[0].push_back("player");
+	meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
+	meshNames[0].push_back("cube");
 
+	//UI Geos
+	meshDatas[1].push_back(mUI.CreateUIPlane(1.f, 1.f, 10, 10));
+	meshNames[1].push_back("mainGUI");
 
-
-	//Get the total number of vertices
-	size_t totalVertexCount = 0;
-	for each (GeometryGenerator::MeshData md in meshData) {
-		totalVertexCount += md.Vertices.size();
-	}
-
-	//Get a vector of each vertex
-	std::vector<Vertex> vertices(totalVertexCount);
-	UINT k = 0;
-	for each (GeometryGenerator::MeshData md in meshData) {
-		for (size_t i = 0; i < md.Vertices.size(); ++i, ++k) {
-			vertices[k].Pos = md.Vertices[i].Position;
-			vertices[k].Normal = md.Vertices[i].Normal;
-			vertices[k].TexC = md.Vertices[i].TexC;
+	for (int md = 0; md < numb; md++) {
+		//Get the total number of vertices
+		size_t totalVertexCount = 0;
+		for each (GeometryGenerator::MeshData mds in meshDatas[md]) {
+			totalVertexCount += mds.Vertices.size();
 		}
-	}
 
-	//Get a vector of each index
-	std::vector<std::uint16_t> indices;
-	for each (GeometryGenerator::MeshData md in meshData) {
-		indices.insert(indices.end(), std::begin(md.GetIndices16()), std::end(md.GetIndices16()));
-	}
+		//Get a vector of each vertex
+		std::vector<Vertex> vertices(totalVertexCount);
+		UINT k = 0;
+		for each (GeometryGenerator::MeshData mds in meshDatas[md]) {
+			for (size_t i = 0; i < mds.Vertices.size(); ++i, ++k) {
+				vertices[k].Pos = mds.Vertices[i].Position;
+				vertices[k].Normal = mds.Vertices[i].Normal;
 
-	//Get the total byte size of each vector
-    const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
-    const UINT ibByteSize = (UINT)indices.size()  * sizeof(std::uint16_t);
+				if (md == 1) vertices[k].TexC = { 0.1f, 0.1f }; //UI transparent section
+				else vertices[k].TexC = mds.Vertices[i].TexC;
 
-	//Make a MeshGeometry to hold all the data
-	auto geo = std::make_unique<MeshGeometry>();
-	geo->Name = "shapeGeo";
-
-	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-	CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-	CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-	geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
-
-	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-
-	geo->VertexByteStride = sizeof(Vertex);
-	geo->VertexBufferByteSize = vbByteSize;
-	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
-	geo->IndexBufferByteSize = ibByteSize;
-
-
-	//Tell MeshGemotry the location of each mesh
-	UINT indexOffset = 0;
-	UINT vertexOffset = 0;
-	for (int i = 0; i < meshData.size(); i++) {
-		SubmeshGeometry temp;
-		temp.IndexCount = (UINT)meshData.at(i).Indices32.size();
-		temp.StartIndexLocation = indexOffset;
-		temp.BaseVertexLocation = vertexOffset;
-
-		geo->DrawArgs[meshNames.at(i)] = temp;
-
-		indexOffset += (UINT)meshData.at(i).Indices32.size();
-		vertexOffset += (UINT)meshData.at(i).Vertices.size();
-	}
-
-	mGeometries[geo->Name] = std::move(geo);
-
-
-	//UI stuff------------------------------------------------------------------
-	std::vector<GeometryGenerator::MeshData>uiData;
-
-	//uiData.push_back(geoGen.CreateGrid(10.f, 10.f, 2, 2));
-	uiData.push_back(mUI.CreateUIPlane(1.f, 1.f, 10, 10));
-
-	auto ui = std::make_unique<MeshGeometry>();
-	ui->Name = "uiGeo";
-
-
-	//Get the total number of vertices
-	size_t totalVertexCountu = 0;
-
-	for each (GeometryGenerator::MeshData md in uiData) {
-		totalVertexCountu += md.Vertices.size();
-	}
-
-	//Get a vector of each vertex
-	std::vector<Vertex> verticesu(totalVertexCountu);
-	UINT l = 0;
-	for each (GeometryGenerator::MeshData md in uiData) {
-		int rows = 9;
-		int cols = 3;
-		int row = 0;
-		int col = 0;
-		float r = (float)rows / 10.f;
-		float c = (float)cols / 10.f;
-
-		float val = 0.0001f;
-
-		for (size_t i = 0; i < md.Vertices.size(); ++i, ++l) {
-			verticesu[l].Pos = md.Vertices[i].Position;
-			verticesu[l].Normal = md.Vertices[i].Normal;
-
-			//verticesu[l].TexC = md.Vertices[i].TexC;
-			verticesu[l].TexC = { 0.1f, 0.1f };
-
-			//verticesu[l].TexC = { col * c, row * r };
-			
-			col += val;
-			if (c <= cols) {
-				col = 0;
-				row += val;
 			}
 		}
-		//verticesu[0].TexC = { 0.0f, 0.0f };
-		//verticesu[verticesu.size()-1].TexC = { 1.0f, 1.0f };
 
+		//Get a vector of each index
+		std::vector<std::uint16_t> indices;
+		for each (GeometryGenerator::MeshData mds in meshDatas[md]) {
+			indices.insert(indices.end(), std::begin(mds.GetIndices16()), std::end(mds.GetIndices16()));
+		}
+
+		//Get the total byte size of each vector
+		const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+		const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+		//Make a MeshGeometry to hold all the data
+		auto geo = std::make_unique<MeshGeometry>();
+		geo->Name = geoHolderNames[md];
+
+		ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
+		CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+
+		ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
+		CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+
+		geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+			mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
+
+		geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+			mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
+
+		geo->VertexByteStride = sizeof(Vertex);
+		geo->VertexBufferByteSize = vbByteSize;
+		geo->IndexFormat = DXGI_FORMAT_R16_UINT;
+		geo->IndexBufferByteSize = ibByteSize;
+
+		//Tell MeshGemotry the location of each mesh
+		UINT indexOffset = 0;
+		UINT vertexOffset = 0;
+		for (int i = 0; i < meshDatas[md].size(); i++) {
+			SubmeshGeometry temp;
+			temp.IndexCount = (UINT)meshDatas[md].at(i).Indices32.size();
+			temp.StartIndexLocation = indexOffset;
+			temp.BaseVertexLocation = vertexOffset;
+
+			geo->DrawArgs[meshNames[md].at(i)] = temp;
+
+			indexOffset += (UINT)meshDatas[md].at(i).Indices32.size();
+			vertexOffset += (UINT)meshDatas[md].at(i).Vertices.size();
+		}
+
+		mGeometries[geo->Name] = std::move(geo);
 	}
-
-	//Get a vector of each index
-	std::vector<std::uint16_t> indicesu;
-	for each (GeometryGenerator::MeshData md in uiData) {
-		indicesu.insert(indicesu.end(), std::begin(md.GetIndices16()), std::end(md.GetIndices16()));
-	}
-
-	//Get the total byte size of each vector
-	const UINT vbByteSizeu = (UINT)verticesu.size() * sizeof(Vertex);
-	const UINT ibByteSizeu = (UINT)indicesu.size() * sizeof(std::uint16_t);
-
-	ThrowIfFailed(D3DCreateBlob(vbByteSizeu, &ui->VertexBufferCPU));
-	CopyMemory(ui->VertexBufferCPU->GetBufferPointer(), verticesu.data(), vbByteSizeu);
-
-	ThrowIfFailed(D3DCreateBlob(ibByteSizeu, &ui->IndexBufferCPU));
-	CopyMemory(ui->IndexBufferCPU->GetBufferPointer(), indicesu.data(), ibByteSizeu);
-
-	ui->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), verticesu.data(), vbByteSizeu, ui->VertexBufferUploader);
-
-	ui->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indicesu.data(), ibByteSizeu, ui->IndexBufferUploader);
-
-
-	ui->VertexByteStride = sizeof(Vertex);
-	ui->VertexBufferByteSize = vbByteSizeu;
-	ui->IndexFormat = DXGI_FORMAT_R16_UINT;
-	ui->IndexBufferByteSize = ibByteSizeu;
-
-	//Tell MeshGemotry the location of each mesh
-	UINT indexOffsetu = 0;
-	UINT vertexOffsetu = 0;
-	for (int i = 0; i < uiData.size(); i++) {
-		SubmeshGeometry temp;
-		temp.IndexCount = (UINT)uiData.at(i).Indices32.size();
-		temp.StartIndexLocation = indexOffsetu;
-		temp.BaseVertexLocation = vertexOffsetu;
-
-		ui->DrawArgs["ui" + std::to_string(i)] = temp;
-
-		indexOffsetu += (UINT)uiData.at(i).Indices32.size();
-		vertexOffsetu += (UINT)uiData.at(i).Vertices.size();
-	}
-
-	mGeometries[ui->Name] = std::move(ui);
 }
 
 void CubeGame::BuildPSOs()
@@ -788,6 +683,7 @@ void CubeGame::BuildRenderItems()
 	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(mAllGObjs->at(0));						//Make the Player
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(playerRI);					//Add the players render item to the opaque list
 
 	//Blocks
 	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
@@ -797,21 +693,15 @@ void CubeGame::BuildRenderItems()
 			for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
 			{
 				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["stone0"].get(), XMMatrixTranslation(1.0f * worldX, 1.0f * worldY, 1.0f * worldZ));
-				auto tempGO = std::make_shared<Block>(mAllGObjs, temp);
-				mAllBlocks->push_back(tempGO);
+				auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
 				mAllGObjs->push_back(tempGO);
+				mAllBlocks->push_back(std::make_shared<Block>(tempGO));
+
+				//Add the blocks render item to the opaque items list
+				mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
 			}
 		}
 	}
-
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		mAllGObjs->at(i)->CreateBoundingBox();
-	}
-
-	// All the render items are opaque.
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllGObjs->at(i)->GetRI());
-	}	
 
 	//UI---------------------------
 	auto ui = mGeometries["uiGeo"].get();

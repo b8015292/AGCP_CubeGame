@@ -8,17 +8,17 @@ int GameObject::sMaxID = 0;
 // GameObject
 //************************************************************************************************************
 
-GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : mRI() {
-	mAllGObjs = allGObjs;
-	if(mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
-
-}
-
 GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) {
 	mAllGObjs = allGObjs;
 	mRI = rI;
 
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+
+	CreateBoundingBox();
+}
+
+GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
+	*this = *gobj;
 }
 
 GameObject::~GameObject() {
@@ -44,9 +44,7 @@ void GameObject::CreateBoundingBox() {
 	mBoundingBox = box;
 }
 
-GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
-	*this = *gobj;
-}
+
 
 void GameObject::SetActive(bool val) {
 	mActive = val;
@@ -109,10 +107,6 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 //************************************************************************************************************
 // Entity
 //************************************************************************************************************
-
-Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
-	Init();
-}
 
 Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
@@ -210,9 +204,6 @@ bool Entity::IsPointColliding(const XMFLOAT3 point) {
 // Player
 //************************************************************************************************************
 
-Player::Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : Entity(allGObjs) {
-
-}
 Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
 }
@@ -255,11 +246,6 @@ void Player::TranslateCamera(float dTime, float x, float y, float z) {
 //************************************************************************************************************
 // Block
 //************************************************************************************************************
-
-Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri) : GameObject(allGObjs) {
-	mRI = ri;
-	Init();
-}
 
 Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
