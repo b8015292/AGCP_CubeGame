@@ -10,6 +10,12 @@ GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>>
 
 }
 
+GameObject::~GameObject() {
+	--sMaxID;					//For degbugging
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
 void GameObject::CreateBoundingBox() {
 	Collision::ColCube coords = GetCoords();
 
@@ -32,7 +38,7 @@ GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
 }
 
 void GameObject::SetActive(bool val) {
-	active = val;
+	mActive = val;
 	mRI->active = val;
 }
 
@@ -97,6 +103,11 @@ Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
+Entity::~Entity() {
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
 void Entity::Init() {
 	mID = GameObject::mID;
 	mVel = { 0, 0, 0 };
@@ -112,7 +123,7 @@ void Entity::Update(const float dTime) {
 
 	mColPoints = GetAllCollisionPoints(nextCoords);
 
-	if (applyGravity) {
+	if (mApplyGravity) {
 		if (mColPoints.AnyBottom()) {
 			mVel.y = 0.0f;
 		}
@@ -142,7 +153,7 @@ std::vector<int> Entity::CheckAllCollisions(Collision::ColCube thisCube) {
 	std::vector<int> ret;
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->mID != mID) {
+		if (mAllGObjs->at(i)->GetID() != mID) {
 			if (Collision::CheckCollisions(thisCube, mAllGObjs->at(i)->GetCoords())) {
 				ret.push_back(i);
 			}
@@ -156,7 +167,7 @@ Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinate
 	Collision::ColPoints ret;
 
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->GetActive() && mAllGObjs->at(i)->mID != mID) {
+		if (mAllGObjs->at(i)->GetActive() && mAllGObjs->at(i)->GetID() != mID) {
 			ret += Collision::CheckCollisionPoints(coordinates, mAllGObjs->at(i)->GetCoords());
 		}
 	}
@@ -179,6 +190,11 @@ Player::Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObj
 Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
 }
+Player::~Player() {
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
 void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 
@@ -188,7 +204,7 @@ void Player::Update(const float dTime) {
 
 	mColPoints = GetAllCollisionPoints(nextCoords);
 
-	if (applyGravity) {
+	if (mApplyGravity) {
 		if (mColPoints.AnyBottom()) {
 			mVel.y = 0.0f;
 		}
@@ -217,6 +233,11 @@ Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs,
 
 Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
+}
+
+Block::~Block() {
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void Block::Init() {

@@ -5,8 +5,8 @@
 #include "CubeGame.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 20;
-const int worldHeight = 10;
+const int worldWidthLength = 1;
+const int worldHeight = 1;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
@@ -40,16 +40,31 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 CubeGame::~CubeGame()
 {
 	//Because each gameobject points to the list of gameobjects, there's an infinate loop of pointing.
-	//To prevent a data leak, the pointers a manually destroyed
-	for (int i = 0; i < mAllEnts->size(); i++) {
-		mAllEnts->at(i).~shared_ptr(); 
-	}
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		mAllGObjs->at(i).~shared_ptr();
-	}
+	//To prevent a data leak, the pointers a manually destroyed 
+	// --This was overcome by adding deconstructors to each class
+
+	//mPlayer->~Player();
+	//mPlayer.~shared_ptr();
+	//mUI.~UI();
+
+	//for (int i = mAllEnts->size() - 1; i >= 0; i--) {
+	//	mAllEnts->at(i)->~Entity();
+	//	mAllEnts->pop_back();
+	//}
+	//for (int i = mAllBlocks->size() - 1; i >= 0; i--) {
+	//	mAllBlocks->at(i)->~Block();
+	//	mAllBlocks->pop_back();
+	//}
+	//mAllEnts.~shared_ptr();
+	//mAllBlocks.~shared_ptr();
+	//mAllGObjs.~shared_ptr();
+
+
+	
 
     if(md3dDevice != nullptr)
         FlushCommandQueue();
+
 }
 
 bool CubeGame::Initialize()
@@ -61,7 +76,6 @@ bool CubeGame::Initialize()
 	mAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 	mAllEnts = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
 	mAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
-	InitFont();
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -116,31 +130,6 @@ void CubeGame::LoadTextures() {
 		fontTex->Resource, fontTex->UploadHeap));
 
 	mTextures[fontTex->Name] = std::move(fontTex);
-}
-
-void CubeGame::InitFont() {
-	fnt.filePath = L"data/font.dds";
-	float w = 1.f / 110.f;
-	float h = 1.f / 120.f;
-
-	int rows = 3;
-	int cols = 9;
-	int row = 0;
-	int col = 0;
-
-	//Capitals
-	for (int i = 65; i <= 65 + 25; i++) {
-		char c = (char)i;
-
-		Font::myChar temp(col * w, row * h, w, h);
-		fnt.chars[c] = temp;
-		
-		col++;
-		if (col >= cols) {
-			col = 0;
-			row++;
-		}
-	}
 }
 
 void CubeGame::OnResize()
@@ -1035,36 +1024,4 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
 		pointWrap, pointClamp,
 		linearWrap, linearClamp,
 		anisotropicWrap, anisotropicClamp };
-}
-
-void CubeGame::SetString(std::string str, XMFLOAT2 pos) {
-	//Get the UI plane render item
-	auto ui = mRitemLayer[(int)RenderLayer::Transparent].at(0);
-
-	//Define constants
-	const UINT vertsPerObj = 10 * 10;
-	const UINT numbOfVerts = vertsPerObj * (UINT)(mAllGObjs->size());
-	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
-
-	//Where the verticies for this item start in the buffer
-	const int vertStart = ui->BaseVertexLocation;
-
-	//A pointer to the buffer of vertices
-	ComPtr<ID3DBlob> verticesBlob = ui->Geo->VertexBufferCPU;
-
-	//Move the data from the buffer onto a vector we can view/manipulate
-	std::vector<Vertex> vs(numbOfVerts);
-	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
-
-	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
-	int i = 0;
-	for each (char c in str) {
-		vs.at(i).TexC = { fnt.chars[c].width, fnt.chars[c].height };
-		i++;
-	}
-
-	CopyMemory(verticesBlob->GetBufferPointer(), vs.data(), vbByteSize);
-
-	//Make sure the render item is updated in the constant buffer
-	ui->NumFramesDirty += 3;
 }

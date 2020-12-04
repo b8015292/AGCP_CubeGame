@@ -56,11 +56,6 @@ private:
     void LoadTextures();
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
-    void InitFont();
-    void SetString(std::string str, XMFLOAT2 pos);
-    //GeometryGenerator::MeshData CreateUIPlane(float width, float depth, int m, int n);
-    //void UpdateUIPos();
-
 private:
 
     enum class RenderLayer : int
@@ -112,7 +107,7 @@ private:
 
     POINT mLastMousePos;
 
-    Camera mCamera;
+    //Camera mCamera;
     std::shared_ptr<Player> mPlayer;
     UI mUI;
 

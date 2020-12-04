@@ -21,6 +21,7 @@ public:
 	void SetRenderItem(std::shared_ptr<RenderItem> ri);
 	void InitFont();
 	GeometryGenerator::MeshData CreateUIPlane(float width, float depth, int oM, int oN);
+	~UI();
 
 	void UpdateUIPos(DirectX::XMVECTOR camPos);
 	void UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight);

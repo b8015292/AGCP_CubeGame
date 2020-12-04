@@ -27,24 +27,35 @@ public:
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
 
     static int sMaxID;
-    int mID = 0;
 
 
-    bool applyGravity = true;
 
-    BoundingBox boundingBox;
+
+    BoundingBox boundingBox;    //Contains the center point and the size
     
-    //Functions
+    //Constructor & Initializer
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     GameObject(std::shared_ptr<GameObject> gobj);
-    Collision::ColCube GetCoords();
-    void Translate(const float dTime, float x, float y, float z);
+    ~GameObject();
     void CreateBoundingBox();
-    bool GetActive() { return active; };
+
+    //Getters and Setters
+    bool GetActive() { return mActive; };
     void SetActive(bool val);
+    int GetID() { return mID; };
+    bool GetApplyGravity() { return mApplyGravity; }
+    Collision::ColCube GetCoords();
+
+    //Mutators
+    void Translate(const float dTime, float x, float y, float z);
+
+protected:
+    int mID = 0;
+    bool mApplyGravity = true;
 
 private:
-    bool active = true;
+    bool mActive = true;
+
 };
 
 class Entity : public GameObject {
@@ -57,22 +68,22 @@ public:
 
     Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     Entity(std::shared_ptr<GameObject> gobj);
+    ~Entity();
     void Init();
+
     virtual void Update(const float dTime);
     std::vector<int> CheckAllCollisions(Collision::ColCube thisCube);
     Collision::ColPoints GetAllCollisionPoints(Collision::ColCube coordinates);
     bool IsPointColliding(const XMFLOAT3 point);
 
     void AddVelocity(float x, float y, float z);
-
-    bool temp = true;
-
 };
 
 class Player : public Entity {
 public:
     Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     Player(std::shared_ptr<GameObject> gobj);
+    ~Player();
 
     void Update(const float dTime) override;
     void TranslateCamera(float dTime, float x, float y, float z);
@@ -88,6 +99,7 @@ class Block : public GameObject {
 public:
     Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri);
     Block(std::shared_ptr<GameObject> GObj);
+    ~Block();
 
     void Init();
     void activate(blockType newType);

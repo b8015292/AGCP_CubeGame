@@ -1,5 +1,9 @@
 #include "UI.h"
 
+UI::~UI() {
+	mRI.~shared_ptr();
+}
+
 void UI::SetRenderItem(std::shared_ptr<RenderItem> ri) {
 	mRI = ri;
 }
