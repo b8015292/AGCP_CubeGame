@@ -4,10 +4,21 @@
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
 
+//************************************************************************************************************
+// GameObject
+//************************************************************************************************************
+
 GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : mRI() {
 	mAllGObjs = allGObjs;
 	if(mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 
+}
+
+GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) {
+	mAllGObjs = allGObjs;
+	mRI = rI;
+
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 
 GameObject::~GameObject() {
@@ -30,7 +41,7 @@ void GameObject::CreateBoundingBox() {
 	XMFLOAT3 extents = { xDist / 2, yDist / 2, zDist / 2 };
 
 	BoundingBox box = BoundingBox(origin, extents);
-	boundingBox = box;
+	mBoundingBox = box;
 }
 
 GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
@@ -92,8 +103,12 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 	mRI->NumFramesDirty++;
-	boundingBox.Center = { boundingBox.Center.x + x, boundingBox.Center.y + y,  boundingBox.Center.z + z };
+	mBoundingBox.Center = { mBoundingBox.Center.x + x, mBoundingBox.Center.y + y,  mBoundingBox.Center.z + z };
 }
+
+//************************************************************************************************************
+// Entity
+//************************************************************************************************************
 
 Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
 	Init();
@@ -149,6 +164,13 @@ void Entity::AddVelocity(float x, float y, float z) {
 	}
 }
 
+void Entity::SetVelocity(XMFLOAT3 newVel) {
+	mVel = newVel;
+}
+void Entity::SetMaxVelocity(XMFLOAT3 newMaxVel) {
+	mMaxVel = newMaxVel;
+}
+
 std::vector<int> Entity::CheckAllCollisions(Collision::ColCube thisCube) {
 	std::vector<int> ret;
 
@@ -183,6 +205,10 @@ bool Entity::IsPointColliding(const XMFLOAT3 point) {
 
 	return false;
 }
+
+//************************************************************************************************************
+// Player
+//************************************************************************************************************
 
 Player::Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : Entity(allGObjs) {
 
@@ -225,6 +251,10 @@ void Player::Update(const float dTime) {
 void Player::TranslateCamera(float dTime, float x, float y, float z) {
 
 }
+
+//************************************************************************************************************
+// Block
+//************************************************************************************************************
 
 Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> ri) : GameObject(allGObjs) {
 	mRI = ri;

@@ -16,9 +16,13 @@ public:
     static void StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMFLOAT4X4 source);
 };
 
-struct RenderItem
+class RenderItem
 {
+public:
+    static int sCBIndex;
+
     RenderItem() = default;
+    RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
 
     bool active = true;
 
@@ -40,6 +44,7 @@ struct RenderItem
 
     Material* Mat = nullptr;
     MeshGeometry* Geo = nullptr;
+    std::string MeshName = "";
 
     // Primitive topology.
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

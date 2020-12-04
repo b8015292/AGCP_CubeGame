@@ -15,7 +15,7 @@ bool Collision::Within(const ColCube cube, const XMFLOAT3 point) {
 }
 
 bool Collision::CheckCollisions(const ColCube a, const ColCube b) {
-	
+
 	for each (XMFLOAT3 f3 in a.list) {
 		if (Within(b, f3)) {
 			return true;
@@ -23,6 +23,9 @@ bool Collision::CheckCollisions(const ColCube a, const ColCube b) {
 	}
 
 	return false;
+
+
+	
 }
 
 void Collision::ColCube::Translate(XMFLOAT3 move) {
