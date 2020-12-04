@@ -28,10 +28,10 @@ GameObject::~GameObject() {
 }
 
 void GameObject::CreateBoundingBox() {
-	Collision::ColCube coords = GetCoords();
+	std::array<XMFLOAT3, 8> coords = GetCoords();
 
-	XMFLOAT3 topFrontRight = coords.list[Collision::EPos::tfr];
-	XMFLOAT3 backBottomLeft = coords.list[Collision::EPos::bbl];
+	XMFLOAT3 topFrontRight = coords[EPos::tfr];
+	XMFLOAT3 backBottomLeft = coords[EPos::bbl];
 
 	float xDist = topFrontRight.x - backBottomLeft.x;
 	float yDist = topFrontRight.y - backBottomLeft.y;
@@ -51,7 +51,7 @@ void GameObject::SetActive(bool val) {
 	mRI->active = val;
 }
 
-Collision::ColCube GameObject::GetCoords() {
+std::array<XMFLOAT3, 8> GameObject::GetCoords() {
 	//Define constants
 	const UINT vertsPerObj = 24;
 	const UINT vertsNeeded = 8;
@@ -82,7 +82,8 @@ Collision::ColCube GameObject::GetCoords() {
 	}
 
 	////Store all the proper positions in a struct
-	Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
+	//Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
+	std::array<XMFLOAT3, 8> c = { vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos };
 
 	return c;
 }
@@ -101,7 +102,9 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 	mRI->NumFramesDirty++;
-	mBoundingBox.Center = { mBoundingBox.Center.x + x, mBoundingBox.Center.y + y,  mBoundingBox.Center.z + z };
+
+	//Translate the bounding box
+	mBoundingBox.Transform(mBoundingBox, translateMatrix);
 }
 
 //************************************************************************************************************
@@ -126,19 +129,13 @@ void Entity::Init() {
 void Entity::Update(const float dTime) {
 	if (!GetActive()) return;
 
-	Collision::ColCube coords = GetCoords();
-	Collision::ColCube nextCoords = coords;
-	nextCoords.Translate({ mVel.x * dTime, mVel.y * dTime, mVel.z * dTime });
-
-	mColPoints = GetAllCollisionPoints(nextCoords);
-
 	if (mApplyGravity) {
-		if (mColPoints.AnyBottom()) {
+		/*if (mColPoints.AnyBottom()) {
 			mVel.y = 0.0f;
 		}
 		else {
 			AddVelocity(0, GameData::sGrav / 10.f, 0);
-		}
+		}*/
 	}
 
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
@@ -165,38 +162,22 @@ void Entity::SetMaxVelocity(XMFLOAT3 newMaxVel) {
 	mMaxVel = newMaxVel;
 }
 
-std::vector<int> Entity::CheckAllCollisions(Collision::ColCube thisCube) {
-	std::vector<int> ret;
-
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->GetID() != mID) {
-			if (Collision::CheckCollisions(thisCube, mAllGObjs->at(i)->GetCoords())) {
-				ret.push_back(i);
-			}
+std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
+	std::vector<int> collisionIndexs;
+	for (int i = 0; i < mAllGObjs->size(); i++){
+		if (nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+			collisionIndexs.push_back(i);
 		}
 	}
-
-	return ret;
+	return collisionIndexs;
 }
 
-Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinates) {
-	Collision::ColPoints ret;
-
+bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->GetActive() && mAllGObjs->at(i)->GetID() != mID) {
-			ret += Collision::CheckCollisionPoints(coordinates, mAllGObjs->at(i)->GetCoords());
+		if (mID != mAllGObjs->at(i)->GetID() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+			return true;
 		}
 	}
-
-	return ret;
-}
-
-bool Entity::IsPointColliding(const XMFLOAT3 point) {
-
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if(Collision::Within(mAllGObjs->at(i)->GetCoords(), point)) return true;
-	}
-
 	return false;
 }
 
@@ -215,19 +196,17 @@ Player::~Player() {
 void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 
-	Collision::ColCube coords = GetCoords();
-	Collision::ColCube nextCoords = coords;
-	nextCoords.Translate({ mVel.x * dTime, mVel.y * dTime, mVel.z * dTime });
+	//Create a bounding box in the next location
+	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(mVel.x * dTime, mVel.y * dTime, mVel.z * dTime);
+	BoundingBox nextBox;
+	mBoundingBox.Transform(nextBox, translate);
 
-	mColPoints = GetAllCollisionPoints(nextCoords);
-
-	if (mApplyGravity) {
-		if (mColPoints.AnyBottom()) {
-			mVel.y = 0.0f;
-		}
-		else {
-			AddVelocity(0, GameData::sGrav / 10.f, 0);
-		}
+	//Check if the next location is colliding
+	if (CheckIfCollidingAtBox(nextBox)) {
+		mVel.y = 0.0f;
+	}
+	else {
+		AddVelocity(0, GameData::sGrav / 10.f, 0);
 	}
 
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {

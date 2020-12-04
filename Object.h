@@ -4,13 +4,13 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
-#include "Collision.h"
 #include "Camera.h"
-//#include "CubeGame.h"
 
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
+
+enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8 };
 
 enum blockType {
     type_Default = 0,
@@ -35,7 +35,7 @@ public:
     void SetActive(bool val);
     int GetID() { return mID; };
     bool GetApplyGravity() { return mApplyGravity; }
-    Collision::ColCube GetCoords();
+    std::array<XMFLOAT3, 8> GetCoords();
     BoundingBox GetBoundingBox() { return mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };
 
@@ -74,16 +74,15 @@ public:
     //Mutators
     virtual void Update(const float dTime);
 
-    std::vector<int> CheckAllCollisions(Collision::ColCube thisCube);
-    Collision::ColPoints GetAllCollisionPoints(Collision::ColCube coordinates);
-    bool IsPointColliding(const XMFLOAT3 point);
+    //Collision Checks
+    std::vector<int> CheckAllCollisionsAtBox(BoundingBox nextPos);
+    bool CheckIfCollidingAtBox(BoundingBox nextPos);
 
 protected:
     XMFLOAT3 mVel;
     XMFLOAT3 mMaxVel;
 
     bool mOnGround = false;
-    Collision::ColPoints mColPoints;
 };
 
 class Player : public Entity {
