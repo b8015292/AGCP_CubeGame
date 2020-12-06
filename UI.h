@@ -25,7 +25,7 @@ public:
 
 	void UpdateUIPos(DirectX::XMVECTOR camPos);
 	void UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight);
-	void UpdateRotation(float rotX, float rotY, DirectX::XMVECTOR);
+	void UpdateRotation(float rotX, float rotY, DirectX::XMVECTOR look);
 
 	void SetChar(char character, int position, std::vector<Vertex>& vertices);
 	void SetString(ID3D12GraphicsCommandList* cmdList, std::string str, float posX, float posY);
@@ -39,11 +39,11 @@ private:
 	int mSizeX = 0;
 	int mSizeZ = 0; //Y
 
-	float mWindowWidth = 0;
-	float mWindowHeight = 0;
-	float mRotationX = 0;
-	float mRotationY = 0;
-	DirectX::XMVECTOR mLook = { 0, 0, 1.f };
+	const float mScaleVal = 1.15f;
+	const float mRotToPlayer = -1.57079633f;	//-90 degrees
+	DirectX::XMMATRIX mScale = DirectX::XMMatrixIdentity();
+	DirectX::XMMATRIX mRotation = DirectX::XMMatrixIdentity();
+	DirectX::XMVECTOR mLook = { 0, 0, 0 };
 
 	std::shared_ptr<RenderItem> mRI;
 };

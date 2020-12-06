@@ -107,6 +107,16 @@ void CubeGame::LoadTextures() {
 		fontTex->Resource, fontTex->UploadHeap));
 
 	mTextures[fontTex->Name] = std::move(fontTex);
+
+	auto blockTex = std::make_unique<Texture>();
+	blockTex->Name = "blocks";
+	blockTex->Filename = L"data/blockMap.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), blockTex->Filename.c_str(),
+		blockTex->Resource, blockTex->UploadHeap));
+
+	mTextures[blockTex->Name] = std::move(blockTex);
+
 }
 
 void CubeGame::OnResize()
@@ -444,7 +454,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 void CubeGame::BuildDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 1;
+	srvHeapDesc.NumDescriptors = 2;	//Number of textures
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -461,7 +471,17 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvDesc.Texture2D.MipLevels = fontTex->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	md3dDevice->CreateShaderResourceView(fontTex.Get(), &srvDesc, hDescriptor);
-	//hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	auto blockTex = mTextures["blocks"]->Resource;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = blockTex->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = blockTex->GetDesc().MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	md3dDevice->CreateShaderResourceView(blockTex.Get(), &srvDesc, hDescriptor);
 }
 
 void CubeGame::BuildShapeGeometry()
