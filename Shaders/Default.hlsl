@@ -43,6 +43,8 @@ cbuffer cbMaterial : register(b1)
     float3 gFresnelR0;
     float  gRoughness;
 	float4x4 gMatTransform;
+	float4x4 gMatTransformTop;
+	float4x4 gMatTransformBottom;
 };
 
 // Constant data that varies per material.
@@ -84,12 +86,13 @@ struct VertexOut
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
     float2 TexC    : TEXCOORD;
+    int Side       : SIDE;
 };
 
 VertexOut VS(VertexIn vin)
 {
 	VertexOut vout = (VertexOut)0.0f;
-	
+
     // Transform to world space.
     float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
     vout.PosW = posW.xyz;
@@ -102,12 +105,31 @@ VertexOut VS(VertexIn vin)
 
     vout.TexC = vin.TexC;
 
+    //Determine the side of the current face. 1 - top, -1 - bottom, 0 - other
+    if (vin.NormalL.y == 1) {
+        vout.Side = 1;
+    }
+    else if (vin.NormalL.y == -1) {
+        vout.Side = -1;
+    }
+    else {
+        vout.Side = 0;
+    }
+
     return vout;
 }
 
 float4 PS(VertexOut pin) : SV_Target
 {
-    float2 mulPos = mul(float4(pin.TexC, 1, 1), gMatTransform);
+    //Uses different texture positions for different faces
+    float2 mulPos;
+    if(pin.Side == 1)
+        mulPos = mul(float4(pin.TexC, 1, 1), gMatTransformTop);
+    else if (pin.Side == -1)
+        mulPos = mul(float4(pin.TexC, 1, 1), gMatTransformBottom);
+    else 
+        mulPos = mul(float4(pin.TexC, 1, 1), gMatTransform);
+
     float4 col = gDiffuseMap.Sample(gsamPointClamp, mulPos);
 
     // Interpolating normal can unnormalize it, so renormalize it.
@@ -121,7 +143,7 @@ float4 PS(VertexOut pin) : SV_Target
 
     //const float shininess = 1.0f - gRoughness;
     const float shininess = 0.0f;
-    Material mat = { gDiffuseAlbedo, gFresnelR0, shininess };
+    Material mat = { col, gFresnelR0, shininess };
     float3 shadowFactor = 1.0f;
     float4 directLight = ComputeLighting(gLights, mat, pin.PosW, 
         pin.NormalW, toEyeW, shadowFactor);

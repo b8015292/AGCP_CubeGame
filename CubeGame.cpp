@@ -359,12 +359,16 @@ void CubeGame::UpdateMaterialCBs(const GameTimer& gt)
 		if(mat->NumFramesDirty > 0)
 		{
 			XMMATRIX matTransform = XMLoadFloat4x4(&mat->MatTransform);
+			XMMATRIX matTransformTop = XMLoadFloat4x4(&mat->MatTransformTop);
+			XMMATRIX matTransformBottom = XMLoadFloat4x4(&mat->MatTransformBottom);
 
 			MaterialConstants matConstants;
 			matConstants.DiffuseAlbedo = mat->DiffuseAlbedo;
 			matConstants.FresnelR0 = mat->FresnelR0;
 			matConstants.Roughness = mat->Roughness;
 			XMStoreFloat4x4(&matConstants.MatTransform, XMMatrixTranspose(matTransform));
+			XMStoreFloat4x4(&matConstants.MatTransformTop, XMMatrixTranspose(matTransformTop));
+			XMStoreFloat4x4(&matConstants.MatTransformBottom, XMMatrixTranspose(matTransformBottom));
 
 			currMaterialCB->CopyData(mat->MatCBIndex, matConstants);
 
@@ -537,7 +541,8 @@ void CubeGame::BuildShapeGeometry()
 		//Get a vector of each vertex
 		std::vector<Vertex> vertices(totalVertexCount);
 		UINT k = 0;
-		int x = 3;
+		int vert = 0;
+		int face = 0;
 		const float width = mBlockTexturePositions["dirt"].x;
 		for each (GeometryGenerator::MeshData mds in meshDatas[md]) {
 			for (size_t i = 0; i < mds.Vertices.size(); ++i, ++k) {
@@ -546,17 +551,36 @@ void CubeGame::BuildShapeGeometry()
 
 				if (md == 1) vertices[k].TexC = { 0.1f, 0.1f }; //UI transparent section
 				else { //Block coords
-					if (x == 0)
-						vertices[k].TexC = { 0.f, 0.f };
-					else if (x == 1)
-						vertices[k].TexC = { width, 0.f };
-					else if (x == 2)
-						vertices[k].TexC = { width, 1.f };
-					else 
-						vertices[k].TexC = { 0.f, 1.f };
+					//Face: 0 - camSide, 1 - back, 2 - top, 3 - bottom, 4 - left, 5 - right
+					if (face != 1) {
+						//Sets the texture coordinates of each vertex in a face
+						if (vert == 0)
+							vertices[k].TexC = { 0.f, 1.f };
+						else if (vert == 1)
+							vertices[k].TexC = { 0.f, 0.f };
+						else if (vert == 2)
+							vertices[k].TexC = { width, 0.f };
+						else
+							vertices[k].TexC = { width, 1.f };
+					}
+					else {	//Because the backside's verticies are in clockwise, they are set differently
+						if (vert == 1)
+							vertices[k].TexC = { 0.f, 1.f };
+						else if (vert == 2)
+							vertices[k].TexC = { 0.f, 0.f };
+						else if (vert == 3)
+							vertices[k].TexC = { width, 0.f };
+						else
+							vertices[k].TexC = { width, 1.f };
+					}
 
-					x++;
-					if (x >= 4) x = 0;
+					vert++;
+					if (vert >= 4) {
+						vert = 0;
+						face++;
+						if (face >= 6) face = 0;
+					}
+					
 				}
 			}
 		}
@@ -697,8 +721,7 @@ void CubeGame::BuildMaterials()
 
 	CreateMaterial("player", 1, DirectX::Colors::Black, { 0,0 });
 	CreateMaterial("dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
-	CreateMaterial("grassSide", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 });
-	CreateMaterial("grass", 1, { 0.1466f, 0.6f, 0.1555f, 1.f}, { x * 3.f,0 });
+	CreateMaterial("grass", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 }, { x * 3.f,0 }, { x,0 });
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -710,8 +733,16 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 	mat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
 	mat->Roughness = 0.2f;
 	DirectX::XMStoreFloat4x4(&mat->MatTransform, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
+	//DirectX::XMStoreFloat4x4(&mat->MatTransformTop, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
+	//DirectX::XMStoreFloat4x4(&mat->MatTransformBottom, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
 
 	mMaterials[name] = std::move(mat);
+}
+
+void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom) {
+	CreateMaterial(name, textureIndex, color, texTransform);
+	DirectX::XMStoreFloat4x4(&mMaterials[name]->MatTransformTop, DirectX::XMMatrixTranslation(texTransformTop.x, texTransformTop.y, 0.f));
+	DirectX::XMStoreFloat4x4(&mMaterials[name]->MatTransformBottom, DirectX::XMMatrixTranslation(texTransformBottom.x, texTransformBottom.y, 0.f));
 }
 
 void CubeGame::BuildRenderItems()
