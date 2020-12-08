@@ -117,6 +117,29 @@ void CubeGame::LoadTextures() {
 
 	mTextures[blockTex->Name] = std::move(blockTex);
 
+	SetBlockTexturePositions(mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
+
+}
+
+void CubeGame::SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
+	int row = 0;
+	int col = 0;
+
+	float sizeX = 1.f / (float)blockTexCols;
+	float sizeY = 1.f / (float)blockTexRows;
+
+	//Capitals
+	for (int i = 0; i <= (blockTexRows * blockTexCols) - 1; i++) {
+
+		DirectX::XMFLOAT2 pos = { col * sizeX, row * sizeY };
+		mBlockTexturePositions[blockTexNames[i]] = pos;
+
+		col++;
+		if (col > blockTexCols) {
+			col = 0;
+			row++;
+		}
+	}
 }
 
 void CubeGame::OnResize()
@@ -204,10 +227,11 @@ void CubeGame::Draw(const GameTimer& gt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-	mCommandList->SetGraphicsRootDescriptorTable(3, tex);
+
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
+	mCommandList->SetGraphicsRootDescriptorTable(3, tex);
 	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
     DrawUI(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
@@ -513,14 +537,27 @@ void CubeGame::BuildShapeGeometry()
 		//Get a vector of each vertex
 		std::vector<Vertex> vertices(totalVertexCount);
 		UINT k = 0;
+		int x = 3;
+		const float width = mBlockTexturePositions["dirt"].x;
 		for each (GeometryGenerator::MeshData mds in meshDatas[md]) {
 			for (size_t i = 0; i < mds.Vertices.size(); ++i, ++k) {
 				vertices[k].Pos = mds.Vertices[i].Position;
 				vertices[k].Normal = mds.Vertices[i].Normal;
 
 				if (md == 1) vertices[k].TexC = { 0.1f, 0.1f }; //UI transparent section
-				else vertices[k].TexC = mds.Vertices[i].TexC;
+				else { //Block coords
+					if (x == 0)
+						vertices[k].TexC = { 0.f, 0.f };
+					else if (x == 1)
+						vertices[k].TexC = { width, 0.f };
+					else if (x == 2)
+						vertices[k].TexC = { width, 1.f };
+					else 
+						vertices[k].TexC = { 0.f, 1.f };
 
+					x++;
+					if (x >= 4) x = 0;
+				}
 			}
 		}
 
@@ -656,42 +693,25 @@ void CubeGame::BuildFrameResources()
 
 void CubeGame::BuildMaterials()
 {
-	auto bricks0 = std::make_unique<Material>();
-	bricks0->Name = "bricks0";
-	bricks0->MatCBIndex = 0;
-	bricks0->DiffuseSrvHeapIndex = 0;
-	bricks0->DiffuseAlbedo = XMFLOAT4(Colors::ForestGreen);
-	bricks0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	bricks0->Roughness = 0.1f;
+	float x = mBlockTexturePositions["dirt"].x;
 
-	auto stone0 = std::make_unique<Material>();
-	stone0->Name = "stone0";
-	stone0->MatCBIndex = 1;
-	stone0->DiffuseSrvHeapIndex = 1;
-	stone0->DiffuseAlbedo = XMFLOAT4(Colors::LightSteelBlue);
-	stone0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-	stone0->Roughness = 0.3f;
- 
-	auto tile0 = std::make_unique<Material>();
-	tile0->Name = "tile0";
-	tile0->MatCBIndex = 2;
-	tile0->DiffuseSrvHeapIndex = 2;
-	tile0->DiffuseAlbedo = XMFLOAT4(Colors::LightGray);
-	tile0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	tile0->Roughness = 0.2f;
+	CreateMaterial("player", 1, DirectX::Colors::Black, { 0,0 });
+	CreateMaterial("dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
+	CreateMaterial("grassSide", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 });
+	CreateMaterial("grass", 1, { 0.1466f, 0.6f, 0.1555f, 1.f}, { x * 3.f,0 });
+}
 
-	auto skullMat = std::make_unique<Material>();
-	skullMat->Name = "skullMat";
-	skullMat->MatCBIndex = 3;
-	skullMat->DiffuseSrvHeapIndex = 3;
-	skullMat->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	skullMat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-	skullMat->Roughness = 0.3f;
-	
-	mMaterials["bricks0"] = std::move(bricks0);
-	mMaterials["stone0"] = std::move(stone0);
-	mMaterials["tile0"] = std::move(tile0);
-	mMaterials["skullMat"] = std::move(skullMat);
+void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
+	auto mat = std::make_unique<Material>();
+	mat->Name = name;
+	mat->MatCBIndex = mMaterials.size();
+	mat->DiffuseSrvHeapIndex = textureIndex;
+	mat->DiffuseAlbedo = XMFLOAT4(color);
+	mat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
+	mat->Roughness = 0.2f;
+	DirectX::XMStoreFloat4x4(&mat->MatTransform, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
+
+	mMaterials[name] = std::move(mat);
 }
 
 void CubeGame::BuildRenderItems()
@@ -699,7 +719,7 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["stone0"].get(), XMMatrixTranslation(0.0f, 30.0f, 0.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(0.0f, 30.0f, 0.0f));	//Make a render item
 	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(mAllGObjs->at(0));						//Make the Player
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
@@ -712,7 +732,7 @@ void CubeGame::BuildRenderItems()
 		{
 			for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
 			{
-				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["stone0"].get(), XMMatrixTranslation(1.0f * worldX, 1.0f * worldY, 1.0f * worldZ));
+				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f * worldX, 1.0f * worldY, 1.0f * worldZ));
 				auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
 				mAllGObjs->push_back(tempGO);
 				mAllBlocks->push_back(std::make_shared<Block>(tempGO));
@@ -729,7 +749,7 @@ void CubeGame::BuildRenderItems()
 	//Make each mesh a render item
 	int j = 0;
 	for (std::pair<std::string, SubmeshGeometry> el : ui->DrawArgs) {
-		auto temp = std::make_shared<RenderItem>(ui, el.first, mMaterials["stone0"].get(), XMMatrixIdentity());
+		auto temp = std::make_shared<RenderItem>(ui, el.first, mMaterials["player"].get(), XMMatrixIdentity());
 		mRitemLayer[(int)RenderLayer::Transparent].push_back(temp);
 	}
 }
@@ -757,6 +777,10 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 
 			D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex * matCBByteSize;
 			cmdList->SetGraphicsRootConstantBufferView((UINT)1, matCBAddress);
+
+			CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+			tex.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvUavDescriptorSize);
+			mCommandList->SetGraphicsRootDescriptorTable(3, tex);
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 		//}

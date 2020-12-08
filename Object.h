@@ -12,12 +12,15 @@ using namespace DirectX;
 
 enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8 };
 
+//enum Face { top = 0, bottom = 1, front = 2, back = 3, left = 4, right = 5};
+
 enum blockType {
     type_Default = 0,
-    type_Grass,
     type_Dirt,
+    type_Grass,
     type_Stone,
     type_Wood,
+    type_Count
 };
 
 class GameObject {
@@ -109,10 +112,18 @@ public:
     void activate(blockType newType);
     void deactivate();
     
+    //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
+
+
 private:
     const float blockDimension = 1.0f;
     blockType type;
     float worldCoord[3];
+
+
+    //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
+    //void SetTexture(blockType type);
+
 };
 
 class Item : protected GameObject {

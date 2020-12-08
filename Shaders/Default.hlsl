@@ -107,6 +107,9 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
+    float2 mulPos = mul(float4(pin.TexC, 1, 1), gMatTransform);
+    float4 col = gDiffuseMap.Sample(gsamPointClamp, mulPos);
+
     // Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
 
@@ -114,7 +117,7 @@ float4 PS(VertexOut pin) : SV_Target
     float3 toEyeW = normalize(gEyePosW - pin.PosW);
 
 	// Indirect lighting.
-    float4 ambient = gAmbientLight*gDiffuseAlbedo;
+    float4 ambient = gAmbientLight*col;
 
     //const float shininess = 1.0f - gRoughness;
     const float shininess = 0.0f;

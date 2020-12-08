@@ -205,12 +205,10 @@ GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, 
 	return meshData;
 }
 void UI::UpdateUIPos(DirectX::XMVECTOR camPos) {
-
-
+	//Scale and rotate
 	DirectX::XMMATRIX uiTransform = DirectX::XMMatrixMultiply(mScale, mRotation);
 
-	//Translate the plane to be just infront of the camera
-	const float offsetFromPlayer = 1.2f;
+	//Translate the plane to be just infront of the camera (move to the player, then away from the player in the direction theyre looking)
 	DirectX::XMVECTOR translate = { camPos.m128_f32[0] + mLook.m128_f32[0] * offsetFromPlayer, camPos.m128_f32[1] + mLook.m128_f32[1] * offsetFromPlayer, camPos.m128_f32[2] + mLook.m128_f32[2] * offsetFromPlayer };
 	uiTransform = XMMatrixMultiply(uiTransform, DirectX::XMMatrixTranslationFromVector(translate));
 
@@ -220,13 +218,17 @@ void UI::UpdateUIPos(DirectX::XMVECTOR camPos) {
 }
 
 void UI::UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight) {
-	mScale = DirectX::XMMatrixScalingFromVector({ camNearWindowWidth * mScaleVal, mScaleVal , camNearWindowHeight * mScaleVal });
+	mScale = DirectX::XMMatrixScalingFromVector({ camNearWindowWidth * mScaleVal, 1.f , camNearWindowHeight * mScaleVal });
 }
 
 void UI::UpdateRotation(float rotX, float rotY, DirectX::XMVECTOR look) {
 	mLook = look;
-	mRotation = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationX(rotY), DirectX::XMMatrixRotationX(mRotToPlayer));
-	mRotation = DirectX::XMMatrixMultiply(mRotation, DirectX::XMMatrixRotationY(rotX));
+	rotXX += rotX;
+	rotYY += rotY;
+
+	mRotation = DirectX::XMMatrixMultiply(mRotToPlayerMat, DirectX::XMMatrixRotationX(rotYY));
+	mRotation = DirectX::XMMatrixMultiply(mRotation, DirectX::XMMatrixRotationY(rotXX));
+
 }
 
 void UI::SetChar(char c, int p, std::vector<Vertex>& vs) {

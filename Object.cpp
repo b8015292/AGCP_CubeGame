@@ -3,6 +3,7 @@
 
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
+//std::unordered_map<std::string, DirectX::XMFLOAT2> Block::mBlockTexturePositions;
 
 //************************************************************************************************************
 // GameObject
@@ -243,6 +244,7 @@ void Block::activate(blockType newType)
 {
 	SetActive(true);
 	type = newType;
+	//SetTexture(type);
 }
 
 void Block::deactivate()
@@ -250,3 +252,24 @@ void Block::deactivate()
 	SetActive(true);
 	type = type_Default;
 }
+
+//void Block::SetTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
+//	int row = 0;
+//	int col = 0;
+//
+//	float sizeX = 1.f / (float)blockTexCols;
+//	float sizeY = 1.f / (float)blockTexRows;
+//
+//	//Capitals
+//	for (int i = 0; i <= (blockTexRows * blockTexCols) - 1; i++) {
+//
+//		DirectX::XMFLOAT2 pos = { col * sizeX, row * sizeY };
+//		mBlockTexturePositions[blockTexNames[i]] = pos;
+//
+//		col++;
+//		if (col > blockTexCols) {
+//			col = 0;
+//			row++;
+//		}
+//	}
+//}

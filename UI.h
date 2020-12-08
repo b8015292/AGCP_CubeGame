@@ -37,13 +37,21 @@ public:
 private:
 	Font mFnt;
 	int mSizeX = 0;
-	int mSizeZ = 0; //Y
+	int mSizeZ = 0; //Y - because the UI is built on a plane which is parallel to the Z axis before rotation,
+					//	  after rotation its Z becomes its height
 
-	const float mScaleVal = 1.15f;
-	const float mRotToPlayer = -1.57079633f;	//-90 degrees
+	const float mScaleVal = 1.15f;				//Scale
+	const float offsetFromPlayer = 1.2f;		//Translate
+	const float mRotToPlayer = -1.57079633f;	//-90 degrees rotate
+	DirectX::XMMATRIX mRotToPlayerMat = DirectX::XMMatrixRotationX(mRotToPlayer);
 	DirectX::XMMATRIX mScale = DirectX::XMMatrixIdentity();
 	DirectX::XMMATRIX mRotation = DirectX::XMMatrixIdentity();
 	DirectX::XMVECTOR mLook = { 0, 0, 0 };
+
+	float rotXX = 0;
+	float rotYY = 0;
+	float windWidth = 0;
+	float windHeight = 0;
 
 	std::shared_ptr<RenderItem> mRI;
 };

@@ -244,8 +244,8 @@ struct Material
 	// Index into constant buffer corresponding to this material.
 	int MatCBIndex = -1;
 
-	// Index into SRV heap for diffuse texture.
-	int DiffuseSrvHeapIndex = -1;
+	// Index into SRV heap for diffuse texture. Top, bottom, front, back, left, right
+    int DiffuseSrvHeapIndex = -1;
 
 	// Index into SRV heap for normal texture.
 	int NormalSrvHeapIndex = -1;
