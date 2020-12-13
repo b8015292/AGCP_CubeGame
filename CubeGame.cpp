@@ -79,7 +79,7 @@ bool CubeGame::Initialize()
     BuildPSOs();
 
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-	mPlayer->GetCam()->SetPosition(0.0f, 2.0f, -15.0f);
+	mPlayer->GetCam()->SetPosition(0.0f, 7.0f, -4.0f);
 
 	//SetString("ABCDE", {0, 0});
 
@@ -134,7 +134,7 @@ void CubeGame::OnResize()
 {
     D3DApp::OnResize();
 
-    // The window resized, so update the aspect ratio and recompute the projection matrix.
+    //The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
 	if(mPlayer)
 		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
@@ -143,6 +143,12 @@ void CubeGame::OnResize()
 void CubeGame::Update(const GameTimer& gt)
 {
     OnKeyboardInput(gt);
+
+	if (GameData::sRunning) {
+		for (int i = 0; i < mAllEnts->size(); i++) {
+			mAllEnts->at(i)->Update(gt.DeltaTime());
+		}
+	}
 
     // Cycle through the circular frame resource array.
     mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % GameData::sNumFrameResources;
@@ -157,16 +163,6 @@ void CubeGame::Update(const GameTimer& gt)
         WaitForSingleObject(eventHandle, INFINITE);
         CloseHandle(eventHandle);
     }
-
-
-
-	if(GameData::sRunning){ 
-		for (int i = 0; i < mAllEnts->size(); i++) {
-			mAllEnts->at(i)->Update(gt.DeltaTime());
-		}
-	}
-
-
 
 	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
@@ -262,8 +258,8 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
         float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
-		mPlayer->GetCam()->Pitch(dy);
-		mPlayer->GetCam()->RotateY(dx);
+		mPlayer->Pitch(dy);
+		mPlayer->RotateY(dx);
     }
 
     mLastMousePos.x = x;
@@ -275,16 +271,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	const float dt = gt.DeltaTime();
 
 	if (GetAsyncKeyState('W') & 0x8000)
-		mPlayer->GetCam()->Walk(5.0f * dt);
+		mPlayer->Walk(5.0f, dt);
 
 	if (GetAsyncKeyState('S') & 0x8000)
-		mPlayer->GetCam()->Walk(-5.0f * dt);
+		mPlayer->Walk(-5.0f, dt);
 
 	if (GetAsyncKeyState('A') & 0x8000)
-		mPlayer->GetCam()->Strafe(-5.0f * dt);
+		mPlayer->Strafe(-5.0f, dt);
 
 	if (GetAsyncKeyState('D') & 0x8000)
-		mPlayer->GetCam()->Strafe(5.0f * dt);
+		mPlayer->Strafe(5.0f, dt);
 
 	if (GetAsyncKeyState('E') & 0x8000) {
 		float dist = 0;
@@ -293,8 +289,10 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 			OutputDebugStringW(L"intersected\n");
 		else
 			OutputDebugStringW(L"didnt intersect\n");
-
 	}
+
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		mPlayer->Jump();
 
 	mPlayer->GetCam()->UpdateViewMatrix();
 }

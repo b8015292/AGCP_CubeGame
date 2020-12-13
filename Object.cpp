@@ -67,7 +67,7 @@ Collision::ColCube GameObject::GetCoords() {
 }
 
 void GameObject::Translate(const float dTime, float x, float y, float z) {
-	//Gets the translation matrix (scaled by delta time
+	//Gets the translation matrix (scaled by delta time)
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
 
 	//Gets the world matrix in XMMATRIX form
@@ -76,11 +76,12 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 
 	//Multiplies the two matricies together
 	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, translateMatrix);
-
+	
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 	mRI->NumFramesDirty++;
-	boundingBox.Center = { boundingBox.Center.x + x, boundingBox.Center.y + y,  boundingBox.Center.z + z };
+	//boundingBox.Center = { boundingBox.Center.x + x, boundingBox.Center.y + y,  boundingBox.Center.z + z };
+	CreateBoundingBox();
 }
 
 Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
@@ -94,7 +95,7 @@ Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 void Entity::Init() {
 	mID = GameObject::mID;
 	mVel = { 0, 0, 0 };
-	mMaxVel = { 1.f, 1.f, 1.f };
+	mMaxVel = { 50.f, 50.f, 50.f };
 }
 
 void Entity::Update(const float dTime) {
@@ -182,25 +183,67 @@ void Player::Update(const float dTime) {
 
 	mColPoints = GetAllCollisionPoints(nextCoords);
 
+	//apply gravity
 	if (applyGravity) {
-		if (mColPoints.AnyBottom()) {
+		if (mColPoints.AnyBottom()) { //if you're on the floor down velocity = 0
 			mVel.y = 0.0f;
+			mJumped = false;
 		}
 		else {
-			AddVelocity(0, GameData::sGrav / 10.f, 0);
+			AddVelocity(0, GameData::sGrav / 50.f, 0);
 		}
 	}
 
+	//translate player using velocity values
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
 		Translate(dTime, mVel.x, mVel.y, mVel.z);
-		//Translate camera
-
+		TranslateCamera(dTime, mVel.x, mVel.y, mVel.z);
 		//Translate ui
 		//???
 	}
+
+	if (mColPoints.AnyBottom()) {
+		mJumped = false;
+	}
 }
-
 void Player::TranslateCamera(float dTime, float x, float y, float z) {
+	mCamera.Jump(dTime, x, y, z);
+}
+void Player::Jump(){
+	if (!mJumped) {
+		AddVelocity(0, 5.0f, 0);
+		mJumped = true;
+	}
+}
+void Player::Walk(float d, float dTime) {
+	mCamera.Walk(d, dTime);
 
+	DirectX::XMMATRIX oldWorldMatrix;
+	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
+	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
+	//if(newWorldMatrix.r[3].m128_f32[2] < mCamera.GetPosition3f().z)
+	const int offsetZ = 3;
+	const int offsetY = 0.6;
+	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+}
+void Player::Strafe(float d, float dTime) {
+	mCamera.Strafe(d, dTime);
+
+	DirectX::XMMATRIX oldWorldMatrix;
+	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
+	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
+	const int offsetZ = 3;
+	const int offsetY = 0.6;
+	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+
+}
+void Player::Pitch(float dy) {
+	mCamera.Pitch(dy);
+
+}
+void Player::RotateY(float dx) {
+	mCamera.RotateY(dx);
 
 }

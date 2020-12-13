@@ -154,6 +154,14 @@ void Camera::LookAt(const XMFLOAT3& pos, const XMFLOAT3& target, const XMFLOAT3&
 
 XMMATRIX Camera::GetView()const
 {
+	if (!mViewDirty)
+	{
+		OutputDebugStringW(L"dirty = false ");
+	}
+	else
+	{
+		OutputDebugStringW(L"dirty = true ");
+	}
 	assert(!mViewDirty);
 	return XMLoadFloat4x4(&mView);
 }
@@ -175,9 +183,21 @@ XMFLOAT4X4 Camera::GetProj4x4f()const
 	return mProj;
 }
 
-void Camera::Strafe(float d)
+void Camera::Jump(float dTime, float x, float y, float z)
+{
+	XMVECTOR s = { x * dTime, y * dTime, z * dTime };
+	XMVECTOR p = XMLoadFloat3(&mPosition);
+	XMStoreFloat3(&mPosition, p + s);
+
+	mViewDirty = true;
+
+	UpdateViewMatrix();
+}
+
+void Camera::Strafe(float d, float dTime)
 {
 	// mPosition += d*mRight
+	d = d * dTime;
 	XMVECTOR s = XMVectorReplicate(d);
 	XMVECTOR r = XMLoadFloat3(&mRight);
 	XMVECTOR p = XMLoadFloat3(&mPosition);
@@ -186,11 +206,12 @@ void Camera::Strafe(float d)
 	mViewDirty = true;
 }
 
-void Camera::Walk(float d)
+void Camera::Walk(float d, float dTime)
 {
 	// mPosition += d*mLook
+	d = d * dTime;
 	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR l = { mLook.x, 0.0f, mLook.z }; //dont move  up along the y
+	XMVECTOR l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
 	XMVECTOR p = XMLoadFloat3(&mPosition);
 	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
 

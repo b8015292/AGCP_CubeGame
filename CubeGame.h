@@ -108,7 +108,6 @@ private:
 
     POINT mLastMousePos;
 
-    Camera mCamera;
     std::shared_ptr<Player> mPlayer;
 
     Font fnt;
