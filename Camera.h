@@ -54,9 +54,12 @@ public:
 	DirectX::XMFLOAT4X4 GetView4x4f()const;
 	DirectX::XMFLOAT4X4 GetProj4x4f()const;
 
+	//jump
+	void Jump(float dTime, float x, float y, float z);
+
 	// Strafe/Walk the camera a distance d.
-	void Strafe(float d);
-	void Walk(float d);
+	void Strafe(float d, float dTime);
+	void Walk(float d, float dTime);
 
 	// Rotate the camera.
 	void Pitch(float angle);
@@ -65,13 +68,16 @@ public:
 	// After modifying camera position/orientation, call to rebuild the view matrix.
 	void UpdateViewMatrix();
 
+	//
+	bool GetDirtyView() { return mViewDirty; };
+
 private:
 
 	// Camera coordinate system with coordinates relative to world space.
 	DirectX::XMFLOAT3 mPosition = { 0.0f, 0.0f, 0.0f };
-	DirectX::XMFLOAT3 mRight = { 1.0f, 0.0f, 0.0f };
-	DirectX::XMFLOAT3 mUp = { 0.0f, 1.0f, 0.0f };
-	DirectX::XMFLOAT3 mLook = { 0.0f, 0.0f, 1.0f };
+	DirectX::XMFLOAT3 mRight = { 1.0f, 0.0f, 0.0f };	//x axis
+	DirectX::XMFLOAT3 mUp = { 0.0f, 1.0f, 0.0f };		//y axis
+	DirectX::XMFLOAT3 mLook = { 0.0f, 0.0f, 1.0f };		//z axis
 
 	// Cache frustum properties.
 	float mNearZ = 0.0f;

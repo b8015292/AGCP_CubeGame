@@ -93,13 +93,19 @@ public:
     Player(std::shared_ptr<GameObject> gobj);
     ~Player();
 
-    void Update(const float dTime) override;
+    void Update(const float dTime) override; //overides entities update
     void TranslateCamera(float dTime, float x, float y, float z);
+    void Jump();
+    void Walk(float d, float dTime);
+    void Strafe(float d, float dTime);
+    void Pitch(float d);
+    void RotateY(float d);
 
     Camera* GetCam() { return &mCamera; };
 
 private:
     Camera mCamera;
+    bool mJumped = false;
 };
 
 
