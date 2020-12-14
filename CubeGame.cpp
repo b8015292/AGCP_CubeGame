@@ -5,7 +5,7 @@
 #include "CubeGame.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 3;
+const int worldWidthLength = 2;
 const int worldHeight = 1;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
 
