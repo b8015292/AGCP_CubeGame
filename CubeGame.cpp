@@ -77,7 +77,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-	mPlayer->GetCam()->SetPosition(0.0f, 2.0f, -15.0f);
+	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 0.0f);
 
 	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
@@ -180,7 +180,7 @@ void CubeGame::Update(const GameTimer& gt)
 		}
 
 		// Should be put in the player VVV
-		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
+ 		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 	}
 
 
@@ -280,8 +280,8 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
         float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
-		mPlayer->GetCam()->Pitch(dy);
-		mPlayer->GetCam()->RotateY(dx);
+		mPlayer->Pitch(dy);
+		mPlayer->RotateY(dx);
 		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
 
     }
@@ -295,16 +295,19 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	const float dt = gt.DeltaTime();
 
 	if (GetAsyncKeyState('W') & 0x8000)
-		mPlayer->GetCam()->Walk(5.0f * dt);
+		mPlayer->Walk(5.0f, dt);
 
 	if (GetAsyncKeyState('S') & 0x8000)
-		mPlayer->GetCam()->Walk(-5.0f * dt);
+		mPlayer->Walk(-5.0f, dt);
 
 	if (GetAsyncKeyState('A') & 0x8000)
-		mPlayer->GetCam()->Strafe(-5.0f * dt);
+		mPlayer->Strafe(-5.0f, dt);
 
 	if (GetAsyncKeyState('D') & 0x8000)
-		mPlayer->GetCam()->Strafe(5.0f * dt);
+		mPlayer->Strafe(5.0f, dt);
+
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		mPlayer->Jump();
 
 	if (GetAsyncKeyState('E') & 0x8000) {
 		float dist = 0;
@@ -750,7 +753,7 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(0.0f, 30.0f, 0.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 0.0f));	//Make a render item
 	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(mAllGObjs->at(0));						//Make the Player
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
