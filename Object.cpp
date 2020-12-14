@@ -1,19 +1,38 @@
 #include "Object.h"
+#include <algorithm>
 
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
+//std::unordered_map<std::string, DirectX::XMFLOAT2> Block::mBlockTexturePositions;
 
-GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : mRI() {
+//************************************************************************************************************
+// GameObject
+//************************************************************************************************************
+
+GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) {
 	mAllGObjs = allGObjs;
-	if(mID == 0) mID = ++sMaxID;	//Incase a entity is being made from a preconstructed GObj
+	mRI = rI;
 
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+
+	CreateBoundingBox();
+}
+
+GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
+	*this = *gobj;
+}
+
+GameObject::~GameObject() {
+	--sMaxID;					//For degbugging
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void GameObject::CreateBoundingBox() {
-	Collision::ColCube coords = GetCoords();
+	std::array<XMFLOAT3, 8> coords = GetCoords();
 
-	XMFLOAT3 topFrontRight = coords.list[Collision::EPos::tfr];
-	XMFLOAT3 backBottomLeft = coords.list[Collision::EPos::bbl];
+	XMFLOAT3 topFrontRight = coords[EPos::tfr];
+	XMFLOAT3 backBottomLeft = coords[EPos::bbl];
 
 	float xDist = topFrontRight.x - backBottomLeft.x;
 	float yDist = topFrontRight.y - backBottomLeft.y;
@@ -23,18 +42,21 @@ void GameObject::CreateBoundingBox() {
 	XMFLOAT3 extents = { xDist / 2, yDist / 2, zDist / 2 };
 
 	BoundingBox box = BoundingBox(origin, extents);
-	boundingBox = box;
+	mBoundingBox = box;
 }
 
-GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(){
-	*this = *gobj;
+
+
+void GameObject::SetActive(bool val) {
+	mActive = val;
+	mRI->active = val;
 }
 
-Collision::ColCube GameObject::GetCoords() {
+std::array<XMFLOAT3, 8> GameObject::GetCoords() {
 	//Define constants
 	const UINT vertsPerObj = 24;
 	const UINT vertsNeeded = 8;
-	const UINT numbOfVerts = vertsPerObj * (UINT)(mAllGObjs->size());
+	const UINT numbOfVerts = vertsPerObj * (UINT)(mRI->Geo->DrawArgs.size());
 	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
 
 	//Where the verticies for this item start in the buffer
@@ -61,13 +83,14 @@ Collision::ColCube GameObject::GetCoords() {
 	}
 
 	////Store all the proper positions in a struct
-	Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
+	//Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
+	std::array<XMFLOAT3, 8> c = { vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos };
 
 	return c;
 }
 
 void GameObject::Translate(const float dTime, float x, float y, float z) {
-	//Gets the translation matrix (scaled by delta time)
+	//Gets the translation matrix (scaled by delta time
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
 
 	//Gets the world matrix in XMMATRIX form
@@ -76,44 +99,44 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 
 	//Multiplies the two matricies together
 	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, translateMatrix);
-	
+
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 	mRI->NumFramesDirty++;
-	//boundingBox.Center = { boundingBox.Center.x + x, boundingBox.Center.y + y,  boundingBox.Center.z + z };
-	CreateBoundingBox();
+
+	//Translate the bounding box
+	mBoundingBox.Transform(mBoundingBox, translateMatrix);
 }
 
-Entity::Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : GameObject(allGObjs) {
-	Init();
-}
+//************************************************************************************************************
+// Entity
+//************************************************************************************************************
 
 Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
+Entity::~Entity() {
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
 void Entity::Init() {
 	mID = GameObject::mID;
 	mVel = { 0, 0, 0 };
-	mMaxVel = { 50.f, 50.f, 50.f };
+	mMaxVel = { 1.f, 1.f, 1.f };
 }
 
 void Entity::Update(const float dTime) {
-	if (!active) return;
+	if (!GetActive()) return;
 
-	Collision::ColCube coords = GetCoords();
-	Collision::ColCube nextCoords = coords;
-	nextCoords.Translate({ mVel.x * dTime, mVel.y * dTime, mVel.z * dTime });
-
-	mColPoints = GetAllCollisionPoints(nextCoords);
-
-	if (applyGravity) {
-		if (mColPoints.AnyBottom()) { 
+	if (mApplyGravity) {
+		/*if (mColPoints.AnyBottom()) {
 			mVel.y = 0.0f;
 		}
 		else {
 			AddVelocity(0, GameData::sGrav / 10.f, 0);
-		}
+		}*/
 	}
 
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
@@ -133,117 +156,120 @@ void Entity::AddVelocity(float x, float y, float z) {
 	}
 }
 
-std::vector<int> Entity::CheckAllCollisions(Collision::ColCube thisCube) {
-	std::vector<int> ret;
-
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->mID != mID) {
-			if (Collision::CheckCollisions(thisCube, mAllGObjs->at(i)->GetCoords())) {
-				ret.push_back(i);
-			}
-		}
-	}
-
-	return ret;
+void Entity::SetVelocity(XMFLOAT3 newVel) {
+	mVel = newVel;
+}
+void Entity::SetMaxVelocity(XMFLOAT3 newMaxVel) {
+	mMaxVel = newMaxVel;
 }
 
-Collision::ColPoints Entity::GetAllCollisionPoints(Collision::ColCube coordinates) {
-	Collision::ColPoints ret;
-
-	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mAllGObjs->at(i)->active && mAllGObjs->at(i)->mID != mID) {
-			ret += Collision::CheckCollisionPoints(coordinates, mAllGObjs->at(i)->GetCoords());
+std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
+	std::vector<int> collisionIndexs;
+	for (int i = 0; i < mAllGObjs->size(); i++){
+		if (nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+			collisionIndexs.push_back(i);
 		}
 	}
-
-	return ret;
+	return collisionIndexs;
 }
 
-bool Entity::IsPointColliding(const XMFLOAT3 point) {
-
+bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if(Collision::Within(mAllGObjs->at(i)->GetCoords(), point)) return true;
+		if (mID != mAllGObjs->at(i)->GetID() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+			return true;
+		}
 	}
-
 	return false;
 }
 
-Player::Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs) : Entity(allGObjs) {
+//************************************************************************************************************
+// Player
+//************************************************************************************************************
 
-}
 Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
 }
+Player::~Player() {
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
 void Player::Update(const float dTime) {
-	if (!active) return;
+	if (!GetActive()) return;
 
-	Collision::ColCube coords = GetCoords();
-	Collision::ColCube nextCoords = coords;
-	nextCoords.Translate({ mVel.x * dTime, mVel.y * dTime, mVel.z * dTime });
+	//Create a bounding box in the next location
+	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(mVel.x * dTime, mVel.y * dTime, mVel.z * dTime);
+	BoundingBox nextBox;
+	mBoundingBox.Transform(nextBox, translate);
 
-	mColPoints = GetAllCollisionPoints(nextCoords);
-
-	//apply gravity
-	if (applyGravity) {
-		if (mColPoints.AnyBottom()) { //if you're on the floor down velocity = 0
-			mVel.y = 0.0f;
-			mJumped = false;
-		}
-		else {
-			AddVelocity(0, GameData::sGrav / 50.f, 0);
-		}
+	//Check if the next location is colliding
+	if (CheckIfCollidingAtBox(nextBox)) {
+		mVel.y = 0.0f;
+	}
+	else {
+		AddVelocity(0, GameData::sGrav / 10.f, 0);
 	}
 
-	//translate player using velocity values
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
 		Translate(dTime, mVel.x, mVel.y, mVel.z);
-		TranslateCamera(dTime, mVel.x, mVel.y, mVel.z);
+		//Translate camera
+		//TranslateCamera(dTime, mVel.x, mVel.y, mVel.z);
 		//Translate ui
 		//???
 	}
-
-	if (mColPoints.AnyBottom()) {
-		mJumped = false;
-	}
 }
+
 void Player::TranslateCamera(float dTime, float x, float y, float z) {
-	mCamera.Jump(dTime, x, y, z);
-}
-void Player::Jump(){
-	if (!mJumped) {
-		AddVelocity(0, 5.0f, 0);
-		mJumped = true;
-	}
-}
-void Player::Walk(float d, float dTime) {
-	mCamera.Walk(d, dTime);
-
-	DirectX::XMMATRIX oldWorldMatrix;
-	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-	//if(newWorldMatrix.r[3].m128_f32[2] < mCamera.GetPosition3f().z)
-	const int offsetZ = 3;
-	const int offsetY = 0.6;
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-}
-void Player::Strafe(float d, float dTime) {
-	mCamera.Strafe(d, dTime);
-
-	DirectX::XMMATRIX oldWorldMatrix;
-	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-	const int offsetZ = 3;
-	const int offsetY = 0.6;
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
 }
-void Player::Pitch(float dy) {
-	mCamera.Pitch(dy);
 
-}
-void Player::RotateY(float dx) {
-	mCamera.RotateY(dx);
+//************************************************************************************************************
+// Block
+//************************************************************************************************************
 
+Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
+	Init();
 }
+
+Block::~Block() {
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
+void Block::Init() {
+	mID = GameObject::mID;
+}
+
+void Block::activate(blockType newType)
+{
+	SetActive(true);
+	type = newType;
+	//SetTexture(type);
+}
+
+void Block::deactivate()
+{
+	SetActive(true);
+	type = type_Default;
+}
+
+//void Block::SetTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
+//	int row = 0;
+//	int col = 0;
+//
+//	float sizeX = 1.f / (float)blockTexCols;
+//	float sizeY = 1.f / (float)blockTexRows;
+//
+//	//Capitals
+//	for (int i = 0; i <= (blockTexRows * blockTexCols) - 1; i++) {
+//
+//		DirectX::XMFLOAT2 pos = { col * sizeX, row * sizeY };
+//		mBlockTexturePositions[blockTexNames[i]] = pos;
+//
+//		col++;
+//		if (col > blockTexCols) {
+//			col = 0;
+//			row++;
+//		}
+//	}
+//}

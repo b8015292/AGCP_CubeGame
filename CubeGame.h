@@ -2,11 +2,11 @@
 
 #include "Common/MathHelper.h"
 #include "Common/UploadBuffer.h"
-#include "Common/GeometryGenerator.h"
 #include "FrameResource.h"
 
 #include "GameData.h"
 #include "Object.h"
+#include "UI.h"
 
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;
@@ -53,10 +53,11 @@ private:
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
     void DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
 
-    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
-    void InitFont();
     void LoadTextures();
-    void SetString(std::string str, XMFLOAT2 pos);
+    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+    void SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]);
+    void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform);
+    void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
 
 private:
 
@@ -85,32 +86,27 @@ private:
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
-    //ComPtr<ID3D12PipelineState> mOpaquePSO = nullptr;
-
     // List of all the render items.
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
     std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
+    std::shared_ptr<std::vector<std::shared_ptr<Block>>> mAllBlocks;
 
     // Render items divided by PSO.
     std::vector<std::shared_ptr<RenderItem>> mRitemLayer[(int)RenderLayer::Count];
 
     PassConstants mMainPassCB;
 
-    /*old camera stuff
-    XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT4X4 mView = MathHelper::Identity4x4();
-    XMFLOAT4X4 mProj = MathHelper::Identity4x4();
-
-    float mTheta = 1.5f * XM_PI;
-    float mPhi = 0.2f * XM_PI;
-    float mRadius = 15.0f;
-    */
 
     POINT mLastMousePos;
 
     std::shared_ptr<Player> mPlayer;
+    UI mUI;
 
     Font fnt;
 
-
+    const int mBlockTexSize = 32;
+    const int mBlockTexRows = 1;
+    const int mBlockTexCols = 7;
+    const std::string mBlockTexNames[7] = { "null", "dirt", "grassSide", "grass", "stone", "null", "null"};
+    std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
 };

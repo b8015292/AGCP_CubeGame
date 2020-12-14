@@ -4,93 +4,94 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
-#include "Collision.h"
 #include "Camera.h"
 
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
-struct RenderItem
-{
-    RenderItem() = default;
+enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8 };
 
-    // World matrix of the shape that describes the object's local space
-    // relative to the world space, which defines the position, orientation,
-    // and scale of the object in the world.
-    XMFLOAT4X4 World = MathHelper::Identity4x4();
+//enum Face { top = 0, bottom = 1, front = 2, back = 3, left = 4, right = 5};
 
-    XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
-
-    // Dirty flag indicating the object data has changed and we need to update the constant buffer.
-    // Because we have an object cbuffer for each FrameResource, we have to apply the
-    // update to each FrameResource.  Thus, when we modify obect data we should set 
-    // NumFramesDirty = GameData.sNumFrameResources so that each frame resource gets the update.
-    int NumFramesDirty = gNumFrameResources;
-
-    // Index into GPU constant buffer corresponding to the ObjectCB for this render item.
-    UINT ObjCBIndex = -1;
-
-    Material* Mat = nullptr;
-    MeshGeometry* Geo = nullptr;
-
-    // Primitive topology.
-    D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-    // DrawIndexedInstanced parameters.
-    UINT IndexCount = 0;
-    UINT StartIndexLocation = 0;
-    int BaseVertexLocation = 0;
+enum blockType {
+    type_Default = 0,
+    type_Dirt,
+    type_Grass,
+    type_Stone,
+    type_Wood,
+    type_Count
 };
 
 class GameObject {
 public:
-    //Variables
+    static int sMaxID;
+
+    //Constructor & Initializer
+    GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
+    GameObject(std::shared_ptr<GameObject> gobj);
+    ~GameObject();
+    void CreateBoundingBox();
+
+    //Getters and Setters
+    bool GetActive() { return mActive; };
+    void SetActive(bool val);
+    int GetID() { return mID; };
+    bool GetApplyGravity() { return mApplyGravity; }
+    std::array<XMFLOAT3, 8> GetCoords();
+    BoundingBox GetBoundingBox() { return mBoundingBox; };
+    std::shared_ptr<RenderItem> GetRI() { return mRI; };
+
+    //Mutators
+    void Translate(const float dTime, float x, float y, float z);
+
+protected:
+    int mID = 0;
+    bool mApplyGravity = true;
+
     std::shared_ptr<RenderItem> mRI;
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
 
-    static int sMaxID;
-    int mID = 0;
+    BoundingBox mBoundingBox;    //Contains the center point and the size
 
-    bool active = true;
-    bool applyGravity = true;
+private:
+    bool mActive = true;
 
-    BoundingBox boundingBox;
-    
-    //Functions
-    GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
-    GameObject(std::shared_ptr<GameObject> gobj);
-    Collision::ColCube GetCoords();
-    void Translate(const float dTime, float x, float y, float z);
-    void CreateBoundingBox();
 };
 
 class Entity : public GameObject {
 public:
+
+    //Constructors
+    Entity(std::shared_ptr<GameObject> gobj);
+    ~Entity();
+    void Init();
+
+    //Getters/Setters
+    void AddVelocity(float x, float y, float z);
+    void SetVelocity(XMFLOAT3 newVel);
+    void SetMaxVelocity(XMFLOAT3 newMaxVel);
+    XMFLOAT3 GetVelocity() { return mVel; };
+    XMFLOAT3 GetMaxVelocity() { return mMaxVel; };
+
+    //Mutators
+    virtual void Update(const float dTime);
+
+    //Collision Checks
+    std::vector<int> CheckAllCollisionsAtBox(BoundingBox nextPos);
+    bool CheckIfCollidingAtBox(BoundingBox nextPos);
+
+protected:
     XMFLOAT3 mVel;
     XMFLOAT3 mMaxVel;
 
     bool mOnGround = false;
-    Collision::ColPoints mColPoints;
-
-    Entity(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
-    Entity(std::shared_ptr<GameObject> gobj);
-    void Init();
-    virtual void Update(const float dTime);
-    std::vector<int> CheckAllCollisions(Collision::ColCube thisCube);
-    Collision::ColPoints GetAllCollisionPoints(Collision::ColCube coordinates);
-    bool IsPointColliding(const XMFLOAT3 point);
-
-    void AddVelocity(float x, float y, float z);
-
-    bool temp = true;
-
 };
 
 class Player : public Entity {
 public:
-    Player(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs);
     Player(std::shared_ptr<GameObject> gobj);
+    ~Player();
 
     void Update(const float dTime) override; //overides entities update
     void TranslateCamera(float dTime, float x, float y, float z);
@@ -107,8 +108,28 @@ private:
     bool mJumped = false;
 };
 
-class Block : protected GameObject {
-    int type;
+
+class Block : public GameObject {
+public:
+    Block(std::shared_ptr<GameObject> GObj);
+    ~Block();
+
+    void Init();
+    void activate(blockType newType);
+    void deactivate();
+    
+    //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
+
+
+private:
+    const float blockDimension = 1.0f;
+    blockType type;
+    float worldCoord[3];
+
+
+    //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
+    //void SetTexture(blockType type);
+
 };
 
 class Item : protected GameObject {

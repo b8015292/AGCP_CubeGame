@@ -54,11 +54,11 @@
     <ClCompile Include="CubeGame.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Collisions.cpp">
-      <Filter>GameData\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI.cpp">
+      <Filter>GameData\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -95,14 +95,14 @@
     <ClInclude Include="Object.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Collision.h">
-      <Filter>GameData\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CubeGame.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI.h">
+      <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
