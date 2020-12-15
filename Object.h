@@ -85,7 +85,7 @@ protected:
     XMFLOAT3 mVel;
     XMFLOAT3 mMaxVel;
 
-    bool mOnGround = false;
+    bool mMoved = false;
 };
 
 class Player : public Entity {
@@ -105,7 +105,7 @@ public:
 
 private:
     Camera mCamera;
-    bool mJumped = false;
+    bool mJumped = true;
 };
 
 

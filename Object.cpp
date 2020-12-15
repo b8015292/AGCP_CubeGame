@@ -213,36 +213,30 @@ Player::~Player() {
 
 void Player::Update(const float dTime) {
 	if (!GetActive()) return;
-
-	//Create a bounding box in the next location
-	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0);
-	BoundingBox nextBox;
-	mBoundingBox.Transform(nextBox, translate);
-
-
 	if (mApplyGravity)
 	{
-		//Check if the next location is colliding
-		if (CheckIfCollidingAtBox(nextBox)) {
+		//Create a bounding box in the next location
+		BoundingBox nextBox;
+		mBoundingBox.Transform(nextBox, DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0));
+		if (CheckIfCollidingAtBox(nextBox)){
 			mVel.y = 0.0f;
+			mJumped = false;
 		}
 		else {
-			AddVelocity(0, GameData::sGrav / 50.f, 0);
+			if(mJumped)
+				AddVelocity(0, GameData::sGrav / 50.f, 0);
+		}
+
+		if (mVel.y != 0) {
+			Translate(dTime, 0, mVel.y, 0);
+			TranslateCamera(dTime, 0, mVel.y, 0);
+			mMoved = true;
 		}
 	}
 
-
-	if (mVel.y != 0) {
-		Translate(dTime, 0, mVel.y, 0);
-		TranslateCamera(dTime, 0, mVel.y, 0);
+	if (mMoved) {
+		GetRI()->NumFramesDirty++;
 	}
-
-	//if player is on ground allow jump
-	if (CheckIfCollidingAtBox(nextBox))
-	{
-		mJumped = false;
-	}
-
 }
 void Player::TranslateCamera(float dTime, float x, float y, float z) {
 	mCamera.Jump(dTime, x, y, z);
@@ -264,8 +258,9 @@ void Player::Walk(float d, float dTime) {
 	const int offsetZ = 3;
 	const int offsetY = 1;
 	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+	Translate(dTime, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
+	mMoved = true;
 }
 void Player::Strafe(float d, float dTime) {
 	mCamera.Strafe(d, dTime);
@@ -277,9 +272,9 @@ void Player::Strafe(float d, float dTime) {
 	const int offsetZ = 3;
 	const int offsetY = 1;
 	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+	Translate(dTime, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
-
+	mMoved = true;
 }
 void Player::Pitch(float dy) {
 	mCamera.Pitch(dy);
