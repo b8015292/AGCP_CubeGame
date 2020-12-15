@@ -3,6 +3,7 @@
 //***************************************************************************************
 
 #include "CubeGame.h"
+#include "Raycast.h"
 
 bool GameData::sRunning = true;
 const int worldWidthLength = 3;
@@ -269,6 +270,10 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
 
 void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
 {
+	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+	if (block != nullptr) {
+		block->SetActive(false);
+	}
     ReleaseCapture();
 }
 
@@ -307,13 +312,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mPlayer->GetCam()->Strafe(5.0f * dt);
 
 	if (GetAsyncKeyState('E') & 0x8000) {
-		float dist = 0;
-		bool intersects = mAllEnts->at(0)->GetBoundingBox().Intersects(mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook(), dist);
-		if(intersects)
-			OutputDebugStringW(L"intersected\n");
-		else
-			OutputDebugStringW(L"didnt intersect\n");
-
+		
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
@@ -448,7 +447,7 @@ void CubeGame::BuildRootSignature()
 		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
 
 	if(errorBlob != nullptr)
-	{
+	{	
 		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	}
 	ThrowIfFailed(hr);
