@@ -5,7 +5,7 @@
 #include "CubeGame.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 3;
+const int worldWidthLength = 10;
 const int worldHeight = 1;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
 
@@ -77,7 +77,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 0.0f);
+	mPlayer->GetCam()->SetPosition(5.0f, 7.0f, 5.0f);
 
 	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
@@ -753,7 +753,7 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 0.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(5.0f, 6.0f, 5.0f));	//Make a render item
 	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(mAllGObjs->at(0));						//Make the Player
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
@@ -776,6 +776,23 @@ void CubeGame::BuildRenderItems()
 			}
 		}
 	}
+
+
+
+	//DB
+
+	auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
+	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
+	mAllGObjs->push_back(tempGO);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
+
+
+	//DB
+
+
 
 	//UI---------------------------
 	auto ui = mGeometries["uiGeo"].get();
