@@ -342,6 +342,10 @@ void Block::deactivate()
 	type = type_Default;
 }
 
+float *Block::getWorldCoords() {
+	return worldCoord;
+}
+
 //void Block::SetTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
 //	int row = 0;
 //	int col = 0;

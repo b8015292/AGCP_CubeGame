@@ -120,7 +120,7 @@ public:
     
     //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
 
-
+    float *getWorldCoords();
 private:
     const float blockDimension = 1.0f;
     blockType type;
