@@ -21,3 +21,9 @@ void GameData::StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMF
 
 	dest = newMatrix;
 }
+
+std::wstring GameData::StringToWString(std::string s) {
+	std::wstring temp(s.length(), L' ');
+	std::copy(s.begin(), s.end(), temp.begin());
+	return temp;
+}

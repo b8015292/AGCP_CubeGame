@@ -22,7 +22,7 @@
 
 // Constant data that varies per frame.
 
-Texture2D    gDiffuseMap : register(t0);
+Texture2D    textureMap : register(t0);
 
 SamplerState gsamPointWrap        : register(s0);
 SamplerState gsamPointClamp       : register(s1);
@@ -130,7 +130,7 @@ float4 PS(VertexOut pin) : SV_Target
     else 
         mulPos = mul(float4(pin.TexC, 1, 1), gMatTransform);
 
-    float4 col = gDiffuseMap.Sample(gsamPointClamp, mulPos);
+    float4 col = textureMap.Sample(gsamPointClamp, mulPos);
 
     // Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
@@ -156,9 +156,53 @@ float4 PS(VertexOut pin) : SV_Target
     return litColor;
 }
 
+
+//*************************************************************************
+//  GUI
+//*************************************************************************
+
+
 //User interface shader (doesn't take lighting in account)
 float4 UIPS(VertexOut pin) : SV_Target
 {
-    return gDiffuseMap.Sample(gsamPointClamp, pin.TexC);
+    return textureMap.Sample(gsamPointClamp, pin.TexC);
 }
 
+
+
+
+//*************************************************************************
+//  Sky
+//*************************************************************************
+
+TextureCube gCubeMap : register(t0);
+
+struct SkyVertexOut {
+    float4 PosH : SV_POSITION;
+    float3 PosL : POSITION;
+};
+
+SkyVertexOut SkyVS(VertexIn vin)
+{
+    SkyVertexOut vout;
+
+    // Use local vertex position as cubemap lookup vector.
+    vout.PosL = vin.PosL;
+
+    // Transform to world space.
+    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
+
+    // Always center sky about camera.
+    posW.xyz += gEyePosW;
+
+    // Set z = w so that z/w = 1 (i.e., skydome always on far plane).
+    //vout.PosH = mul(posW, gViewProj).xyww;
+    vout.PosH = mul(posW, gViewProj).xyww;
+
+    return vout;
+}
+
+float4 SkyPS(SkyVertexOut pin) : SV_Target
+{
+    return gCubeMap.Sample(gsamLinearWrap, pin.PosL);
+}

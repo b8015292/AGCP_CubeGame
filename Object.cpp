@@ -215,9 +215,10 @@ void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 
 	//Create a bounding box in the next location
-	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(mVel.x * dTime, mVel.y * dTime, mVel.z * dTime);
+	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0);
 	BoundingBox nextBox;
 	mBoundingBox.Transform(nextBox, translate);
+
 
 	if (mApplyGravity)
 	{
@@ -230,11 +231,10 @@ void Player::Update(const float dTime) {
 		}
 	}
 
-	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
-		Translate(dTime, mVel.x, mVel.y, mVel.z);
-		TranslateCamera(dTime, mVel.x, mVel.y, mVel.z);
-		//Translate ui
-		//???
+
+	if (mVel.y != 0) {
+		Translate(dTime, 0, mVel.y, 0);
+		TranslateCamera(dTime, 0, mVel.y, 0);
 	}
 
 	//if player is on ground allow jump
@@ -264,7 +264,7 @@ void Player::Walk(float d, float dTime) {
 	const int offsetZ = 3;
 	const int offsetY = 1;
 	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2]);
+	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
 }
 void Player::Strafe(float d, float dTime) {
@@ -277,7 +277,7 @@ void Player::Strafe(float d, float dTime) {
 	const int offsetZ = 3;
 	const int offsetY = 1;
 	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2]);
+	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
 
 }
@@ -319,24 +319,3 @@ void Block::deactivate()
 	SetActive(true);
 	type = type_Default;
 }
-
-//void Block::SetTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
-//	int row = 0;
-//	int col = 0;
-//
-//	float sizeX = 1.f / (float)blockTexCols;
-//	float sizeY = 1.f / (float)blockTexRows;
-//
-//	//Capitals
-//	for (int i = 0; i <= (blockTexRows * blockTexCols) - 1; i++) {
-//
-//		DirectX::XMFLOAT2 pos = { col * sizeX, row * sizeY };
-//		mBlockTexturePositions[blockTexNames[i]] = pos;
-//
-//		col++;
-//		if (col > blockTexCols) {
-//			col = 0;
-//			row++;
-//		}
-//	}
-//}
