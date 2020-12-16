@@ -3,10 +3,9 @@
 //***************************************************************************************
 
 #include "CubeGame.h"
-#include "Raycast.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 3;
+const int worldWidthLength = 10;
 const int worldHeight = 1;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
 
@@ -99,27 +98,35 @@ bool CubeGame::Initialize()
     return true;
 }
  
+void CubeGame::MakeTexture(std::string name, std::string path) {
+	auto tex = std::make_unique<Texture>();
+	tex->Name = name;
+	tex->Filename = GameData::StringToWString(path);
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), tex->Filename.c_str(),
+		tex->Resource, tex->UploadHeap));
+
+	mTextures[tex->Name] = std::move(tex);
+}
+void CubeGame::MakeTexture(std::string name, std::wstring path) {
+	auto tex = std::make_unique<Texture>();
+	tex->Name = name;
+	tex->Filename = path;
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), tex->Filename.c_str(),
+		tex->Resource, tex->UploadHeap));
+
+	mTextures[tex->Name] = std::move(tex);
+}
+
 void CubeGame::LoadTextures() {
-	auto fontTex = std::make_unique<Texture>();
-	fontTex->Name = "font";
-	fontTex->Filename = mUI.GetFont()->filePath;
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), fontTex->Filename.c_str(),
-		fontTex->Resource, fontTex->UploadHeap));
 
-	mTextures[fontTex->Name] = std::move(fontTex);
+	MakeTexture("font", mUI.GetFont()->filePath);
+	MakeTexture("blocks", L"data/blockMap.dds");
+	MakeTexture("skyTex", L"data/sky.dds");
 
-	auto blockTex = std::make_unique<Texture>();
-	blockTex->Name = "blocks";
-	blockTex->Filename = L"data/blockMap.dds";
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
-		mCommandList.Get(), blockTex->Filename.c_str(),
-		blockTex->Resource, blockTex->UploadHeap));
-
-	mTextures[blockTex->Name] = std::move(blockTex);
 
 	SetBlockTexturePositions(mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
-
 }
 
 void CubeGame::SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
@@ -232,9 +239,13 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
+	mCommandList->SetPipelineState(mPSOs["sky"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
+
 	mCommandList->SetGraphicsRootDescriptorTable(3, tex);
 	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
     DrawUI(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
+
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -454,7 +465,7 @@ void CubeGame::BuildRootSignature()
 		serializedRootSig.GetAddressOf(), errorBlob.GetAddressOf());
 
 	if(errorBlob != nullptr)
-	{	
+	{
 		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	}
 	ThrowIfFailed(hr);
@@ -477,6 +488,9 @@ void CubeGame::BuildShadersAndInputLayout()
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
 	mShaders["UIPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "UIPS", "ps_5_1");
+	mShaders["SkyVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyVS", "vs_5_1");
+	mShaders["SkyPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyPS", "ps_5_1");
+
 	
     mInputLayout =
     {
@@ -488,7 +502,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 void CubeGame::BuildDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 2;	//Number of textures
+	srvHeapDesc.NumDescriptors = 3;	//Number of textures
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -516,14 +530,27 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvDesc.Texture2D.MipLevels = blockTex->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	md3dDevice->CreateShaderResourceView(blockTex.Get(), &srvDesc, hDescriptor);
+
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	auto skyTex = mTextures["skyTex"]->Resource;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = skyTex->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = skyTex->GetDesc().MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	md3dDevice->CreateShaderResourceView(skyTex.Get(), &srvDesc, hDescriptor);
+
+
 }
 
 void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 2;
-	std::string geoHolderNames[numb] = { "shapeGeo", "uiGeo" };
+	const int numb = 3;
+	std::string geoHolderNames[numb] = { "shapeGeo", "uiGeo", "skyGeo" };
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
 
@@ -536,6 +563,10 @@ void CubeGame::BuildShapeGeometry()
 	//UI Geos
 	meshDatas[1].push_back(mUI.CreateUIPlane(1.f, 1.f, 10, 10));
 	meshNames[1].push_back("mainGUI");
+
+	//Sky
+	meshDatas[2].push_back(geoGen.CreateSphere(0.5f, 20, 20));
+	meshNames[2].push_back("sky");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -710,6 +741,26 @@ void CubeGame::BuildPSOs()
 	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&mPSOs["transparent"])));
 
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = opaquePsoDesc;
+	// The camera is inside the sky sphere, so just turnoff culling.
+	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	// Make sure the depth function is LESS_EQUAL and not just LESS.
+	// Otherwise, the normalized depth values at z = 1 (NDC)will
+	// fail the depth test if the depth buffer was cleared to 1.
+	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	skyPsoDesc.pRootSignature = mRootSignature.Get();
+	skyPsoDesc.VS =
+	{
+	reinterpret_cast<BYTE*>(mShaders["SkyVS"] -> GetBufferPointer()), mShaders["SkyVS"]->GetBufferSize()
+	};
+	skyPsoDesc.PS =
+	{
+	reinterpret_cast<BYTE*>(mShaders["SkyPS"] -> GetBufferPointer()), mShaders["SkyPS"]->GetBufferSize()
+	};
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
+		&skyPsoDesc, IID_PPV_ARGS(&mPSOs["sky"])));
+
 }
 
 void CubeGame::BuildFrameResources()
@@ -717,7 +768,7 @@ void CubeGame::BuildFrameResources()
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-            1, (UINT)mAllGObjs->size() + (UINT)mRitemLayer[(int)RenderLayer::Transparent].size(), (UINT)mMaterials.size()));
+            1, (UINT)mAllGObjs->size() + (UINT)mRitemLayer[(int)RenderLayer::Transparent].size() + (UINT)mRitemLayer[(int)RenderLayer::Sky].size(), (UINT)mMaterials.size()));
     }
 }
 
@@ -728,6 +779,7 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("player", 1, DirectX::Colors::Black, { 0,0 });
 	CreateMaterial("dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
 	CreateMaterial("grass", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 }, { x * 3.f,0 }, { x,0 });
+	CreateMaterial("sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -780,6 +832,44 @@ void CubeGame::BuildRenderItems()
 		}
 	}
 
+
+	//DEBUG
+
+	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
+	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	mAllGObjs->push_back(tempGO1);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
+
+	auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
+	auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
+	mAllGObjs->push_back(tempGO2);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
+
+	auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
+	auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
+	mAllGObjs->push_back(tempGO3);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
+
+	//DEBUG
+
+
+	//Sku----------------------------
+	
+	auto sky = mGeometries["skyGeo"].get();
+
+	auto skyRI = std::make_shared<RenderItem>(sky, "sky", mMaterials["sky"].get(), XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
+	mRitemLayer[(int)RenderLayer::Sky].push_back(skyRI);
+
+
 	//UI---------------------------
 	auto ui = mGeometries["uiGeo"].get();
 
@@ -789,6 +879,10 @@ void CubeGame::BuildRenderItems()
 		auto temp = std::make_shared<RenderItem>(ui, el.first, mMaterials["player"].get(), XMMatrixIdentity());
 		mRitemLayer[(int)RenderLayer::Transparent].push_back(temp);
 	}
+
+
+
+
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)

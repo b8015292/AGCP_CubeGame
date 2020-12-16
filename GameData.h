@@ -14,6 +14,7 @@ public:
     static bool sRunning;
 
     static void StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMFLOAT4X4 source);
+    static std::wstring StringToWString(std::string s);
 };
 
 class RenderItem

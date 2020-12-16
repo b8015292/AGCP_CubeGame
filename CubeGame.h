@@ -53,6 +53,8 @@ private:
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
     void DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
 
+    void MakeTexture(std::string name, std::string path);
+    void MakeTexture(std::string name, std::wstring path);
     void LoadTextures();
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
     void SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]);
@@ -65,6 +67,7 @@ private:
     {
         Opaque = 0,
         Transparent,
+        Sky,
         Count
     };
 
