@@ -57,7 +57,7 @@ private:
     void MakeTexture(std::string name, std::wstring path);
     void LoadTextures();
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
-    void SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]);
+    void SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]);
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform);
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
 
@@ -112,4 +112,7 @@ private:
     const int mBlockTexCols = 7;
     const std::string mBlockTexNames[7] = { "null", "dirt", "grassSide", "grass", "stone", "null", "null"};
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
+
+    const std::string mBlockBreakTexNames[7] = { "select", "b0", "b1", "b2", "b3", "b4", "b5" };
+    std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockBreakTexturePositions;
 };

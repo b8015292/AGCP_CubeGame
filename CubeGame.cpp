@@ -124,26 +124,27 @@ void CubeGame::LoadTextures() {
 	MakeTexture("font", mUI.GetFont()->filePath);
 	MakeTexture("blocks", L"data/blockMap.dds");
 	MakeTexture("skyTex", L"data/sky.dds");
+	MakeTexture("blockBreak", L"data/blockBreakMap.dds");
 
 
-	SetBlockTexturePositions(mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
+	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
+	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
 }
 
-void CubeGame::SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]) {
+void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
 	int row = 0;
 	int col = 0;
 
-	float sizeX = 1.f / (float)blockTexCols;
-	float sizeY = 1.f / (float)blockTexRows;
+	float sizeX = 1.f / (float)cols;
+	float sizeY = 1.f / (float)rows;
 
-	//Capitals
-	for (int i = 0; i <= (blockTexRows * blockTexCols) - 1; i++) {
+	for (int i = 0; i <= (rows * cols) - 1; i++) {
 
 		DirectX::XMFLOAT2 pos = { col * sizeX, row * sizeY };
-		mBlockTexturePositions[blockTexNames[i]] = pos;
+		out[texNames[i]] = pos;
 
 		col++;
-		if (col > blockTexCols) {
+		if (col > cols) {
 			col = 0;
 			row++;
 		}
@@ -505,7 +506,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 void CubeGame::BuildDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 3;	//Number of textures
+	srvHeapDesc.NumDescriptors = 4;	//Number of textures
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -544,6 +545,17 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvDesc.Texture2D.MipLevels = skyTex->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	md3dDevice->CreateShaderResourceView(skyTex.Get(), &srvDesc, hDescriptor);
+
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	auto blockBreakTex = mTextures["blockBreak"]->Resource;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = blockBreakTex->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = blockBreakTex->GetDesc().MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	md3dDevice->CreateShaderResourceView(blockBreakTex.Get(), &srvDesc, hDescriptor);
 
 
 }
