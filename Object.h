@@ -37,10 +37,17 @@ public:
     bool GetActive() { return mActive; };
     void SetActive(bool val);
     int GetID() { return mID; };
-    bool GetApplyGravity() { return mApplyGravity; }
+    bool GetApplyGravity() { return mApplyGravity; };
     std::array<XMFLOAT3, 8> GetCoords();
     BoundingBox GetBoundingBox() { return mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };
+
+
+    bool GetDirty() { return mDirty; };
+    //If the object has been changed call this.
+    void SetDirtyFlag() { mDirty = true; };
+    //At the end of each update, if the object is dirty the render item is made dirty
+    void SetRIDirty() { mRI->NumFramesDirty++; mDirty = false; };
 
     //Mutators
     void Translate(const float dTime, float x, float y, float z);
@@ -48,6 +55,7 @@ public:
 protected:
     int mID = 0;
     bool mApplyGravity = true;
+    bool mDirty = false;
 
     std::shared_ptr<RenderItem> mRI;
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;

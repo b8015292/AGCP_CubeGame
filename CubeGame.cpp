@@ -78,7 +78,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
-	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 0.0f);
+	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
 
 	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
@@ -190,6 +190,11 @@ void CubeGame::Update(const GameTimer& gt)
 
 		// Should be put in the player VVV
  		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
+
+		for (int i = 0; i < mAllGObjs->size(); i++) {
+			if (mAllGObjs->at(i)->GetDirty()) 
+				mAllGObjs->at(i)->SetRIDirty();
+		}
 	}
 
 
@@ -798,8 +803,6 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 	mat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
 	mat->Roughness = 0.2f;
 	DirectX::XMStoreFloat4x4(&mat->MatTransform, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
-	//DirectX::XMStoreFloat4x4(&mat->MatTransformTop, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
-	//DirectX::XMStoreFloat4x4(&mat->MatTransformBottom, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
 
 	mMaterials[name] = std::move(mat);
 }
@@ -815,9 +818,10 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 0.0f));	//Make a render item
-	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
-	mPlayer = std::make_shared<Player>(mAllGObjs->at(0));						//Make the Player
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 1.0f));	//Make a render item
+	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
+	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
+	mAllGObjs->push_back(mPlayer);
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(playerRI);					//Add the players render item to the opaque list
 
@@ -842,29 +846,29 @@ void CubeGame::BuildRenderItems()
 
 	//DEBUG
 
-	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
-	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
-	mAllGObjs->push_back(tempGO1);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+	//auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
+	//auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	//mAllGObjs->push_back(tempGO1);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
 
-	auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
-	auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
-	mAllGObjs->push_back(tempGO2);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
+	//auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
+	//auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
+	//mAllGObjs->push_back(tempGO2);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
 
-	auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
-	auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
-	mAllGObjs->push_back(tempGO3);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
+	//auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
+	//auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
+	//mAllGObjs->push_back(tempGO3);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
 
 	//DEBUG
 
