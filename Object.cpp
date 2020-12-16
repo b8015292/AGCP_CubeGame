@@ -223,8 +223,7 @@ void Player::Update(const float dTime) {
 			mJumped = false;
 		}
 		else {
-			if (mJumped)
-				AddVelocity(0, GameData::sGrav / 50.f, 0);
+			AddVelocity(0, GameData::sGrav / 50.f, 0);
 		}
 
 		if (mVel.y != 0) {
@@ -245,6 +244,7 @@ void Player::Jump() {
 	}
 }
 void Player::Walk(float d, float dTime) {
+
 	mCamera.Walk(d, dTime);
 
 	DirectX::XMMATRIX oldWorldMatrix;
@@ -253,23 +253,25 @@ void Player::Walk(float d, float dTime) {
 	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
 	//if(newWorldMatrix.r[3].m128_f32[2] < mCamera.GetPosition3f().z)
 	const int offsetZ = 3;
-	const int offsetY = 1;
+	const int offsetY = 0;
 	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	Translate(dTime, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2]);
+	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
 	SetDirtyFlag();
 }
 void Player::Strafe(float d, float dTime) {
+
 	mCamera.Strafe(d, dTime);
+
 
 	DirectX::XMMATRIX oldWorldMatrix;
 	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
 	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
 	const int offsetZ = 3;
-	const int offsetY = 1;
+	const int offsetY = 0;
 	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	Translate(dTime, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2]);
+	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
 
 	SetDirtyFlag();
 }

@@ -37,7 +37,7 @@ public:
     bool GetActive() { return mActive; };
     void SetActive(bool val);
     int GetID() { return mID; };
-    bool GetApplyGravity() { return mApplyGravity; }
+    bool GetApplyGravity() { return mApplyGravity; };
     std::array<XMFLOAT3, 8> GetCoords();
     BoundingBox GetBoundingBox() { return mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };

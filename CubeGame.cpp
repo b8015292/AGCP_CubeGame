@@ -190,7 +190,6 @@ void CubeGame::Update(const GameTimer& gt)
 		// Should be put in the player VVV
  		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
-
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
 				mAllGObjs->at(i)->SetRIDirty();
@@ -810,7 +809,7 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 0.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 1.0f));	//Make a render item
 	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
 	mAllGObjs->push_back(mPlayer);
