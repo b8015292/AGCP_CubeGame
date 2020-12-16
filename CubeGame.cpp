@@ -270,10 +270,6 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
 
 void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
 {
-	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-	if (block != nullptr) {
-		block->SetActive(false);
-	}
     ReleaseCapture();
 }
 
@@ -288,6 +284,11 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->Pitch(dy);
 		mPlayer->RotateY(dx);
 		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
+
+		/*std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr) {
+			block->deactivate();
+		}*/
 
     }
 
@@ -315,7 +316,10 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mPlayer->Jump();
 
 	if (GetAsyncKeyState('E') & 0x8000) {
-		
+		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr) {
+			block->SetActive(false);
+		}
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
@@ -799,6 +803,7 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
     for(size_t i = 0; i < ritems.size(); ++i)
     {
 		//if (ritems[i]->GetActive()) {
+		if(ritems[i]->active){
 			auto ri = ritems[i];
 
 			cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
@@ -816,7 +821,7 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 			mCommandList->SetGraphicsRootDescriptorTable(3, tex);
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
-		//}
+		}
 	}
 }
 
