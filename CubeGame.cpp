@@ -3,6 +3,7 @@
 //***************************************************************************************
 
 #include "CubeGame.h"
+#include "Raycast.h"
 
 bool GameData::sRunning = true;
 const int worldWidthLength = 10;
@@ -301,6 +302,11 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->RotateY(dx);
 		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
 
+		/*std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr) {
+			block->deactivate();
+		}*/
+
     }
 
     mLastMousePos.x = x;
@@ -327,13 +333,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mPlayer->Jump();
 
 	if (GetAsyncKeyState('E') & 0x8000) {
-		float dist = 0;
-		bool intersects = mAllEnts->at(0)->GetBoundingBox().Intersects(mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook(), dist);
-		if(intersects)
-			OutputDebugStringW(L"intersected\n");
-		else
-			OutputDebugStringW(L"didnt intersect\n");
-
+		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr) {
+			block->SetActive(false);
+		}
+	}
+	if (GetAsyncKeyState('F') & 0x8000) {
+		std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr) {
+			block->SetActive(true);
+		}
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
@@ -899,6 +908,7 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
     for(size_t i = 0; i < ritems.size(); ++i)
     {
 		//if (ritems[i]->GetActive()) {
+		if(ritems[i]->active){
 			auto ri = ritems[i];
 
 			cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
@@ -916,7 +926,7 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 			mCommandList->SetGraphicsRootDescriptorTable(3, tex);
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
-		//}
+		}
 	}
 }
 

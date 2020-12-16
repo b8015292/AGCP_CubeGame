@@ -123,8 +123,8 @@ public:
     ~Block();
 
     void Init();
-    void activate(blockType newType);
-    void deactivate();
+    void createBlock(blockType newType);
+    void destroyBlock();
     
     //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
 

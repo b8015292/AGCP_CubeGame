@@ -319,15 +319,15 @@ void Block::Init() {
 	mID = GameObject::mID;
 }
 
-void Block::activate(blockType newType)
+void Block::createBlock(blockType newType)
 {
 	SetActive(true);
 	type = newType;
 	//SetTexture(type);
 }
 
-void Block::deactivate()
+void Block::destroyBlock()
 {
-	SetActive(true);
+	SetActive(false);
 	type = type_Default;
 }
