@@ -3,6 +3,7 @@
 //***************************************************************************************
 
 #include "CubeGame.h"
+#include "Raycast.h"
 
 bool GameData::sRunning = true;
 const int worldWidthLength = 10;
@@ -330,6 +331,12 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 		if (block != nullptr) {
 			block->SetActive(false);
+		}
+	}
+	if (GetAsyncKeyState('F') & 0x8000) {
+		std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr) {
+			block->SetActive(true);
 		}
 	}
 
