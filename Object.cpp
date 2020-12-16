@@ -237,6 +237,7 @@ void Player::Update(const float dTime) {
 	if (mMoved) {
 		GetRI()->NumFramesDirty++;
 	}
+
 }
 void Player::TranslateCamera(float dTime, float x, float y, float z) {
 	mCamera.Jump(dTime, x, y, z);
