@@ -4,11 +4,14 @@
 
 #include "CubeGame.h"
 #include "Raycast.h"
+#include "PerlinNoise.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 10;
+const int worldWidthLength = 20;
 const int worldHeight = 1;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
+
+PerlinNoise noise;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
     PSTR cmdLine, int showCmd)
@@ -854,21 +857,29 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 1.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
 	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
 	mAllGObjs->push_back(mPlayer);
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(playerRI);					//Add the players render item to the opaque list
 
+	srand(time(NULL));
+	unsigned int seed = rand() % 10000;//237;
+	noise = PerlinNoise(seed);
+
 	//Blocks
 	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
 	{
-		for (int worldY = 0; worldY < worldHeight; ++worldY)
-		{
+		//for (int worldY = 0; worldY < 255; ++worldY)
+		//{
 			for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
 			{
-				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f * worldX, 1.0f * worldY, 1.0f * worldZ));
+				std::wostringstream ss;
+				ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
+				std::wstring s(ss.str());
+				OutputDebugStringW(s.c_str());
+				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ));
 				auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
 				mAllGObjs->push_back(tempGO);
 				mAllBlocks->push_back(std::make_shared<Block>(tempGO));
@@ -876,7 +887,7 @@ void CubeGame::BuildRenderItems()
 				//Add the blocks render item to the opaque items list
 				mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
 			}
-		}
+		//}
 	}
 
 	mAllBlocks->at(0)->SetPosition({ 2,2,2 });

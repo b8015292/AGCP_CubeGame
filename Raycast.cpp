@@ -49,17 +49,9 @@ std::shared_ptr<Block> Raycast::GetBlockInfrontFirstBlockInRay(std::shared_ptr<s
         for (std::shared_ptr<Block> block : blocksInRay) {
             float distance = 0;
             if (block->GetActive() == false) {
-                OutputDebugStringW(L"--------\nactive false\n");
                 if (block->GetBoundingBox().Intersects(origin, dir, distance)) {
-                    std::wostringstream ss;
-                    ss << distance << " " << minDistance << "\n";
-                    std::wstring s(ss.str());
-                    OutputDebugStringW(s.c_str());
-                    OutputDebugStringW(L"intersects");
                     if (distance <= minDistance) {
-                        OutputDebugStringW(L"closer than solid block");
                         if (distance > maxInactiveDistance) {
-                            OutputDebugStringW(L"further than closest non solid");
                             closestInactiveBlock = block;
                             maxInactiveDistance = distance;
                         }
