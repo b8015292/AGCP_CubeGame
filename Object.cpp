@@ -183,7 +183,7 @@ void Entity::SetMaxVelocity(XMFLOAT3 newMaxVel) {
 std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 	std::vector<int> collisionIndexs;
 	for (int i = 0; i < mAllGObjs->size(); i++){
-		if (nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+		if (mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
 			collisionIndexs.push_back(i);
 		}
 	}
@@ -192,7 +192,7 @@ std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 
 bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mID != mAllGObjs->at(i)->GetID() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+		if (mID != mAllGObjs->at(i)->GetID() && mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
 			return true;
 		}
 	}

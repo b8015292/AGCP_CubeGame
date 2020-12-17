@@ -86,7 +86,7 @@ bool CubeGame::Initialize()
 	mUI.UpdateRotation(0.0f, 0.0f, mPlayer->GetCam()->GetLook());
 	mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
-	mUI.SetString(mCommandList.Get(), "Hello", 0.0f, 0.0f);
+	SetUIString("Player X: ", 0, 0);
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -97,6 +97,15 @@ bool CubeGame::Initialize()
     FlushCommandQueue();
 
     return true;
+}
+
+void CubeGame::SetUIString(std::string str, int lineNo, int col) {
+	if (lineNo > mUIRows) lineNo = mUIRows;
+	if (col > mUICols) col = mUICols;
+	float row = (float)lineNo * 1 / mUIRows;
+	float colm = (float) col * 1 / mUICols;
+
+	mUI.SetString(mCommandList.Get(), str, colm, row);
 }
  
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -125,8 +134,7 @@ void CubeGame::LoadTextures() {
 	MakeTexture("font", mUI.GetFont()->filePath);
 	MakeTexture("blocks", L"data/blockMap.dds");
 	MakeTexture("skyTex", L"data/sky.dds");
-	MakeTexture("blockBreak", L"data/blockBreakMap.dds");
-
+	MakeTexture("blockSelect", L"data/blockBreakMap.dds");
 
 	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
 	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
@@ -159,7 +167,7 @@ void CubeGame::OnResize()
     // The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
 	if (mPlayer) {
-		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, mBackPlane);
 		mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
 	}
 }
@@ -192,10 +200,22 @@ void CubeGame::Update(const GameTimer& gt)
 		// Should be put in the player VVV
  		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
+		//Set render items to dirty if their GO has been updated
+
+
+
+		SetUIString("Player X: ", 0, 0);
+
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
 				mAllGObjs->at(i)->SetRIDirty();
 		}
+		if (mUI.GetDirty()) mUI.SetRIDirty();
+
+
+		//SetUIString("Player Y: ", 1, 0);
+		//SetUIString("Player Z: ", 2, 0);
+		//SetUIString("Raycast: ", 3, 0);
 	}
 
 
@@ -241,17 +261,14 @@ void CubeGame::Draw(const GameTimer& gt)
 	//Set Font Data
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
 	mCommandList->SetPipelineState(mPSOs["sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
 
-	mCommandList->SetGraphicsRootDescriptorTable(3, tex);
 	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
-    DrawUI(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
 
     // Indicate a state transition on the resource usage.
@@ -428,7 +445,7 @@ void CubeGame::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
 	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
 	mMainPassCB.NearZ = 1.0f;
-	mMainPassCB.FarZ = 1000.0f;
+	mMainPassCB.FarZ = mBackPlane;
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
@@ -460,10 +477,10 @@ void CubeGame::BuildRootSignature()
 	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 
 	// Create root CBV.
-	slotRootParameter[0].InitAsConstantBufferView(0);
-	slotRootParameter[1].InitAsConstantBufferView(1);
-	slotRootParameter[2].InitAsConstantBufferView(2);
-	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[0].InitAsConstantBufferView(0);	//Object
+	slotRootParameter[1].InitAsConstantBufferView(1);	//Material
+	slotRootParameter[2].InitAsConstantBufferView(2);	//MainPass
+	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);	//Texture
 
 	auto staticSamplers = GetStaticSamplers();
 
@@ -557,7 +574,7 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-	auto blockBreakTex = mTextures["blockBreak"]->Resource;
+	auto blockBreakTex = mTextures["blockSelect"]->Resource;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = blockBreakTex->GetDesc().Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -583,9 +600,11 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[0].push_back("player");
 	meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
 	meshNames[0].push_back("cube");
+	meshDatas[0].push_back(geoGen.CreateBox(1.1f, 1.1f, 1.1f, 0));
+	meshNames[0].push_back("blockSelector");
 
 	//UI Geos
-	meshDatas[1].push_back(mUI.CreateUIPlane(1.f, 1.f, 10, 10));
+	meshDatas[1].push_back(mUI.CreateUIPlane(1.f, 1.f, mUIRows, mUICols));
 	meshNames[1].push_back("mainGUI");
 
 	//Sky
@@ -740,10 +759,10 @@ void CubeGame::BuildPSOs()
 	opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
+
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
-
 	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
 	transparencyBlendDesc.BlendEnable = true;
 	transparencyBlendDesc.LogicOpEnable = false;
@@ -799,11 +818,16 @@ void CubeGame::BuildFrameResources()
 void CubeGame::BuildMaterials()
 {
 	float x = mBlockTexturePositions["dirt"].x;
+	float x2 = mBlockBreakTexturePositions["b0"].x;
 
 	CreateMaterial("player", 1, DirectX::Colors::Black, { 0,0 });
 	CreateMaterial("dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
 	CreateMaterial("grass", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 }, { x * 3.f,0 }, { x,0 });
+
 	CreateMaterial("sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+	CreateMaterial("font", 0, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+	CreateMaterial("blockSelect", 3, { 1.0f, 1.0f, 1.0f }, { x2, 0.f });
+
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -885,7 +909,7 @@ void CubeGame::BuildRenderItems()
 	//DEBUG
 
 
-	//Sku----------------------------
+	//Sky----------------------------
 	
 	auto sky = mGeometries["skyGeo"].get();
 
@@ -896,13 +920,14 @@ void CubeGame::BuildRenderItems()
 	//UI---------------------------
 	auto ui = mGeometries["uiGeo"].get();
 
-	//Make each mesh a render item
-	int j = 0;
-	for (std::pair<std::string, SubmeshGeometry> el : ui->DrawArgs) {
-		auto temp = std::make_shared<RenderItem>(ui, el.first, mMaterials["player"].get(), XMMatrixIdentity());
-		mRitemLayer[(int)RenderLayer::Transparent].push_back(temp);
-	}
+	auto gui1 = std::make_shared<RenderItem>(ui, "mainGUI", mMaterials["font"].get(), XMMatrixIdentity());
+	gui1->active = false;
+	mRitemLayer[(int)RenderLayer::Transparent].push_back(gui1);
 
+	//Block selector
+	auto selectorRI = std::make_shared<RenderItem>(geo, "blockSelector", mMaterials["blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));
+	mBlockSelector = std::make_shared<GameObject>(mAllGObjs, selectorRI);
+	mRitemLayer[(int)RenderLayer::Transparent].push_back(selectorRI);
 
 
 
@@ -939,35 +964,6 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 		}
-	}
-}
-
-void CubeGame::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems) {
-	
-	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-	UINT matCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
-
-	auto objectCB = mCurrFrameResource->ObjectCB->Resource();
-	auto matCB = mCurrFrameResource->MaterialCB->Resource();
-
-	// For each render item...
-	for (size_t i = 0; i < ritems.size(); ++i)
-	{
-		//if (ritems[i]->active) {
-			auto ri = ritems[i];
-
-			cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
-			cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
-			cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
-
-			D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex * objCBByteSize;
-			cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
-
-			D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex * matCBByteSize;
-			cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
-
-			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
-		//}
 	}
 }
 

@@ -34,14 +34,19 @@ public:
 
 	void UpdateBuffer(ID3D12GraphicsCommandList* cmdList, std::vector<Vertex> vertices);
 
+	bool GetDirty() { return mDirty; };
+	void SetDirtyFlag() { mDirty = true; };
+	void SetRIDirty() { mRI->NumFramesDirty++; mDirty = false; };
+
+
 private:
 	Font mFnt;
 	int mSizeX = 0;
 	int mSizeZ = 0; //Y - because the UI is built on a plane which is parallel to the Z axis before rotation,
 					//	  after rotation its Z becomes its height
 
-	const float mScaleVal = 1.15f;				//Scale
-	const float offsetFromPlayer = 1.2f;		//Translate
+	const float mScaleVal = 1.f;				//Scale
+	const float offsetFromPlayer = 1.00001f;	//Translate
 	const float mRotToPlayer = -1.57079633f;	//-90 degrees rotate
 	DirectX::XMMATRIX mRotToPlayerMat = DirectX::XMMatrixRotationX(mRotToPlayer);
 	DirectX::XMMATRIX mScale = DirectX::XMMatrixIdentity();
@@ -54,4 +59,5 @@ private:
 	float windHeight = 0;
 
 	std::shared_ptr<RenderItem> mRI;
+	bool mDirty = false;
 };
