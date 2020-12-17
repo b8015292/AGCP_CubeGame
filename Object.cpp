@@ -226,7 +226,7 @@ void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 	if (mApplyGravity)
 	{
-		//Create a bounding box in the next location
+		//Create a bounding box in the next location in the Y axis (X and Z are handled within the Walk and Strafe functions)
 		BoundingBox nextBox;
 		mBoundingBox.Transform(nextBox, DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0));
 		if (CheckIfCollidingAtBox(nextBox)) {
