@@ -835,7 +835,10 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 	mat->DiffuseAlbedo = XMFLOAT4(color);
 	mat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
 	mat->Roughness = 0.2f;
-	DirectX::XMStoreFloat4x4(&mat->MatTransform, DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f));
+	XMMATRIX trans = DirectX::XMMatrixTranslation(texTransform.x, texTransform.y, 0.f);
+	DirectX::XMStoreFloat4x4(&mat->MatTransform, trans);
+	DirectX::XMStoreFloat4x4(&mat->MatTransformTop, trans);
+	DirectX::XMStoreFloat4x4(&mat->MatTransformBottom, trans);
 
 	mMaterials[name] = std::move(mat);
 }
@@ -844,6 +847,16 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 	CreateMaterial(name, textureIndex, color, texTransform);
 	DirectX::XMStoreFloat4x4(&mMaterials[name]->MatTransformTop, DirectX::XMMatrixTranslation(texTransformTop.x, texTransformTop.y, 0.f));
 	DirectX::XMStoreFloat4x4(&mMaterials[name]->MatTransformBottom, DirectX::XMMatrixTranslation(texTransformBottom.x, texTransformBottom.y, 0.f));
+}
+
+void CubeGame::CreateCube(std::string materialName, XMFLOAT3 pos) {
+	auto temp = std::make_shared<RenderItem>(mGeometries["shapeGeo"].get(), "cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x,pos.y,pos.z));
+	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
+	mAllGObjs->push_back(tempGO);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
 }
 
 void CubeGame::BuildRenderItems()
@@ -858,75 +871,22 @@ void CubeGame::BuildRenderItems()
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(playerRI);					//Add the players render item to the opaque list
 
-	srand(time(NULL));
+	srand(time_t(NULL));
 	unsigned int seed = rand() % 10000;//237;
 	noise = PerlinNoise(seed);
 
 	//Blocks
 	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
 	{
-		//for (int worldY = 0; worldY < 255; ++worldY)
-		//{
-			for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
-			{
-				std::wostringstream ss;
-				ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
-				std::wstring s(ss.str());
-				OutputDebugStringW(s.c_str());
-				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ));
-				auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
-				mAllGObjs->push_back(tempGO);
-				mAllBlocks->push_back(std::make_shared<Block>(tempGO));
-
-				//Add the blocks render item to the opaque items list
-				mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
-			}
-		//}
+		for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
+		{
+			std::wostringstream ss;
+			ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
+			std::wstring s(ss.str());
+			OutputDebugStringW(s.c_str());
+			CreateCube("grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
+		}
 	}
-
-	auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(2.0f, 2.0f, 1.0f));
-	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
-	mAllGObjs->push_back(tempGO);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
-
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
-
-	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f ,1.0f, 1.0f));
-	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
-	mAllGObjs->push_back(tempGO1);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
-
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
-
-	//DEBUG
-
-	//auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
-	//auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
-	//mAllGObjs->push_back(tempGO1);
-	//mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
-
-	////Add the blocks render item to the opaque items list
-	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
-
-	//auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
-	//auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
-	//mAllGObjs->push_back(tempGO2);
-	//mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
-
-	////Add the blocks render item to the opaque items list
-	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
-
-	//auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
-	//auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
-	//mAllGObjs->push_back(tempGO3);
-	//mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
-
-	////Add the blocks render item to the opaque items list
-	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
-
-	//DEBUG
 
 
 	//Sky----------------------------
