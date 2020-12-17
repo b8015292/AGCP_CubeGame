@@ -105,6 +105,7 @@ private:
 
     std::shared_ptr<Player> mPlayer;
     const float mBackPlane = 1000.0f;
+    const float mFrontPlane = 0.0001f;
     std::shared_ptr<GameObject> mBlockSelector;
 
     UI mUI;

@@ -77,7 +77,7 @@ bool CubeGame::Initialize()
     BuildPSOs();
 
 	//Initialise the camera
-	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
 
 	//Initialise the user interface
@@ -200,22 +200,11 @@ void CubeGame::Update(const GameTimer& gt)
 		// Should be put in the player VVV
  		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
-		//Set render items to dirty if their GO has been updated
-
-
-
-		SetUIString("Player X: ", 0, 0);
-
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
 				mAllGObjs->at(i)->SetRIDirty();
 		}
 		if (mUI.GetDirty()) mUI.SetRIDirty();
-
-
-		//SetUIString("Player Y: ", 1, 0);
-		//SetUIString("Player Z: ", 2, 0);
-		//SetUIString("Raycast: ", 3, 0);
 	}
 
 
@@ -322,7 +311,12 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 
 		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 		if (block != nullptr && block->GetActive()) {
+			mBlockSelector->SetActive(true);
 			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
+			mBlockSelector->SetRIDirty();
+		}
+		else {
+			mBlockSelector->SetActive(false);
 			mBlockSelector->SetRIDirty();
 		}
     }
@@ -444,7 +438,7 @@ void CubeGame::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.EyePosW = mPlayer->GetCam()->GetPosition3f();
 	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
 	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
-	mMainPassCB.NearZ = 1.0f;
+	mMainPassCB.NearZ = mFrontPlane;
 	mMainPassCB.FarZ = mBackPlane;
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
@@ -596,7 +590,7 @@ void CubeGame::BuildShapeGeometry()
 	std::vector<std::string> meshNames[numb];
 
 	//Shape Geos
-	meshDatas[0].push_back(geoGen.CreateBox(0.5f, 0.75f, 0.5f, 0));
+	meshDatas[0].push_back(geoGen.CreateBox(0.5f, 1.5f, 0.5f, 0));
 	meshNames[0].push_back("player");
 	meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
 	meshNames[0].push_back("cube");
@@ -879,7 +873,21 @@ void CubeGame::BuildRenderItems()
 		}
 	}
 
-	mAllBlocks->at(0)->SetPosition({ 2,2,2 });
+	auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(2.0f, 2.0f, 1.0f));
+	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
+	mAllGObjs->push_back(tempGO);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
+
+	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f ,1.0f, 1.0f));
+	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	mAllGObjs->push_back(tempGO1);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
 
 	//DEBUG
 

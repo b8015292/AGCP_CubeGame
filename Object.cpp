@@ -273,10 +273,8 @@ void Player::Walk(float d, float dTime) {
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
 		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
 		//if(newWorldMatrix.r[3].m128_f32[2] < mCamera.GetPosition3f().z)
-		const int offsetZ = 3;
-		const int offsetY = 1;
 		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 
 		SetDirtyFlag();
 	}
@@ -296,10 +294,8 @@ void Player::Strafe(float d, float dTime) {
 		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
 		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-		const int offsetZ = 3;
-		const int offsetY = 1;
 		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 
 		SetDirtyFlag();
 	}
