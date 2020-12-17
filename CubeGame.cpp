@@ -172,6 +172,23 @@ void CubeGame::OnResize()
 	}
 }
 
+void CubeGame::UpdateBlockSelector() {
+	//Get the block the player is looking at
+	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+
+	//Check the block exists, if so activate the selector and move it to that blocks location
+	if (block != nullptr) {
+		mBlockSelector->SetActive(true);
+		mBlockSelector->SetPosition(block->GetBoundingBox().Center);
+	}
+	else {	//Otherwise deactivate the block selector
+		mBlockSelector->SetActive(false);
+	}
+
+	//Make sure the selectors render item is updated
+	mBlockSelector->SetDirtyFlag();
+}
+
 void CubeGame::Update(const GameTimer& gt)
 {
     OnKeyboardInput(gt);
@@ -200,14 +217,19 @@ void CubeGame::Update(const GameTimer& gt)
 		// Should be put in the player VVV
  		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
+		UpdateBlockSelector();
+
+
+
+
+		//Set dirty
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
 				mAllGObjs->at(i)->SetRIDirty();
 		}
 		if (mUI.GetDirty()) mUI.SetRIDirty();
+		if (mBlockSelector->GetDirty()) mBlockSelector->SetRIDirty();
 	}
-
-
 
 	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
@@ -309,45 +331,47 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->RotateY(dx);
 		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
 
-		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-		if (block != nullptr && block->GetActive()) {
-			mBlockSelector->SetActive(true);
-			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
-			mBlockSelector->SetRIDirty();
-		}
-		else {
-			mBlockSelector->SetActive(false);
-			mBlockSelector->SetRIDirty();
-		}
+		//UpdateBlockSelector();
+
     }
 
     mLastMousePos.x = x;
     mLastMousePos.y = y;
+	mPlayer->GetCam()->UpdateViewMatrix();
 }
  
 void CubeGame::OnKeyboardInput(const GameTimer& gt)
 {
 	const float dt = gt.DeltaTime();
 
-	if (GetAsyncKeyState('W') & 0x8000)
-		mPlayer->Walk(5.0f, dt);
+	//Player movement
+	if (GetAsyncKeyState('W') || GetAsyncKeyState('S') || GetAsyncKeyState('A') || GetAsyncKeyState('D') || GetAsyncKeyState(VK_SPACE)) {
+		if (GetAsyncKeyState('W') & 0x8000)
+			mPlayer->Walk(5.0f, dt);
 
-	if (GetAsyncKeyState('S') & 0x8000)
-		mPlayer->Walk(-5.0f, dt);
+		if (GetAsyncKeyState('S') & 0x8000)
+			mPlayer->Walk(-5.0f, dt);
 
-	if (GetAsyncKeyState('A') & 0x8000)
-		mPlayer->Strafe(-5.0f, dt);
+		if (GetAsyncKeyState('A') & 0x8000)
+			mPlayer->Strafe(-5.0f, dt);
 
-	if (GetAsyncKeyState('D') & 0x8000)
-		mPlayer->Strafe(5.0f, dt);
+		if (GetAsyncKeyState('D') & 0x8000)
+			mPlayer->Strafe(5.0f, dt);
 
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-		mPlayer->Jump();
+		if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+			mPlayer->Jump();
 
+		mPlayer->GetCam()->UpdateViewMatrix();
+		
+	}
+
+
+	//Interaction
 	if (GetAsyncKeyState('E') & 0x8000) {
 		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 		if (block != nullptr) {
 			block->SetActive(false);
+			UpdateBlockSelector();
 		}
 	}
 	if (GetAsyncKeyState('F') & 0x8000) {
@@ -357,7 +381,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		}
 	}
 
-	mPlayer->GetCam()->UpdateViewMatrix();
+
 }
 
 

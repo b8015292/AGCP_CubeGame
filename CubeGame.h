@@ -62,6 +62,8 @@ private:
 
     void SetUIString(std::string str, int lineNo, int col);
 
+    void UpdateBlockSelector();
+
 private:
 
     enum class RenderLayer : int
