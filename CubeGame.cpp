@@ -882,29 +882,29 @@ void CubeGame::BuildRenderItems()
 
 	//DEBUG
 
-	//auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
-	//auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
-	//mAllGObjs->push_back(tempGO1);
-	//mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
+	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	mAllGObjs->push_back(tempGO1);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
 
-	////Add the blocks render item to the opaque items list
-	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
 
-	//auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
-	//auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
-	//mAllGObjs->push_back(tempGO2);
-	//mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
+	auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
+	auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
+	mAllGObjs->push_back(tempGO2);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
 
-	////Add the blocks render item to the opaque items list
-	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
 
-	//auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
-	//auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
-	//mAllGObjs->push_back(tempGO3);
-	//mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
+	auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
+	auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
+	mAllGObjs->push_back(tempGO3);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
 
-	////Add the blocks render item to the opaque items list
-	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
 
 	//DEBUG
 

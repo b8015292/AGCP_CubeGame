@@ -23,37 +23,7 @@ std::shared_ptr<Block> Raycast::GetFirstBlockInRay(std::shared_ptr<std::vector<s
 }
 
 std::shared_ptr<Block> Raycast::GetBlockInfrontFirstBlockInRay(std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, DirectX::XMVECTOR origin, DirectX::XMVECTOR dir) {
-    DirectX::XMVECTOR pos = origin;
-    /*for (int i = 0; i < 10; i++) {
-        pos += dir * 0.5;
-        std::shared_ptr<Block> foundBlock = nullptr;
-        for (std::shared_ptr<Block> block : *blocks) {
-            std::wostringstream ss;
-            ss << block->GetBoundingBox().Center.x << " " << ((int)pos.m128_f32[0]) << " " << block->GetBoundingBox().Center.y << " " << ((int)pos.m128_f32[0]) << " " << block->GetBoundingBox().Center.z << " " << ((int)pos.m128_f32[0]) << "\n";
-            std::wstring s(ss.str());
-            OutputDebugString(s.c_str());
-            if (block->GetBoundingBox().Center.x == (int)pos.m128_f32[0]
-                && block->GetBoundingBox().Center.y == (int)pos.m128_f32[1]
-                && block->GetBoundingBox().Center.z == (int)pos.m128_f32[2]
-                && block->GetActive() == true) {
-                OutputDebugString(L"FINISHED");
-                foundBlock = block;
-                break;
-            }
-        }
-        if (foundBlock != nullptr) {
-            pos -= dir * 0.5;
-            for (std::shared_ptr<Block> block : *blocks) {
-                if (block->GetBoundingBox().Center.x == (int)pos.m128_f32[0]
-                    && block->GetBoundingBox().Center.y == (int)pos.m128_f32[1]
-                    && block->GetBoundingBox().Center.z == (int)pos.m128_f32[2]
-                    && block->GetActive() == true) {
-                    return block;
-                }
-            }
-            //block doesnt exist in frontx
-        }
-    }*/
+
 
     float minDistance = 4;
     std::vector<std::shared_ptr<Block>> blocksInRay = {};
@@ -64,12 +34,40 @@ std::shared_ptr<Block> Raycast::GetBlockInfrontFirstBlockInRay(std::shared_ptr<s
         if (block->GetBoundingBox().Intersects(origin, dir, distance)) {
             blocksInRay.push_back(block);
             if (distance < minDistance) {
-                closestBlock = block;
-                minDistance = distance;
+                if (block->GetActive() == true) {
+                    closestBlock = block;
+                    minDistance = distance;
+                }
             }
         }
     }
 
-    //for()
-    return nullptr;
+    std::shared_ptr<Block> closestInactiveBlock = nullptr;
+    if (closestBlock != nullptr) {
+        float maxInactiveDistance = 0;
+
+        for (std::shared_ptr<Block> block : blocksInRay) {
+            float distance = 0;
+            if (block->GetActive() == false) {
+                OutputDebugStringW(L"--------\nactive false\n");
+                if (block->GetBoundingBox().Intersects(origin, dir, distance)) {
+                    std::wostringstream ss;
+                    ss << distance << " " << minDistance << "\n";
+                    std::wstring s(ss.str());
+                    OutputDebugStringW(s.c_str());
+                    OutputDebugStringW(L"intersects");
+                    if (distance <= minDistance) {
+                        OutputDebugStringW(L"closer than solid block");
+                        if (distance > maxInactiveDistance) {
+                            OutputDebugStringW(L"further than closest non solid");
+                            closestInactiveBlock = block;
+                            maxInactiveDistance = distance;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return closestInactiveBlock;
 }
