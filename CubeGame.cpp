@@ -4,11 +4,14 @@
 
 #include "CubeGame.h"
 #include "Raycast.h"
+#include "PerlinNoise.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 10;
-const int worldHeight = 3;
+const int worldWidthLength = 20;
+const int worldHeight = 1;
 const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
+
+PerlinNoise noise;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
     PSTR cmdLine, int showCmd)
@@ -79,7 +82,6 @@ bool CubeGame::Initialize()
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
-	mPlayer->Walk(0, 0);
 
 	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
@@ -173,23 +175,6 @@ void CubeGame::OnResize()
 	}
 }
 
-void CubeGame::UpdateBlockSelector() {
-	//Get the block the player is looking at
-	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-
-	//Check the block exists, if so activate the selector and move it to that blocks location
-	if (block != nullptr) {
-		mBlockSelector->SetActive(true);
-		mBlockSelector->SetPosition(block->GetBoundingBox().Center);
-	}
-	else {	//Otherwise deactivate the block selector
-		mBlockSelector->SetActive(false);
-	}
-
-	//Make sure the selectors render item is updated
-	mBlockSelector->SetDirtyFlag();
-}
-
 void CubeGame::Update(const GameTimer& gt)
 {
     OnKeyboardInput(gt);
@@ -218,19 +203,14 @@ void CubeGame::Update(const GameTimer& gt)
 		// Should be put in the player VVV
  		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
-		UpdateBlockSelector();
-
-
-
-
-		//Set dirty
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
 				mAllGObjs->at(i)->SetRIDirty();
 		}
 		if (mUI.GetDirty()) mUI.SetRIDirty();
-		if (mBlockSelector->GetDirty()) mBlockSelector->SetRIDirty();
 	}
+
+
 
 	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
@@ -332,47 +312,45 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->RotateY(dx);
 		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
 
-		//UpdateBlockSelector();
-
+		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr && block->GetActive()) {
+			mBlockSelector->SetActive(true);
+			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
+			mBlockSelector->SetRIDirty();
+		}
+		else {
+			mBlockSelector->SetActive(false);
+			mBlockSelector->SetRIDirty();
+		}
     }
 
     mLastMousePos.x = x;
     mLastMousePos.y = y;
-	mPlayer->GetCam()->UpdateViewMatrix();
 }
  
 void CubeGame::OnKeyboardInput(const GameTimer& gt)
 {
 	const float dt = gt.DeltaTime();
 
-	//Player movement
-	if (GetAsyncKeyState('W') || GetAsyncKeyState('S') || GetAsyncKeyState('A') || GetAsyncKeyState('D') || GetAsyncKeyState(VK_SPACE)) {
-		if (GetAsyncKeyState('W') & 0x8000)
-			mPlayer->Walk(5.0f, dt);
+	if (GetAsyncKeyState('W') & 0x8000)
+		mPlayer->Walk(5.0f, dt);
 
-		if (GetAsyncKeyState('S') & 0x8000)
-			mPlayer->Walk(-5.0f, dt);
+	if (GetAsyncKeyState('S') & 0x8000)
+		mPlayer->Walk(-5.0f, dt);
 
-		if (GetAsyncKeyState('A') & 0x8000)
-			mPlayer->Strafe(-5.0f, dt);
+	if (GetAsyncKeyState('A') & 0x8000)
+		mPlayer->Strafe(-5.0f, dt);
 
-		if (GetAsyncKeyState('D') & 0x8000)
-			mPlayer->Strafe(5.0f, dt);
+	if (GetAsyncKeyState('D') & 0x8000)
+		mPlayer->Strafe(5.0f, dt);
 
-		if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-			mPlayer->Jump();
+	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+		mPlayer->Jump();
 
-		mPlayer->GetCam()->UpdateViewMatrix();
-		
-	}
-
-
-	//Interaction
 	if (GetAsyncKeyState('E') & 0x8000) {
 		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 		if (block != nullptr) {
 			block->SetActive(false);
-			UpdateBlockSelector();
 		}
 	}
 	if (GetAsyncKeyState('F') & 0x8000) {
@@ -382,7 +360,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		}
 	}
 
-
+	mPlayer->GetCam()->UpdateViewMatrix();
 }
 
 
@@ -873,21 +851,29 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 6.0f, 1.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
 	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
 	mAllGObjs->push_back(mPlayer);
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(playerRI);					//Add the players render item to the opaque list
 
+	srand(time(NULL));
+	unsigned int seed = rand() % 10000;//237;
+	noise = PerlinNoise(seed);
+
 	//Blocks
 	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
 	{
-		for (int worldY = 0; worldY < worldHeight; ++worldY)
-		{
+		//for (int worldY = 0; worldY < 255; ++worldY)
+		//{
 			for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
 			{
-				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f * worldX, 1.0f * worldY, 1.0f * worldZ));
+				std::wostringstream ss;
+				ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
+				std::wstring s(ss.str());
+				OutputDebugStringW(s.c_str());
+				auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ));
 				auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
 				mAllGObjs->push_back(tempGO);
 				mAllBlocks->push_back(std::make_shared<Block>(tempGO));
@@ -895,8 +881,53 @@ void CubeGame::BuildRenderItems()
 				//Add the blocks render item to the opaque items list
 				mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
 			}
-		}
+		//}
 	}
+
+	auto temp = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(2.0f, 2.0f, 1.0f));
+	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
+	mAllGObjs->push_back(tempGO);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
+
+	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(1.0f ,1.0f, 1.0f));
+	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	mAllGObjs->push_back(tempGO1);
+	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+
+	//Add the blocks render item to the opaque items list
+	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
+
+	//DEBUG
+
+	//auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
+	//auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	//mAllGObjs->push_back(tempGO1);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
+
+	//auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
+	//auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
+	//mAllGObjs->push_back(tempGO2);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
+
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
+
+	//auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
+	//auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
+	//mAllGObjs->push_back(tempGO3);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
+
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
+
+	//DEBUG
+
 
 	//Sky----------------------------
 	

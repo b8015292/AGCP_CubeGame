@@ -63,6 +63,9 @@
     <ClCompile Include="Raycast.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PerlinNoise.cpp">
+      <Filter>GameData\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FrameResource.h">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="Common\UploadBuffer.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PerlinNoise.h">
+      <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
