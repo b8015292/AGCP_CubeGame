@@ -50,6 +50,7 @@ void GameObject::CreateBoundingBox() {
 void GameObject::SetActive(bool val) {
 	mActive = val;
 	mRI->active = val;
+	SetDirtyFlag();
 }
 
 std::array<XMFLOAT3, 8> GameObject::GetCoords() {
@@ -106,6 +107,16 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 
 	//Translate the bounding box
 	mBoundingBox.Transform(mBoundingBox, translateMatrix);
+}
+
+void GameObject::SetPosition(XMFLOAT3 pos) {
+	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+	//Stores the new matrix, and marks the object as dirty
+	XMStoreFloat4x4(&mRI->World, translateMatrix);
+	SetDirtyFlag();
+
+	CreateBoundingBox();
 }
 
 //************************************************************************************************************

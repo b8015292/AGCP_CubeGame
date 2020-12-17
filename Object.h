@@ -41,6 +41,7 @@ public:
     std::array<XMFLOAT3, 8> GetCoords();
     BoundingBox GetBoundingBox() { return mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };
+    void SetPosition(XMFLOAT3 pos);
 
 
     bool GetDirty() { return mDirty; };

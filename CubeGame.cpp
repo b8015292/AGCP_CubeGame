@@ -320,11 +320,11 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->RotateY(dx);
 		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
 
-		/*std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-		if (block != nullptr) {
-			block->deactivate();
-		}*/
-
+		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+		if (block != nullptr && block->GetActive()) {
+			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
+			mBlockSelector->SetRIDirty();
+		}
     }
 
     mLastMousePos.x = x;
@@ -600,7 +600,7 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[0].push_back("player");
 	meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
 	meshNames[0].push_back("cube");
-	meshDatas[0].push_back(geoGen.CreateBox(1.1f, 1.1f, 1.1f, 0));
+	meshDatas[0].push_back(geoGen.CreateBox(1.02f, 1.02f, 1.02f, 0));
 	meshNames[0].push_back("blockSelector");
 
 	//UI Geos
@@ -879,32 +879,33 @@ void CubeGame::BuildRenderItems()
 		}
 	}
 
+	mAllBlocks->at(0)->SetPosition({ 2,2,2 });
 
 	//DEBUG
 
-	auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
-	auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
-	mAllGObjs->push_back(tempGO1);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
+	//auto temp1 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 3.0f));
+	//auto tempGO1 = std::make_shared<GameObject>(mAllGObjs, temp1);
+	//mAllGObjs->push_back(tempGO1);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO1));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp1);
 
-	auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
-	auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
-	mAllGObjs->push_back(tempGO2);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
+	//auto temp2 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 1.0f, 3.0f));
+	//auto tempGO2 = std::make_shared<GameObject>(mAllGObjs, temp2);
+	//mAllGObjs->push_back(tempGO2);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO2));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp2);
 
-	auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
-	auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
-	mAllGObjs->push_back(tempGO3);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
+	//auto temp3 = std::make_shared<RenderItem>(geo, "cube", mMaterials["grass"].get(), XMMatrixTranslation(3.0f, 2.0f, 4.0f));
+	//auto tempGO3 = std::make_shared<GameObject>(mAllGObjs, temp3);
+	//mAllGObjs->push_back(tempGO3);
+	//mAllBlocks->push_back(std::make_shared<Block>(tempGO3));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
+	////Add the blocks render item to the opaque items list
+	//mRitemLayer[(int)RenderLayer::Opaque].push_back(temp3);
 
 	//DEBUG
 
@@ -927,10 +928,7 @@ void CubeGame::BuildRenderItems()
 	//Block selector
 	auto selectorRI = std::make_shared<RenderItem>(geo, "blockSelector", mMaterials["blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(mAllGObjs, selectorRI);
-	mRitemLayer[(int)RenderLayer::Transparent].push_back(selectorRI);
-
-
-
+	mRitemLayer[(int)RenderLayer::Transparent].push_back(mBlockSelector->GetRI());
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
