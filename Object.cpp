@@ -280,7 +280,6 @@ void Player::Strafe(float d, float dTime) {
 
 		mCamera.Strafe(d, dTime);
 
-
 		DirectX::XMMATRIX oldWorldMatrix;
 		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
