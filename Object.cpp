@@ -50,6 +50,7 @@ void GameObject::CreateBoundingBox() {
 void GameObject::SetActive(bool val) {
 	mActive = val;
 	mRI->active = val;
+	SetDirtyFlag();
 }
 
 std::array<XMFLOAT3, 8> GameObject::GetCoords() {
@@ -106,6 +107,16 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 
 	//Translate the bounding box
 	mBoundingBox.Transform(mBoundingBox, translateMatrix);
+}
+
+void GameObject::SetPosition(XMFLOAT3 pos) {
+	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+	//Stores the new matrix, and marks the object as dirty
+	XMStoreFloat4x4(&mRI->World, translateMatrix);
+	SetDirtyFlag();
+
+	CreateBoundingBox();
 }
 
 //************************************************************************************************************
@@ -183,7 +194,7 @@ void Entity::SetMaxVelocity(XMFLOAT3 newMaxVel) {
 std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 	std::vector<int> collisionIndexs;
 	for (int i = 0; i < mAllGObjs->size(); i++){
-		if (nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+		if (mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
 			collisionIndexs.push_back(i);
 		}
 	}
@@ -192,7 +203,8 @@ std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 
 bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	for (int i = 0; i < mAllGObjs->size(); i++) {
-		if (mID != mAllGObjs->at(i)->GetID() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+		//If the IDs arent the same, the block is active, and it is colliding
+		if (mID != mAllGObjs->at(i)->GetID() && mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
 			return true;
 		}
 	}
@@ -215,7 +227,7 @@ void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 	if (mApplyGravity)
 	{
-		//Create a bounding box in the next location
+		//Create a bounding box in the next location in the Y axis (X and Z are handled within the Walk and Strafe functions)
 		BoundingBox nextBox;
 		mBoundingBox.Transform(nextBox, DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0));
 		if (CheckIfCollidingAtBox(nextBox)) {
@@ -262,10 +274,8 @@ void Player::Walk(float d, float dTime) {
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
 		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
 		//if(newWorldMatrix.r[3].m128_f32[2] < mCamera.GetPosition3f().z)
-		const int offsetZ = 3;
-		const int offsetY = 1;
 		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 
 		SetDirtyFlag();
 	}
@@ -284,10 +294,8 @@ void Player::Strafe(float d, float dTime) {
 		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
 		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-		const int offsetZ = 3;
-		const int offsetY = 1;
 		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 
 		SetDirtyFlag();
 	}

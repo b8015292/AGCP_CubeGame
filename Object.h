@@ -33,6 +33,8 @@ public:
     ~GameObject();
     void CreateBoundingBox();
 
+    bool operator==(GameObject& obj) { return GetID() == obj.GetID(); };
+
     //Getters and Setters
     bool GetActive() { return mActive; };
     void SetActive(bool val);
@@ -41,6 +43,7 @@ public:
     std::array<XMFLOAT3, 8> GetCoords();
     BoundingBox GetBoundingBox() { return mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };
+    void SetPosition(XMFLOAT3 pos);
 
 
     bool GetDirty() { return mDirty; };
@@ -114,6 +117,10 @@ public:
 private:
     Camera mCamera;
     bool mJumped = true;
+
+    const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
+    const float mCameraOffsetZ = 0.f;   //For 3rd person
+    const float mCameraOffsetY = 0.6f;  //Height
 };
 
 

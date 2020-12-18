@@ -51,15 +51,19 @@ private:
     void BuildMaterials();
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
-    void DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
 
     void MakeTexture(std::string name, std::string path);
     void MakeTexture(std::string name, std::wstring path);
     void LoadTextures();
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
-    void SetBlockTexturePositions(const int blockTexSize, const int blockTexRows, const int blockTexCols, const std::string blockTexNames[]);
+    void SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]);
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform);
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
+    void CreateCube(std::string materialName, XMFLOAT3 pos);
+
+    void SetUIString(std::string str, int lineNo, int col);
+
+    void UpdateBlockSelector();
 
 private:
 
@@ -103,13 +107,21 @@ private:
     POINT mLastMousePos;
 
     std::shared_ptr<Player> mPlayer;
-    UI mUI;
+    const float mBackPlane = 1000.0f;
+    const float mFrontPlane = 0.0001f;
+    std::shared_ptr<GameObject> mBlockSelector;
 
+    UI mUI;
     Font fnt;
+    const int mUIRows = 26;
+    const int mUICols = 26;
 
     const int mBlockTexSize = 32;
     const int mBlockTexRows = 1;
     const int mBlockTexCols = 7;
     const std::string mBlockTexNames[7] = { "null", "dirt", "grassSide", "grass", "stone", "null", "null"};
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
+
+    const std::string mBlockBreakTexNames[7] = { "select", "b0", "b1", "b2", "b3", "b4", "b5" };
+    std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockBreakTexturePositions;
 };

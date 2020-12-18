@@ -67,7 +67,7 @@ void UI::InitFont() {
 	//Specials
 	row = 7;
 	col = 1;
-	char spec[] = { '.', ',', ';', ':', '$', '#', 'X', '!', '"', '/', '?', '%', '&', '(', ')', '@'  };
+	char spec[] = { '.', ',', ';', ':', '$', '#', 'X', '!', '"', '/', '?', '%', '&', '(', ')', '@', ' '  };
 	for (int i = 0; i <= 16 + 9; i++) {
 
 		Font::myChar temp(col * size, row * size, size, size);
@@ -214,7 +214,7 @@ void UI::UpdateUIPos(DirectX::XMVECTOR camPos) {
 
 	//Apply the matrix to the UI plane
 	XMStoreFloat4x4(&mRI->World, uiTransform);
-	mRI->NumFramesDirty++;
+	SetDirtyFlag();
 }
 
 void UI::UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight) {
@@ -286,6 +286,8 @@ void UI::SetString(ID3D12GraphicsCommandList* cmdList, std::string str, float po
 
 	//Update the GPUs version of the verticies
 	UpdateBuffer(cmdList, vs);
+
+	SetDirtyFlag();
 }
 
 void UI::UpdateBuffer(ID3D12GraphicsCommandList* cmdList, std::vector<Vertex> vertices) {
