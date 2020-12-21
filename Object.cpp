@@ -204,11 +204,23 @@ std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	for (int i = 0; i < mAllGObjs->size(); i++) {
 		//If the IDs arent the same, the block is active, and it is colliding
-		if (mID != mAllGObjs->at(i)->GetID() && mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
-			return true;
-		}
+		std::shared_ptr<GameObject> go = mAllGObjs->at(i);
+		if (mID != go->GetID())
+			if(go->GetActive())
+				if(nextPos.Contains(go->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT)
+					return true;
 	}
 	return false;
+
+	//for (int i = 0; i < mAllGObjs->size(); i++) {
+	//	//If the IDs arent the same, the block is active, and it is colliding
+	//	if (mID != mAllGObjs->at(i)->GetID() &&
+	//		mAllGObjs->at(i)->GetActive() &&
+	//		nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+	//		return true;
+	//	}
+	//}
+	//return false;
 }
 
 //************************************************************************************************************

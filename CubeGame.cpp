@@ -83,8 +83,10 @@ bool CubeGame::Initialize()
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
 
+	mPlayer->Walk(0, 0);
+
 	//Initialise the user interface
-	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
+	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::UserInterface].at(0));
 	mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
 	mUI.UpdateRotation(0.0f, 0.0f, mPlayer->GetCam()->GetLook());
 	mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
@@ -258,9 +260,6 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	mCommandList->SetPipelineState(mPSOs["sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
-
-	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
 
     // Indicate a state transition on the resource usage.
@@ -512,19 +511,34 @@ void CubeGame::BuildShadersAndInputLayout()
 		NULL, NULL
 	};
 
+	//Standard
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
-	mShaders["UIPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "UIPS", "ps_5_1");
+	//UI / 2D
+	mShaders["2DPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDPS", "ps_5_1");
+	mShaders["2DVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDVS", "vs_5_1");
+	//Sky
 	mShaders["SkyVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyVS", "vs_5_1");
 	mShaders["SkyPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyPS", "ps_5_1");
 
-	
-    mInputLayout =
-    {
+	//Opaque
+	mInputLayout->push_back({
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    };
+    });
+
+	//GUI
+	mInputLayout->push_back({
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	});
+
+	//Sky
+	mInputLayout->push_back({{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, });
+
+	//Transparent...
+
 }
 
 void CubeGame::BuildDescriptorHeaps() {
@@ -734,7 +748,7 @@ void CubeGame::BuildPSOs()
 	blendDesc.RenderTarget[0] = rtb;
 
     ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	opaquePsoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
+	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::Opaque).data(), (UINT)mInputLayout->at((int)RenderLayer::Opaque).size() };
 	opaquePsoDesc.pRootSignature = mRootSignature.Get();
 	opaquePsoDesc.VS = 
 	{ 
@@ -759,7 +773,10 @@ void CubeGame::BuildPSOs()
 
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
+	//***********************************
+	//UI
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC UserInterface = opaquePsoDesc;
 	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
 	transparencyBlendDesc.BlendEnable = true;
 	transparencyBlendDesc.LogicOpEnable = false;
@@ -772,15 +789,26 @@ void CubeGame::BuildPSOs()
 	transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
 	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	transparentPsoDesc.PS =
+	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::UserInterface).data(), (UINT)mInputLayout->at((int)RenderLayer::UserInterface).size() };
+
+	UserInterface.PS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["UIPS"]->GetBufferPointer()),
-		mShaders["UIPS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mShaders["2DPS"]->GetBufferPointer()),
+		mShaders["2DPS"]->GetBufferSize()
 	};
 
-	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
-	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&mPSOs["transparent"])));
+	UserInterface.VS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["2DVS"]->GetBufferPointer()),
+		mShaders["2DVS"]->GetBufferSize()
+	};
 
+	UserInterface.BlendState.RenderTarget[0] = transparencyBlendDesc;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&UserInterface, IID_PPV_ARGS(&mPSOs["UserInterface"])));
+
+
+	//***********************************
+	//Sky
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = opaquePsoDesc;
 	// The camera is inside the sky sphere, so just turnoff culling.
@@ -790,6 +818,7 @@ void CubeGame::BuildPSOs()
 	// fail the depth test if the depth buffer was cleared to 1.
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.pRootSignature = mRootSignature.Get();
+	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::Sky).data(), (UINT)mInputLayout->at((int)RenderLayer::Sky).size() };
 	skyPsoDesc.VS =
 	{
 	reinterpret_cast<BYTE*>(mShaders["SkyVS"] -> GetBufferPointer()), mShaders["SkyVS"]->GetBufferSize()
@@ -808,7 +837,7 @@ void CubeGame::BuildFrameResources()
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-            1, (UINT)mAllGObjs->size() + (UINT)mRitemLayer[(int)RenderLayer::Transparent].size() + (UINT)mRitemLayer[(int)RenderLayer::Sky].size(), (UINT)mMaterials.size()));
+            1, (UINT)mAllGObjs->size() + (UINT)mRitemLayer[(int)RenderLayer::UserInterface].size() + (UINT)mRitemLayer[(int)RenderLayer::Sky].size(), (UINT)mMaterials.size()));
     }
 }
 
@@ -884,10 +913,15 @@ void CubeGame::BuildRenderItems()
 			ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
 			std::wstring s(ss.str());
 			OutputDebugStringW(s.c_str());
+
 			CreateCube("grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
 		}
 	}
 
+	//CreateCube("grass", { 0,0,0});
+	//CreateCube("grass", { 1,0,0});
+	//CreateCube("grass", { 1,0,1});
+	//CreateCube("grass", { 0,0,1});
 
 	//Sky----------------------------
 	
@@ -902,12 +936,12 @@ void CubeGame::BuildRenderItems()
 
 	auto gui1 = std::make_shared<RenderItem>(ui, "mainGUI", mMaterials["font"].get(), XMMatrixIdentity());
 	gui1->active = false;
-	mRitemLayer[(int)RenderLayer::Transparent].push_back(gui1);
+	mRitemLayer[(int)RenderLayer::UserInterface].push_back(gui1);
 
 	//Block selector
 	auto selectorRI = std::make_shared<RenderItem>(geo, "blockSelector", mMaterials["blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(mAllGObjs, selectorRI);
-	mRitemLayer[(int)RenderLayer::Transparent].push_back(mBlockSelector->GetRI());
+	mRitemLayer[(int)RenderLayer::UserInterface].push_back(mBlockSelector->GetRI());
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)

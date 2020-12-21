@@ -308,7 +308,3 @@ void UI::UpdateBuffer(ID3D12GraphicsCommandList* cmdList, std::vector<Vertex> ve
 	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRI->Geo->VertexBufferGPU.Get(),
 		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
-
-//void UI::DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems) {
-//
-//}

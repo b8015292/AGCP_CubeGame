@@ -50,6 +50,7 @@ private:
     void BuildFrameResources();
     void BuildMaterials();
     void BuildRenderItems();
+
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
 
     void MakeTexture(std::string name, std::string path);
@@ -70,8 +71,9 @@ private:
     enum class RenderLayer : int
     {
         Opaque = 0,
-        Transparent,
+        UserInterface,
         Sky,
+        Transparent,
         Count
     };
 
@@ -91,7 +93,7 @@ private:
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
-    std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
+    std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)RenderLayer::Count];
 
     // List of all the render items.
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
