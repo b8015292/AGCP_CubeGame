@@ -2,10 +2,20 @@
 
 UI::~UI() {
 	mRI.~shared_ptr();
+	mCmdList.~ComPtr();
 }
 
-void UI::SetRenderItem(std::shared_ptr<RenderItem> ri) {
+void UI::Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdList) {
 	mRI = ri;
+	mCmdList = cmdList;
+
+	//Move the data from the vertex buffer onto a vector we can view/manipulate. This moves it from a 'blob' format into the Vertex vector format
+	CopyMemory(mVertices.data(), mRI->Geo->VertexBufferCPU->GetBufferPointer(), mVbByteSize);
+	mStartVertices = mVertices;
+
+	//Move the image so it fills the whole screen
+	XMStoreFloat4x4(&mRI->World, DirectX::XMMatrixTranslation(-0.02f, 0.02, 0));
+	SetDirtyFlag();
 }
 
 void UI::InitFont() {
@@ -81,41 +91,44 @@ void UI::InitFont() {
 	}
 }
 
-GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM, int oN) {
+GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int oM, int oN) {
 	GeometryGenerator::MeshData meshData;
 
-	int m = oM * 2;
-	int n = oN * 2;
+	//Multiplies the rows and colomns by 2
+	mSizeX = (int)oM * 2;
+	mSizeY = (int)oN * 2;
 
-	mSizeX = (int)m;
-	mSizeZ = (int)n;
+	//Set these for use in later functions
+	mVertsPerObj = mSizeX * mSizeY;
+	mVbByteSize = mVertsPerObj * sizeof(Vertex);
+	mVertices.resize(mVertsPerObj);
 
-	int vertexCount = m * n;
-	int faceCount = (m - 1) * (n - 1) * 2;
 
-
+	int faceCount = (mSizeX - 1) * (mSizeY - 1) * 2;
 	float halfWidth = 0.5f * width;
-	float halfDepth = 0.5f * depth;
+	float halfHeight = 0.5f * height;
 
-	float dx = width / ((float)n - 1); //Vertices per row
-	float dz = depth / ((float)m - 1); //Vertices per column
 
-	float du = 1.0f / ((float)n - 1); //Tex coord increment per vertex
-	float dv = 1.0f / ((float)m - 1);
+	float dx = width / ((float)mSizeY - 1); //Vertices per row
+	float dz = height / ((float)mSizeX - 1); //Vertices per column
+
+	//Normalized tex coord increment per vertex
+	float du = 1.0f / ((float)mSizeY - 1); 
+	float dv = 1.0f / ((float)mSizeX - 1);
 
 	int decI = 0;
-	meshData.Vertices.resize(vertexCount);
-	for (int i = 0; i < m; ++i)
+	meshData.Vertices.resize(mVertsPerObj);
+	for (int i = 0; i < mSizeX; ++i)
 	{
-		float z = halfDepth - (float)(i - decI) * (dz * 2.f);
+		float y = halfHeight - (float)(i - decI) * (dz * 2.f);
 		int decJ = 0;
-		for (int j = 0; j < n; ++j)
+		for (int j = 0; j < mSizeY; ++j)
 		{
 
 			float x = -halfWidth + (float)(j - decJ) * (dx * 2.f);
-			size_t index = i * n + j;
+			size_t index = i * mSizeY + j;
 
-			meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+			meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
 			meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 			meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
@@ -123,11 +136,11 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM
 			meshData.Vertices[index].TexC.x = (float)j * du;
 			meshData.Vertices[index].TexC.y = (float)i * dv;
 
-			if (j != 0 && j < n - 1) {
+			if (j != 0 && j < mSizeY - 1) {
 				j++;
-				index = i * n + j;
+				index = i * mSizeY + j;
 
-				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
 				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 				meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
@@ -140,17 +153,17 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM
 
 		}
 
-		if (i != 0 && i < m - 1) {
+		if (i != 0 && i < mSizeX - 1) {
 			i++;
 
 			int decJ = 0;
-			for (int j = 0; j < n; ++j)
+			for (int j = 0; j < mSizeY; ++j)
 			{
 
 				float x = -halfWidth + (float)(j - decJ) * (dx * 2);
-				size_t index = i * n + j;
+				size_t index = i * mSizeY + j;
 
-				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
 				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 				meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
@@ -158,11 +171,11 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM
 				meshData.Vertices[index].TexC.x = (float)j * du;
 				meshData.Vertices[index].TexC.y = (float)i * dv;
 
-				if (j != 0 && j < n - 1) {
+				if (j != 0 && j < mSizeY - 1) {
 					j++;
-					index = i * n + j;
+					index = i * mSizeY + j;
 
-					meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+					meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
 					meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 					meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
@@ -187,17 +200,17 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM
 
 	// Iterate over each quad and compute indices.
 	GeometryGenerator::uint32 k = 0;
-	for (GeometryGenerator::uint32 i = 0; i < (GeometryGenerator::uint32)m - 1; ++i)
+	for (GeometryGenerator::uint32 i = 0; i < (GeometryGenerator::uint32)mSizeX - 1; ++i)
 	{
-		for (GeometryGenerator::uint32 j = 0; j < (GeometryGenerator::uint32)n - 1; ++j)
+		for (GeometryGenerator::uint32 j = 0; j < (GeometryGenerator::uint32)mSizeY - 1; ++j)
 		{
-			meshData.Indices32[k] = i * n + j;
-			meshData.Indices32[k + 1] = i * n + j + 1;
-			meshData.Indices32[k + 2] = (i + 1) * n + j;
+			meshData.Indices32[k] = i * mSizeY + j;
+			meshData.Indices32[k + 1] = i * mSizeY + j + 1;
+			meshData.Indices32[k + 2] = (i + 1) * mSizeY + j;
 
-			meshData.Indices32[k + 3] = (i + 1) * n + j;
-			meshData.Indices32[k + 4] = i * n + j + 1;
-			meshData.Indices32[k + 5] = (i + 1) * n + j + 1;
+			meshData.Indices32[k + 3] = (i + 1) * mSizeY + j;
+			meshData.Indices32[k + 4] = i * mSizeY + j + 1;
+			meshData.Indices32[k + 5] = (i + 1) * mSizeY + j + 1;
 
 			k += 6; // next quad
 		}
@@ -205,13 +218,6 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM
 
 	return meshData;
 }
-
-void UI::UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight) {
-	mScale = DirectX::XMMatrixScalingFromVector({ camNearWindowWidth * mScaleVal, camNearWindowHeight * mScaleVal , 1.f });
-	XMStoreFloat4x4(&mRI->World, mScale);
-	SetDirtyFlag();
-}
-
 
 void UI::SetChar(char c, int p, std::vector<Vertex>& vs) {
 	//Skip every other position
@@ -230,63 +236,50 @@ void UI::SetChar(char c, int p, std::vector<Vertex>& vs) {
 	vs[pos + mSizeX + 1].TexC = { mFnt.chars.at(c).posX + mFnt.chars.at(c).width, mFnt.chars.at(c).posY + mFnt.chars.at(c).height };
 }
 
-void UI::SetString(ID3D12GraphicsCommandList* cmdList, std::string str, float posX, float posY) {
-	//Define constants
-	const UINT vertsPerObj = mSizeX * mSizeZ;
-	const UINT vbByteSize = vertsPerObj * sizeof(Vertex);
-
-	//Where the verticies for this item start in the buffer
-	const int vertStart = mRI->BaseVertexLocation;
-
-	//A pointer to the buffer of vertices
-	ComPtr<ID3DBlob> verticesBlob = mRI->Geo->VertexBufferCPU;
-
-	//Move the data from the buffer onto a vector we can view/manipulate
-	std::vector<Vertex> vs(vertsPerObj);
-	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
-
+void UI::SetString(std::string str, float posX, float posY) {
 	//Make sure the position isn't outside plane
 	if (posX > 1.f) posX = 1.f;
 	if (posY > 1.f) posY = 1.f;
 
 	//Calculate the starting position
 	posX *= mSizeX * 0.5f;
-	posY *= mSizeZ * 0.5f;
-
+	posY *= mSizeY * 0.5f;
 	posY *= mSizeX * 0.5f;
 
  	int pos = (int)(posX + posY);
 
 	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
 	for each (char c in str) {
-		SetChar(c, pos, vs);
+		SetChar(c, pos, mVertices);
 		pos++;
 	}
 
 	//Update the CPUs version of the verticies
-	CopyMemory(verticesBlob->GetBufferPointer(), vs.data(), vbByteSize);
+	CopyMemory(mRI->Geo->VertexBufferCPU->GetBufferPointer(), mVertices.data(), mVbByteSize);
 
-	//Update the GPUs version of the verticies
-	UpdateBuffer(cmdList, vs);
-
+	//Make sure the render item is updated on each Frame Resource	
 	SetDirtyFlag();
 }
 
-void UI::UpdateBuffer(ID3D12GraphicsCommandList* cmdList, std::vector<Vertex> vertices) {
-	// Describe the data we want to copy into the default buffer.
-	D3D12_SUBRESOURCE_DATA subResourceData = {};
-	subResourceData.pData = vertices.data();
-	subResourceData.RowPitch = (UINT)sizeof(Vertex) * (UINT)vertices.size();
-	subResourceData.SlicePitch = subResourceData.RowPitch;
 
-	// Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
-	// will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
-	// the intermediate upload heap data will be copied to mBuffer.
-	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRI->Geo->VertexBufferGPU.Get(),
-		D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST));
+void UI::UpdateBuffer() {
+	if (mChanged) {
+		mChanged = false;
+		// Describe the data we want to copy into the default buffer.
+		D3D12_SUBRESOURCE_DATA subResourceData = {};
+		subResourceData.pData = mVertices.data();
+		subResourceData.RowPitch = (UINT)sizeof(Vertex) * (UINT)mVertices.size();
+		subResourceData.SlicePitch = subResourceData.RowPitch;
 
-	UpdateSubresources<1>(cmdList, mRI->Geo->VertexBufferGPU.Get(), mRI->Geo->VertexBufferUploader.Get(), 0, 0, 1, &subResourceData);
+		// Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
+		// will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
+		// the intermediate upload heap data will be copied to mBuffer.
+		mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRI->Geo->VertexBufferGPU.Get(),
+			D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST));
 
-	cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRI->Geo->VertexBufferGPU.Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+		UpdateSubresources<1>(mCmdList.Get(), mRI->Geo->VertexBufferGPU.Get(), mRI->Geo->VertexBufferUploader.Get(), 0, 0, 1, &subResourceData);
+
+		mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRI->Geo->VertexBufferGPU.Get(),
+			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+	}
 }

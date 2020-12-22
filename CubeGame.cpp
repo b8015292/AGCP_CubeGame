@@ -86,11 +86,9 @@ bool CubeGame::Initialize()
 	mPlayer->Walk(0, 0);
 
 	//Initialise the user interface
-	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::UserInterface].at(0));
-	mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
-
-	SetUIString("Player X:", 0, 0);
-	SetUIString("Player Y:", 25, 20);
+	SetUIString("AAAA", 0, 0);
+	SetUIString("AAAA", 25, 22);
+	mUI.SetRIDirty();
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -109,7 +107,7 @@ void CubeGame::SetUIString(std::string str, int lineNo, int col) {
 	float row = (float)lineNo * 1 / mUIRows;
 	float colm = (float) col * 1 / mUICols;
 
-	mUI.SetString(mCommandList.Get(), str, colm, row);
+	mUI.SetString(str, colm, row);
 }
  
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -172,7 +170,6 @@ void CubeGame::OnResize()
 	//If the player has been set
 	if (mPlayer) {
 		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, mBackPlane);
-		mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
 	}
 }
 
@@ -201,8 +198,10 @@ void CubeGame::Update(const GameTimer& gt)
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
 
-		// Should be put in the player VVV
- 		//mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
+		//SetUIString("hello", 0, 0);
+
+
+
 
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
@@ -260,6 +259,7 @@ void CubeGame::Draw(const GameTimer& gt)
 	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
 
+	mUI.UpdateBuffer();
 	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::UserInterface]);
 
@@ -615,7 +615,7 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[0].push_back("mesh_blockSelector");
 
 	//UI Geos
-	meshDatas[1].push_back(mUI.CreateUIPlane2D(2.f, 2.f, mUIRows, mUICols));
+	meshDatas[1].push_back(mUI.CreateUIPlane2D(1.95f, 1.95f, mUIRows, mUICols));
 	meshNames[1].push_back("mesh_mainGUI");
 
 	//Sky
@@ -921,8 +921,8 @@ void CubeGame::BuildRenderItems()
 	auto ui = mGeometries["geo_ui"].get();
 
 	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", mMaterials["mat_font"].get(), XMMatrixIdentity());
-	//gui1->active = false;
-	mRitemLayer[(int)RenderLayer::UserInterface].push_back(gui1);
+	mUI.Init(gui1, mCommandList);
+	mRitemLayer[(int)RenderLayer::UserInterface].push_back(mUI.GetRI());
 
 	//Block selector
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", mMaterials["mat_blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));

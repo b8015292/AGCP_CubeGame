@@ -179,8 +179,9 @@ struct TwoDInput{
 TwoDInput TwoDVS(float4 position : POSITION, float2 uv : TEXCOORD)
 {
     TwoDInput result;
-
-    result.position = position;
+    
+    result.position = mul(position, gWorld);
+    //result.position = position;
     result.uv = uv;
 
     return result;
