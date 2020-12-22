@@ -28,46 +28,58 @@ public:
     virtual bool Initialize()override;
 
 private:
-    virtual void OnResize()override;
-    virtual void Update(const GameTimer& gt)override;
-    virtual void Draw(const GameTimer& gt)override;
+    //Initialization
+    void BuildRootSignature();              //Tells the GPU which registers to expect to use   
+    void BuildShadersAndInputLayout();      //Compiles shaders and defines their input parameters
+    void BuildDescriptorHeaps();            //Creates a heap to hold the textures 
+    void BuildShapeGeometry();              //Builds the geometric shapes
+    void BuildPSOs();                       //Makes all the Pipeline State Objects - they tell the GPU how to render objects differently (by use different shaders)
+    void BuildFrameResources();             //Each frame resource has its own version of the Pass Constant, materials and objects
+    void BuildMaterials();
+    void BuildGameObjects();                //Creates all the gameobjects
+    void BuildWorld();                      //Creates the terrain
 
+    //Input handling
+    virtual void OnResize()override;
     virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
     virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
     virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
-
     void OnKeyboardInput(const GameTimer& gt);
+
+    //Updateing
+    virtual void Update(const GameTimer& gt)override;
     void AnimateMaterials(const GameTimer& gt);
     void UpdateObjectCBs(const GameTimer& gt);
     void UpdateMaterialCBs(const GameTimer& gt);
     void UpdateMainPassCB(const GameTimer& gt);
 
-    void BuildRootSignature();
-    void BuildShadersAndInputLayout();
-    void BuildDescriptorHeaps();
-    void BuildShapeGeometry();
-    void BuildPSOs();
-    void BuildFrameResources();
-    void BuildMaterials();
-    void BuildRenderItems();
-
+    //Drawing
+    virtual void Draw(const GameTimer& gt)override;
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
+    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();   //Creates the static samples - different ways to interperate textures
 
+
+    //More init stuff
+    //Makes individual textures from a file specified by the path
     void MakeTexture(std::string name, std::string path);
     void MakeTexture(std::string name, std::wstring path);
-    void LoadTextures();
-    std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+    void CreateTextureSRV(std::string textureName, CD3DX12_CPU_DESCRIPTOR_HANDLE handle);
+    //Loads all the textures and splits some textures into texel location maps
+    void LoadTextures();                
+    //Splits textures up into texel location maps.
     void SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]);
+    //Makes a material, using default values for roughness and fresnel
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform);
+    //Makes a material with a different top and bottom texture
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
+    //Makes a cube
     void CreateCube(std::string materialName, XMFLOAT3 pos);
 
-    void SetUIString(std::string str, int lineNo, int col);
-
-    void UpdateBlockSelector();
+    //Sets a string on the GUI
+    void SetUIString(std::string str, int lineNo, int col); 
 
 private:
-
+    //Each render layer is rendered in a different way (using different PSOs)
     enum class RenderLayer : int
     {
         Main = 0,
@@ -77,11 +89,10 @@ private:
         Count
     };
 
+    //Each frame resource has its own copy of the pass constant, materials and objects
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrFrameResource = nullptr;
     int mCurrFrameResourceIndex = 0;
-
-    UINT mCbvSrvDescriptorSize = 0;
 
     ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
 

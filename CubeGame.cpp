@@ -61,10 +61,6 @@ bool CubeGame::Initialize()
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-    // Get the increment size of a descriptor in this heap type.  This is hardware specific, 
-	// so we have to query this information.
-    mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
     BuildRootSignature();
     BuildShadersAndInputLayout();
 
@@ -75,7 +71,7 @@ bool CubeGame::Initialize()
 	BuildDescriptorHeaps();
     BuildShapeGeometry();
 	BuildMaterials();
-    BuildRenderItems();
+	BuildGameObjects();
     BuildFrameResources();
     BuildPSOs();
 
@@ -541,17 +537,11 @@ void CubeGame::BuildShadersAndInputLayout()
 
 }
 
-void CubeGame::BuildDescriptorHeaps() {
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 4;	//Number of textures
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
+void CubeGame::CreateTextureSRV(std::string textureName, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) {
+	//Gets a local version of the texture resource
+	auto fontTex = mTextures[textureName]->Resource;
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-	auto fontTex = mTextures["tex_font"]->Resource;
-
+	//Describes the SRV
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = fontTex->GetDesc().Format;
@@ -559,21 +549,34 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = fontTex->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	md3dDevice->CreateShaderResourceView(fontTex.Get(), &srvDesc, hDescriptor);
 
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+	//Creates the SRV
+	md3dDevice->CreateShaderResourceView(fontTex.Get(), &srvDesc, handle);
+}
 
-	auto blockTex = mTextures["tex_blocks"]->Resource;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = blockTex->GetDesc().Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = blockTex->GetDesc().MipLevels;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	md3dDevice->CreateShaderResourceView(blockTex.Get(), &srvDesc, hDescriptor);
+void CubeGame::BuildDescriptorHeaps() {
+	//Describe the descriptor heap and create it. Its big enough to hold all the textures.
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.NumDescriptors = (UINT)mTextures.size();
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
 
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+	//The start handle (location) of the descriptor heap
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
+	//The size of one texture. Used to offset the handle
+	UINT cbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	CreateTextureSRV("tex_font", hDescriptor);
+
+	//Offset the handle before making a new texture
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_blocks", hDescriptor);
+
+	//Since the sky is a cube map, it has a different View Dimension
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
 	auto skyTex = mTextures["tex_skyTex"]->Resource;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = skyTex->GetDesc().Format;
@@ -583,17 +586,8 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	md3dDevice->CreateShaderResourceView(skyTex.Get(), &srvDesc, hDescriptor);
 
-	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
-
-	auto blockBreakTex = mTextures["tex_blockSelect"]->Resource;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = blockBreakTex->GetDesc().Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = blockBreakTex->GetDesc().MipLevels;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	md3dDevice->CreateShaderResourceView(blockBreakTex.Get(), &srvDesc, hDescriptor);
-
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_blockSelect", hDescriptor);
 
 }
 
@@ -871,44 +865,28 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 }
 
 void CubeGame::CreateCube(std::string materialName, XMFLOAT3 pos) {
-	auto temp = std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x,pos.y,pos.z));
-	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
-	mAllGObjs->push_back(tempGO);
-	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
+	//Adds a new gameobject to the list, then adds that gameobject to the blocks list
+	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x, pos.y, pos.z))));
+	mAllBlocks->push_back(std::make_shared<Block>(mAllGObjs->at(mAllGObjs->size() - 1)));
 
 	//Add the blocks render item to the main items list
-	mRitemLayer[(int)RenderLayer::Main].push_back(temp);
+	mRitemLayer[(int)RenderLayer::Main].push_back(mAllBlocks->at(mAllBlocks->size() - 1)->GetRI());
 }
 
-void CubeGame::BuildRenderItems()
+void CubeGame::BuildGameObjects()
 {
 	auto geo = mGeometries["geo_shape"].get();
 
 	//Player
 	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", mMaterials["mat_player"].get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
-	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
 	mAllGObjs->push_back(mPlayer);
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
-	mRitemLayer[(int)RenderLayer::Main].push_back(playerRI);					//Add the players render item to the main list
+	mRitemLayer[(int)RenderLayer::Main].push_back(mPlayer->GetRI());			//Add the players render item to the main list
 
 
 	//World
-	srand(time_t(NULL));
-	unsigned int seed = rand() % 10000;//237;
-	noise = PerlinNoise(seed);
-	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
-	{
-		for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
-		{
-			//std::wostringstream ss;
-			//ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
-			//std::wstring s(ss.str());
-			//OutputDebugStringW(s.c_str());
-
-			CreateCube("mat_grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
-		}
-	}
+	BuildWorld();
 
 	//Sky----------------------------
 	auto sky = mGeometries["geo_sky"].get();
@@ -928,6 +906,25 @@ void CubeGame::BuildRenderItems()
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", mMaterials["mat_blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(mAllGObjs, selectorRI);
 	mRitemLayer[(int)RenderLayer::Main].push_back(mBlockSelector->GetRI());
+}
+
+void CubeGame::BuildWorld() {
+	srand(time_t(NULL));
+	unsigned int seed = rand() % 10000;//237;
+	noise = PerlinNoise(seed);
+	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
+	{
+		for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
+		{
+			////Debug output
+			//std::wostringstream ss;
+			//ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
+			//std::wstring s(ss.str());
+			//OutputDebugStringW(s.c_str());
+
+			CreateCube("mat_grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
+		}
+	}
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
