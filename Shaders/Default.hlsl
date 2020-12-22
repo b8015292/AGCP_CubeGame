@@ -141,7 +141,7 @@ float4 PS(VertexOut pin) : SV_Target
 	// Indirect lighting.
     float4 ambient = gAmbientLight*col;
 
-    //const float shininess = 1.0f - gRoughness;
+    //const float shininess = 1.0f - gRoughness;ee
     const float shininess = 0.0f;
     Material mat = { col, gFresnelR0, shininess };
     float3 shadowFactor = 1.0f;
@@ -151,7 +151,8 @@ float4 PS(VertexOut pin) : SV_Target
     float4 litColor = ambient + directLight;
 
     // Common convention to take alpha from diffuse material.
-    litColor.a = gDiffuseAlbedo.a;
+    //litColor.a = gDiffuseAlbedo.a;
+    //litColor.a = 0.0f;
 
     return litColor;
 }

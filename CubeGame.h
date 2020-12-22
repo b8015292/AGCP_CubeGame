@@ -70,7 +70,7 @@ private:
 
     enum class RenderLayer : int
     {
-        Opaque = 0,
+        Main = 0,
         UserInterface,
         Sky,
         Transparent,

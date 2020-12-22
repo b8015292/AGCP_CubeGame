@@ -88,10 +88,9 @@ bool CubeGame::Initialize()
 	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::UserInterface].at(0));
 	mUI.UpdateAspectRatio(mPlayer->GetCam()->GetNearWindowWidth(), mPlayer->GetCam()->GetNearWindowHeight());
-	mUI.UpdateRotation(0.0f, 0.0f, mPlayer->GetCam()->GetLook());
-	mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
-	SetUIString("Player X: ", 0, 0);
+	SetUIString("Player X:", 0, 0);
+	SetUIString("Player Y:", 25, 20);
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -136,10 +135,10 @@ void CubeGame::MakeTexture(std::string name, std::wstring path) {
 
 void CubeGame::LoadTextures() {
 
-	MakeTexture("font", mUI.GetFont()->filePath);
-	MakeTexture("blocks", L"data/blockMap.dds");
-	MakeTexture("skyTex", L"data/sky.dds");
-	MakeTexture("blockSelect", L"data/blockBreakMap.dds");
+	MakeTexture("tex_font", mUI.GetFont()->filePath);
+	MakeTexture("tex_blocks", L"data/blockMap.dds");
+	MakeTexture("tex_skyTex", L"data/sky.dds");
+	MakeTexture("tex_blockSelect", L"data/blockBreakMap.dds");
 
 	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
 	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
@@ -203,7 +202,7 @@ void CubeGame::Update(const GameTimer& gt)
 		}
 
 		// Should be put in the player VVV
- 		mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
+ 		//mUI.UpdateUIPos(mPlayer->GetCam()->GetPosition());
 
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
@@ -230,7 +229,7 @@ void CubeGame::Draw(const GameTimer& gt)
 
     // A command list can be reset after it has been added to the command queue via ExecuteCommandList.
     // Reusing the command list reuses memory.
-	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
+	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["pso_main"].Get()));
 
     mCommandList->RSSetViewports(1, &mScreenViewport);
     mCommandList->RSSetScissorRects(1, &mScissorRect);
@@ -256,11 +255,13 @@ void CubeGame::Draw(const GameTimer& gt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Main]);
 
-	mCommandList->SetPipelineState(mPSOs["sky"].Get());
+	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
 
+	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::UserInterface]);
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -309,7 +310,6 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 
 		mPlayer->Pitch(dy);
 		mPlayer->RotateY(dx);
-		mUI.UpdateRotation(dx, dy, mPlayer->GetCam()->GetLook());
 
 		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 		if (block != nullptr && block->GetActive()) {
@@ -512,16 +512,16 @@ void CubeGame::BuildShadersAndInputLayout()
 	};
 
 	//Standard
-	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["shader_standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
+	mShaders["shader_opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
 	//UI / 2D
-	mShaders["2DPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDPS", "ps_5_1");
-	mShaders["2DVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDVS", "vs_5_1");
+	mShaders["shader_2DPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDPS", "ps_5_1");
+	mShaders["shader_2DVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDVS", "vs_5_1");
 	//Sky
-	mShaders["SkyVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyVS", "vs_5_1");
-	mShaders["SkyPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyPS", "ps_5_1");
+	mShaders["shader_SkyVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyVS", "vs_5_1");
+	mShaders["shader_SkyPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyPS", "ps_5_1");
 
-	//Opaque
+	//Main
 	mInputLayout->push_back({
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -550,7 +550,7 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-	auto fontTex = mTextures["font"]->Resource;
+	auto fontTex = mTextures["tex_font"]->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -563,7 +563,7 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-	auto blockTex = mTextures["blocks"]->Resource;
+	auto blockTex = mTextures["tex_blocks"]->Resource;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = blockTex->GetDesc().Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -574,7 +574,7 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-	auto skyTex = mTextures["skyTex"]->Resource;
+	auto skyTex = mTextures["tex_skyTex"]->Resource;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = skyTex->GetDesc().Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
@@ -585,7 +585,7 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
 
-	auto blockBreakTex = mTextures["blockSelect"]->Resource;
+	auto blockBreakTex = mTextures["tex_blockSelect"]->Resource;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = blockBreakTex->GetDesc().Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -602,25 +602,25 @@ void CubeGame::BuildShapeGeometry()
 	GeometryGenerator geoGen;
 
 	const int numb = 3;
-	std::string geoHolderNames[numb] = { "shapeGeo", "uiGeo", "skyGeo" };
+	std::string geoHolderNames[numb] = { "geo_shape", "geo_ui", "geo_sky" };
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
 
 	//Shape Geos
 	meshDatas[0].push_back(geoGen.CreateBox(0.5f, 1.5f, 0.5f, 0));
-	meshNames[0].push_back("player");
+	meshNames[0].push_back("mesh_player");
 	meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
-	meshNames[0].push_back("cube");
-	meshDatas[0].push_back(geoGen.CreateBox(1.02f, 1.02f, 1.02f, 0));
-	meshNames[0].push_back("blockSelector");
+	meshNames[0].push_back("mesh_cube");
+	meshDatas[0].push_back(geoGen.CreateBox(1.05f, 1.05f, 1.05f, 0));
+	meshNames[0].push_back("mesh_blockSelector");
 
 	//UI Geos
-	meshDatas[1].push_back(mUI.CreateUIPlane(1.f, 1.f, mUIRows, mUICols));
-	meshNames[1].push_back("mainGUI");
+	meshDatas[1].push_back(mUI.CreateUIPlane2D(2.f, 2.f, mUIRows, mUICols));
+	meshNames[1].push_back("mesh_mainGUI");
 
 	//Sky
 	meshDatas[2].push_back(geoGen.CreateSphere(0.5f, 20, 20));
-	meshNames[2].push_back("sky");
+	meshNames[2].push_back("mesh_sky");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -730,53 +730,6 @@ void CubeGame::BuildPSOs()
 {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc;
 
-	D3D12_RENDER_TARGET_BLEND_DESC rtb;
-	rtb.BlendEnable = true;
-	rtb.LogicOpEnable = false;
-	rtb.SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	rtb.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-	rtb.BlendOp = D3D12_BLEND_OP_ADD;
-	rtb.SrcBlendAlpha = D3D12_BLEND_ONE;
-	rtb.DestBlendAlpha = D3D12_BLEND_ZERO;
-	rtb.BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	rtb.LogicOp = D3D12_LOGIC_OP_NOOP;
-	rtb.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	CD3DX12_BLEND_DESC blendDesc;
-	blendDesc.AlphaToCoverageEnable = false;
-	blendDesc.IndependentBlendEnable = false;
-	blendDesc.RenderTarget[0] = rtb;
-
-    ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::Opaque).data(), (UINT)mInputLayout->at((int)RenderLayer::Opaque).size() };
-	opaquePsoDesc.pRootSignature = mRootSignature.Get();
-	opaquePsoDesc.VS = 
-	{ 
-		reinterpret_cast<BYTE*>(mShaders["standardVS"]->GetBufferPointer()), 
-		mShaders["standardVS"]->GetBufferSize()
-	};
-	opaquePsoDesc.PS = 
-	{ 
-		reinterpret_cast<BYTE*>(mShaders["opaquePS"]->GetBufferPointer()),
-		mShaders["opaquePS"]->GetBufferSize()
-	};
-	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	opaquePsoDesc.BlendState = blendDesc;
-	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-	opaquePsoDesc.SampleMask = UINT_MAX;
-	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	opaquePsoDesc.NumRenderTargets = 1;
-	opaquePsoDesc.RTVFormats[0] = mBackBufferFormat;
-	opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
-	opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
-	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
-
-    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
-
-	//***********************************
-	//UI
-
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC UserInterface = opaquePsoDesc;
 	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
 	transparencyBlendDesc.BlendEnable = true;
 	transparencyBlendDesc.LogicOpEnable = false;
@@ -789,22 +742,59 @@ void CubeGame::BuildPSOs()
 	transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
 	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
+	CD3DX12_BLEND_DESC blendDesc;
+	blendDesc.AlphaToCoverageEnable = false;
+	blendDesc.IndependentBlendEnable = false;
+	blendDesc.RenderTarget[0] = transparencyBlendDesc;
+
+
+    ZeroMemory(&opaquePsoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::Main).data(), (UINT)mInputLayout->at((int)RenderLayer::Main).size() };
+	opaquePsoDesc.pRootSignature = mRootSignature.Get();
+	opaquePsoDesc.VS = 
+	{ 
+		reinterpret_cast<BYTE*>(mShaders["shader_standardVS"]->GetBufferPointer()), 
+		mShaders["shader_standardVS"]->GetBufferSize()
+	};
+	opaquePsoDesc.PS = 
+	{ 
+		reinterpret_cast<BYTE*>(mShaders["shader_opaquePS"]->GetBufferPointer()),
+		mShaders["shader_opaquePS"]->GetBufferSize()
+	};
+	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	//opaquePsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	opaquePsoDesc.BlendState = blendDesc;
+	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	opaquePsoDesc.SampleMask = UINT_MAX;
+	opaquePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	opaquePsoDesc.NumRenderTargets = 1;
+	opaquePsoDesc.RTVFormats[0] = mBackBufferFormat;
+	opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+	opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
+
+    ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["pso_main"])));
+
+	//***********************************
+	//UI
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC UserInterface = opaquePsoDesc;
+
 	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::UserInterface).data(), (UINT)mInputLayout->at((int)RenderLayer::UserInterface).size() };
 
 	UserInterface.PS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["2DPS"]->GetBufferPointer()),
-		mShaders["2DPS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mShaders["shader_2DPS"]->GetBufferPointer()),
+		mShaders["shader_2DPS"]->GetBufferSize()
 	};
 
 	UserInterface.VS =
 	{
-		reinterpret_cast<BYTE*>(mShaders["2DVS"]->GetBufferPointer()),
-		mShaders["2DVS"]->GetBufferSize()
+		reinterpret_cast<BYTE*>(mShaders["shader_2DVS"]->GetBufferPointer()),
+		mShaders["shader_2DVS"]->GetBufferSize()
 	};
 
-	UserInterface.BlendState.RenderTarget[0] = transparencyBlendDesc;
-	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&UserInterface, IID_PPV_ARGS(&mPSOs["UserInterface"])));
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&UserInterface, IID_PPV_ARGS(&mPSOs["pso_userInterface"])));
 
 
 	//***********************************
@@ -821,23 +811,25 @@ void CubeGame::BuildPSOs()
 	opaquePsoDesc.InputLayout = { mInputLayout->at((int)RenderLayer::Sky).data(), (UINT)mInputLayout->at((int)RenderLayer::Sky).size() };
 	skyPsoDesc.VS =
 	{
-	reinterpret_cast<BYTE*>(mShaders["SkyVS"] -> GetBufferPointer()), mShaders["SkyVS"]->GetBufferSize()
+	reinterpret_cast<BYTE*>(mShaders["shader_SkyVS"] -> GetBufferPointer()), mShaders["shader_SkyVS"]->GetBufferSize()
 	};
 	skyPsoDesc.PS =
 	{
-	reinterpret_cast<BYTE*>(mShaders["SkyPS"] -> GetBufferPointer()), mShaders["SkyPS"]->GetBufferSize()
+	reinterpret_cast<BYTE*>(mShaders["shader_SkyPS"] -> GetBufferPointer()), mShaders["shader_SkyPS"]->GetBufferSize()
 	};
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(
-		&skyPsoDesc, IID_PPV_ARGS(&mPSOs["sky"])));
+		&skyPsoDesc, IID_PPV_ARGS(&mPSOs["pso_sky"])));
 
 }
 
 void CubeGame::BuildFrameResources()
 {
+	UINT totalRI = (UINT)mRitemLayer[(int)RenderLayer::Main].size() + (UINT)mRitemLayer[(int)RenderLayer::UserInterface].size() + (UINT)mRitemLayer[(int)RenderLayer::Sky].size();
+
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-            1, (UINT)mAllGObjs->size() + (UINT)mRitemLayer[(int)RenderLayer::UserInterface].size() + (UINT)mRitemLayer[(int)RenderLayer::Sky].size(), (UINT)mMaterials.size()));
+            1, totalRI, (UINT)mMaterials.size()));
     }
 }
 
@@ -846,13 +838,13 @@ void CubeGame::BuildMaterials()
 	float x = mBlockTexturePositions["dirt"].x;
 	float x2 = mBlockBreakTexturePositions["b0"].x;
 
-	CreateMaterial("player", 1, DirectX::Colors::Black, { 0,0 });
-	CreateMaterial("dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
-	CreateMaterial("grass", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 }, { x * 3.f,0 }, { x,0 });
+	CreateMaterial("mat_player", 1, DirectX::Colors::Black, { 0,0 });
+	CreateMaterial("mat_dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
+	CreateMaterial("mat_grass", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 }, { x * 3.f,0 }, { x,0 });
 
-	CreateMaterial("sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
-	CreateMaterial("font", 0, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
-	CreateMaterial("blockSelect", 3, { 1.0f, 1.0f, 1.0f }, { x2, 0.f });
+	CreateMaterial("mat_sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+	CreateMaterial("mat_font", 0, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+	CreateMaterial("mat_blockSelect", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
 
 }
 
@@ -879,69 +871,63 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 }
 
 void CubeGame::CreateCube(std::string materialName, XMFLOAT3 pos) {
-	auto temp = std::make_shared<RenderItem>(mGeometries["shapeGeo"].get(), "cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x,pos.y,pos.z));
+	auto temp = std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x,pos.y,pos.z));
 	auto tempGO = std::make_shared<GameObject>(mAllGObjs, temp);
 	mAllGObjs->push_back(tempGO);
 	mAllBlocks->push_back(std::make_shared<Block>(tempGO));
 
-	//Add the blocks render item to the opaque items list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(temp);
+	//Add the blocks render item to the main items list
+	mRitemLayer[(int)RenderLayer::Main].push_back(temp);
 }
 
 void CubeGame::BuildRenderItems()
 {
-	auto geo = mGeometries["shapeGeo"].get();
+	auto geo = mGeometries["geo_shape"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", mMaterials["mat_player"].get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
 	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
 	mAllGObjs->push_back(mPlayer);
 	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
-	mRitemLayer[(int)RenderLayer::Opaque].push_back(playerRI);					//Add the players render item to the opaque list
+	mRitemLayer[(int)RenderLayer::Main].push_back(playerRI);					//Add the players render item to the main list
 
+
+	//World
 	srand(time_t(NULL));
 	unsigned int seed = rand() % 10000;//237;
 	noise = PerlinNoise(seed);
-
-	//Blocks
 	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
 	{
 		for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
 		{
-			std::wostringstream ss;
-			ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
-			std::wstring s(ss.str());
-			OutputDebugStringW(s.c_str());
+			//std::wostringstream ss;
+			//ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
+			//std::wstring s(ss.str());
+			//OutputDebugStringW(s.c_str());
 
-			CreateCube("grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
+			CreateCube("mat_grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
 		}
 	}
 
-	//CreateCube("grass", { 0,0,0});
-	//CreateCube("grass", { 1,0,0});
-	//CreateCube("grass", { 1,0,1});
-	//CreateCube("grass", { 0,0,1});
-
 	//Sky----------------------------
-	
-	auto sky = mGeometries["skyGeo"].get();
+	auto sky = mGeometries["geo_sky"].get();
 
-	auto skyRI = std::make_shared<RenderItem>(sky, "sky", mMaterials["sky"].get(), XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
+	auto skyRI = std::make_shared<RenderItem>(sky, "mesh_sky", mMaterials["mat_sky"].get(), XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
 	mRitemLayer[(int)RenderLayer::Sky].push_back(skyRI);
 
 
 	//UI---------------------------
-	auto ui = mGeometries["uiGeo"].get();
+	auto ui = mGeometries["geo_ui"].get();
 
-	auto gui1 = std::make_shared<RenderItem>(ui, "mainGUI", mMaterials["font"].get(), XMMatrixIdentity());
-	gui1->active = false;
+	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", mMaterials["mat_font"].get(), XMMatrixIdentity());
+	//gui1->active = false;
 	mRitemLayer[(int)RenderLayer::UserInterface].push_back(gui1);
 
 	//Block selector
-	auto selectorRI = std::make_shared<RenderItem>(geo, "blockSelector", mMaterials["blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));
+	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", mMaterials["mat_blockSelect"].get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(mAllGObjs, selectorRI);
-	mRitemLayer[(int)RenderLayer::UserInterface].push_back(mBlockSelector->GetRI());
+	mRitemLayer[(int)RenderLayer::Main].push_back(mBlockSelector->GetRI());
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
@@ -955,7 +941,6 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
     // For each render item...
     for(size_t i = 0; i < ritems.size(); ++i)
     {
-		//if (ritems[i]->GetActive()) {
 		if(ritems[i]->active){
 			auto ri = ritems[i];
 

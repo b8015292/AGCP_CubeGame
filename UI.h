@@ -20,12 +20,10 @@ public:
 
 	void SetRenderItem(std::shared_ptr<RenderItem> ri);
 	void InitFont();
-	GeometryGenerator::MeshData CreateUIPlane(float width, float depth, int oM, int oN);
+	GeometryGenerator::MeshData CreateUIPlane2D(float width, float depth, int oM, int oN);
 	~UI();
 
-	void UpdateUIPos(DirectX::XMVECTOR camPos);
 	void UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight);
-	void UpdateRotation(float rotX, float rotY, DirectX::XMVECTOR look);
 
 	void SetChar(char character, int position, std::vector<Vertex>& vertices);
 	void SetString(ID3D12GraphicsCommandList* cmdList, std::string str, float posX, float posY);
@@ -47,14 +45,9 @@ private:
 
 	const float mScaleVal = 1.f;				//Scale
 	const float offsetFromPlayer = 1.00001f;	//Translate
-	const float mRotToPlayer = -1.57079633f;	//-90 degrees rotate
-	DirectX::XMMATRIX mRotToPlayerMat = DirectX::XMMatrixRotationX(mRotToPlayer);
 	DirectX::XMMATRIX mScale = DirectX::XMMatrixIdentity();
-	DirectX::XMMATRIX mRotation = DirectX::XMMatrixIdentity();
 	DirectX::XMVECTOR mLook = { 0, 0, 0 };
 
-	float rotXX = 0;
-	float rotYY = 0;
 	float windWidth = 0;
 	float windHeight = 0;
 

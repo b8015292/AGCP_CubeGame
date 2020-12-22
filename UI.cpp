@@ -80,7 +80,8 @@ void UI::InitFont() {
 		}
 	}
 }
-GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, int oN) {
+
+GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float depth, int oM, int oN) {
 	GeometryGenerator::MeshData meshData;
 
 	int m = oM * 2;
@@ -114,8 +115,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, 
 			float x = -halfWidth + (float)(j - decJ) * (dx * 2.f);
 			size_t index = i * n + j;
 
-			meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, 0.0f, z);
-			meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+			meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+			meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 			meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 			// Stretch texture over grid.
@@ -126,8 +127,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, 
 				j++;
 				index = i * n + j;
 
-				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, 0.0f, z);
-				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 				meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 				// Stretch texture over grid.
@@ -149,8 +150,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, 
 				float x = -halfWidth + (float)(j - decJ) * (dx * 2);
 				size_t index = i * n + j;
 
-				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, 0.0f, z);
-				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 				meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 				// Stretch texture over grid.
@@ -161,8 +162,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, 
 					j++;
 					index = i * n + j;
 
-					meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, 0.0f, z);
-					meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+					meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, z, 0.0f);
+					meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 					meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 					// Stretch texture over grid.
@@ -204,32 +205,13 @@ GeometryGenerator::MeshData UI::CreateUIPlane(float width, float depth, int oM, 
 
 	return meshData;
 }
-void UI::UpdateUIPos(DirectX::XMVECTOR camPos) {
-	//Scale and rotate
-	DirectX::XMMATRIX uiTransform = DirectX::XMMatrixMultiply(mScale, mRotation);
 
-	//Translate the plane to be just infront of the camera (move to the player, then away from the player in the direction theyre looking)
-	DirectX::XMVECTOR translate = { camPos.m128_f32[0] + mLook.m128_f32[0] * offsetFromPlayer, camPos.m128_f32[1] + mLook.m128_f32[1] * offsetFromPlayer, camPos.m128_f32[2] + mLook.m128_f32[2] * offsetFromPlayer };
-	uiTransform = XMMatrixMultiply(uiTransform, DirectX::XMMatrixTranslationFromVector(translate));
-
-	//Apply the matrix to the UI plane
-	XMStoreFloat4x4(&mRI->World, uiTransform);
+void UI::UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight) {
+	mScale = DirectX::XMMatrixScalingFromVector({ camNearWindowWidth * mScaleVal, camNearWindowHeight * mScaleVal , 1.f });
+	XMStoreFloat4x4(&mRI->World, mScale);
 	SetDirtyFlag();
 }
 
-void UI::UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight) {
-	mScale = DirectX::XMMatrixScalingFromVector({ camNearWindowWidth * mScaleVal, 1.f , camNearWindowHeight * mScaleVal });
-}
-
-void UI::UpdateRotation(float rotX, float rotY, DirectX::XMVECTOR look) {
-	mLook = look;
-	rotXX += rotX;
-	rotYY += rotY;
-
-	mRotation = DirectX::XMMatrixMultiply(mRotToPlayerMat, DirectX::XMMatrixRotationX(rotYY));
-	mRotation = DirectX::XMMatrixMultiply(mRotation, DirectX::XMMatrixRotationY(rotXX));
-
-}
 
 void UI::SetChar(char c, int p, std::vector<Vertex>& vs) {
 	//Skip every other position
