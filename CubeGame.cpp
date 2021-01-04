@@ -866,11 +866,11 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 
 void CubeGame::CreateCube(std::string materialName, XMFLOAT3 pos) {
 	//Adds a new gameobject to the list, then adds that gameobject to the blocks list
-	mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x, pos.y, pos.z))));
-	mAllBlocks->push_back(std::make_shared<Block>(mAllGObjs->at(mAllGObjs->size() - 1)));
+	mAllBlocks->push_back(std::make_shared<Block>(mAllGObjs, std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x, pos.y, pos.z))));
+	mAllGObjs->push_back(mAllBlocks->at(mAllBlocks->size() - 1));
 
 	//Add the blocks render item to the main items list
-	mRitemLayer[(int)RenderLayer::Main].push_back(mAllBlocks->at(mAllBlocks->size() - 1)->GetRI());
+	mRitemLayer[(int)RenderLayer::Main].push_back(mAllGObjs->at(mAllGObjs->size() - 1)->GetRI());
 }
 
 void CubeGame::BuildGameObjects()
@@ -887,6 +887,7 @@ void CubeGame::BuildGameObjects()
 
 	//World
 	BuildWorld();
+	//BuildWorld1();
 
 	//Sky----------------------------
 	auto sky = mGeometries["geo_sky"].get();
@@ -925,6 +926,13 @@ void CubeGame::BuildWorld() {
 			CreateCube("mat_grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
 		}
 	}
+}
+
+void CubeGame::BuildWorld1() {
+	CreateCube("mat_grass", {0, 0, 0});
+	CreateCube("mat_grass", {1, 0, 0});
+	CreateCube("mat_grass", {1, 0, 1});
+	CreateCube("mat_grass", {0, 0, 1});
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)

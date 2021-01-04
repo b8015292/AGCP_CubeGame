@@ -55,6 +55,9 @@ public:
     //Mutators
     void Translate(const float dTime, float x, float y, float z);
 
+private:
+    bool mActive = true;        //This can only be affected by the SetActive function because it's value needs to match the render item's value
+
 protected:
     int mID = 0;
     bool mApplyGravity = true;
@@ -65,8 +68,7 @@ protected:
 
     BoundingBox mBoundingBox;    //Contains the center point and the size
 
-private:
-    bool mActive = true;
+
 
 };
 
@@ -127,6 +129,7 @@ private:
 class Block : public GameObject {
 public:
     Block(std::shared_ptr<GameObject> GObj);
+    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     ~Block();
 
     void Init();

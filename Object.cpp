@@ -330,9 +330,19 @@ Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
+Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) : GameObject(allGObjs, rI) {
+	mAllGObjs = allGObjs;
+	mRI = rI;
+
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+
+	CreateBoundingBox();
+}
+
 Block::~Block() {
 	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
 	mRI.~shared_ptr();			//Delete the pointer to this render item
+	GameObject::~GameObject();
 }
 
 void Block::Init() {
