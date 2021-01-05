@@ -20,10 +20,14 @@ GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>>
 
 GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
 	*this = *gobj;
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+}
+
+GameObject::GameObject() : mRI() {
 }
 
 GameObject::~GameObject() {
-	--sMaxID;					//For degbugging
+	//--sMaxID;					//For degbugging
 	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
 	mRI.~shared_ptr();			//Delete the pointer to this render item
 }
@@ -330,7 +334,8 @@ Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
-Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) : GameObject(allGObjs, rI) {
+Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) :  GameObject() {
+
 	mAllGObjs = allGObjs;
 	mRI = rI;
 
@@ -342,7 +347,7 @@ Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs,
 Block::~Block() {
 	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
 	mRI.~shared_ptr();			//Delete the pointer to this render item
-	GameObject::~GameObject();
+	//GameObject::~GameObject();
 }
 
 void Block::Init() {

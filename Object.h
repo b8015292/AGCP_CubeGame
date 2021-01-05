@@ -30,6 +30,7 @@ public:
     //Constructor & Initializer
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     GameObject(std::shared_ptr<GameObject> gobj);
+    GameObject();
     ~GameObject();
     void CreateBoundingBox();
 

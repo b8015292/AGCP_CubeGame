@@ -43,6 +43,26 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
+	//int size = mAllBlocks->size();
+	//for (int i = 0; i < size; i++) {
+	//	mAllBlocks->pop_back();
+	//}
+
+	//size = mAllEnts->size();
+	//for (int i = 0; i < size; i++) {
+	//	mAllEnts->pop_back();
+	//}
+
+	//int size = mAllGObjs->size();
+	//for (int i = 0; i < size; i++) {
+	//	mAllGObjs->pop_back();
+	//}
+
+	//mAllGObjs.reset();
+	//mAllBlocks.reset();
+	//mAllEnts.reset();
+
+
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
         FlushCommandQueue();
@@ -845,7 +865,7 @@ void CubeGame::BuildMaterials()
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
 	auto mat = std::make_unique<Material>();
 	mat->Name = name;
-	mat->MatCBIndex = mMaterials.size();
+	mat->MatCBIndex = (int)mMaterials.size();
 	mat->DiffuseSrvHeapIndex = textureIndex;
 	mat->DiffuseAlbedo = XMFLOAT4(color);
 	mat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
@@ -866,8 +886,13 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 
 void CubeGame::CreateCube(std::string materialName, XMFLOAT3 pos) {
 	//Adds a new gameobject to the list, then adds that gameobject to the blocks list
-	mAllBlocks->push_back(std::make_shared<Block>(mAllGObjs, std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x, pos.y, pos.z))));
+	//mAllBlocks->push_back(std::make_shared<Block>(mAllGObjs, std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x, pos.y, pos.z))));
+	//mAllGObjs->push_back(mAllBlocks->at(mAllBlocks->size() - 1));
+	auto ri = std::make_shared<RenderItem>(mGeometries["geo_shape"].get(), "mesh_cube", mMaterials[materialName].get(), XMMatrixTranslation(pos.x, pos.y, pos.z));
+	//auto block = std::make_shared<Block>(std::make_shared<GameObject>(mAllGObjs, ri));
+	mAllBlocks->push_back(std::make_shared<Block>(std::make_shared<GameObject>(mAllGObjs, ri)));
 	mAllGObjs->push_back(mAllBlocks->at(mAllBlocks->size() - 1));
+
 
 	//Add the blocks render item to the main items list
 	mRitemLayer[(int)RenderLayer::Main].push_back(mAllGObjs->at(mAllGObjs->size() - 1)->GetRI());
@@ -886,8 +911,8 @@ void CubeGame::BuildGameObjects()
 
 
 	//World
-	BuildWorld();
-	//BuildWorld1();
+	//BuildWorld();
+	BuildWorld1();
 
 	//Sky----------------------------
 	auto sky = mGeometries["geo_sky"].get();
@@ -923,7 +948,7 @@ void CubeGame::BuildWorld() {
 			//std::wstring s(ss.str());
 			//OutputDebugStringW(s.c_str());
 
-			CreateCube("mat_grass", { 1.0f * worldX, -20 + roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * worldZ });
+			CreateCube("mat_grass", { 1.0f * (float)worldX, -20.f + roundf(10.0f * (float)noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * (float)worldZ });
 		}
 	}
 }
