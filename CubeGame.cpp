@@ -43,26 +43,6 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
-	//int size = mAllBlocks->size();
-	//for (int i = 0; i < size; i++) {
-	//	mAllBlocks->pop_back();
-	//}
-
-	//size = mAllEnts->size();
-	//for (int i = 0; i < size; i++) {
-	//	mAllEnts->pop_back();
-	//}
-
-	//int size = mAllGObjs->size();
-	//for (int i = 0; i < size; i++) {
-	//	mAllGObjs->pop_back();
-	//}
-
-	//mAllGObjs.reset();
-	//mAllBlocks.reset();
-	//mAllEnts.reset();
-
-
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
         FlushCommandQueue();
@@ -214,7 +194,7 @@ void CubeGame::Update(const GameTimer& gt)
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
 
-		//SetUIString("hello", 0, 0);
+		SetUIString("hello", 0, 0);
 
 
 
@@ -266,9 +246,11 @@ void CubeGame::Draw(const GameTimer& gt)
 	auto passCB = mCurrFrameResource->PassCB->Resource();
 	mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
-	//Set Font Data
+	//Set descriptor heap which holds textures
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Main]);
 
@@ -757,7 +739,7 @@ void CubeGame::BuildPSOs()
 	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 	CD3DX12_BLEND_DESC blendDesc;
-	blendDesc.AlphaToCoverageEnable = false;
+	blendDesc.AlphaToCoverageEnable = true;				//Must be true to view transparent objects through a transparent object!
 	blendDesc.IndependentBlendEnable = false;
 	blendDesc.RenderTarget[0] = transparencyBlendDesc;
 
@@ -911,8 +893,8 @@ void CubeGame::BuildGameObjects()
 
 
 	//World
-	//BuildWorld();
-	BuildWorld1();
+	BuildWorld();
+	//BuildWorld1();
 
 	//Sky----------------------------
 	auto sky = mGeometries["geo_sky"].get();
@@ -957,7 +939,9 @@ void CubeGame::BuildWorld1() {
 	CreateCube("mat_grass", {0, 0, 0});
 	CreateCube("mat_grass", {1, 0, 0});
 	CreateCube("mat_grass", {1, 0, 1});
-	CreateCube("mat_grass", {0, 0, 1});
+	CreateCube("mat_blockSelect", {0, 0, 1});
+	CreateCube("mat_blockSelect", {2, 1, 1});
+	CreateCube("mat_grass", {3, 1, 1});
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems)
