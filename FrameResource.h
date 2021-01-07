@@ -31,16 +31,9 @@ struct PassConstants
 
     // Indices [0, NUM_DIR_LIGHTS) are directional lights;
     // indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
-    // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
+    // indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUaM_POINT_LIGHT+NUM_SPOT_LIGHTS)
     // are spot lights for a maximum of MaxLights per object.
     Light Lights[MaxLights];
-};
-
-struct Vertex
-{
-    DirectX::XMFLOAT3 Pos;
-    DirectX::XMFLOAT3 Normal;
-    DirectX::XMFLOAT2 TexC;
 };
 
 // Stores the resources needed for the CPU to build the command lists

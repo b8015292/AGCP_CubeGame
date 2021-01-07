@@ -45,9 +45,6 @@
     <ClCompile Include="Common\GameTimer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Common\GeometryGenerator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Common\MathHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -102,9 +99,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\GameTimer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\GeometryGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Common\MathHelper.h">

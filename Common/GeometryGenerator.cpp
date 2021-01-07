@@ -142,10 +142,10 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius, uint32
 			v.TangentU.z = +radius*sinf(phi)*cosf(theta);
 
 			XMVECTOR T = XMLoadFloat3(&v.TangentU);
-			XMStoreFloat3(&v.TangentU, XMVector3Normalize(T));
+			XMStoreFloat3(&v.TangentU, DirectX::XMVector3Normalize(T));
 
 			XMVECTOR p = XMLoadFloat3(&v.Position);
-			XMStoreFloat3(&v.Normal, XMVector3Normalize(p));
+			XMStoreFloat3(&v.Normal, DirectX::XMVector3Normalize(p));
 
 			v.TexC.x = theta / XM_2PI;
 			v.TexC.y = phi / XM_PI;

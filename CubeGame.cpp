@@ -605,7 +605,8 @@ void CubeGame::BuildShapeGeometry()
 	//Shape Geos
 	meshDatas[0].push_back(geoGen.CreateBox(0.5f, 1.5f, 0.5f, 0));
 	meshNames[0].push_back("mesh_player");
-	meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
+	//meshDatas[0].push_back(geoGen.CreateBox(1.0f, 1.0f, 1.0f, 0));
+	meshDatas[0].push_back(Block::CreateCubeGeometry(1.0f, 1.0f, 1.0f));
 	meshNames[0].push_back("mesh_cube");
 	meshDatas[0].push_back(geoGen.CreateBox(1.05f, 1.05f, 1.05f, 0));
 	meshNames[0].push_back("mesh_blockSelector");
@@ -626,14 +627,14 @@ void CubeGame::BuildShapeGeometry()
 		}
 
 		//Get a vector of each vertex
-		std::vector<Vertex> vertices(totalVertexCount);
+		std::vector<GeometryGenerator::Vertex> vertices(totalVertexCount);
 		UINT k = 0;
 		int vert = 0;
 		int face = 0;
 		const float width = mBlockTexturePositions["dirt"].x;
 		for each (GeometryGenerator::MeshData mds in meshDatas[md]) {
 			for (size_t i = 0; i < mds.Vertices.size(); ++i, ++k) {
-				vertices[k].Pos = mds.Vertices[i].Position;
+				vertices[k].Pos = mds.Vertices[i].Pos;
 				vertices[k].Normal = mds.Vertices[i].Normal;
 
 				if (md == 1) vertices[k].TexC = { 0.1f, 0.1f }; //UI transparent section
@@ -679,7 +680,7 @@ void CubeGame::BuildShapeGeometry()
 		}
 
 		//Get the total byte size of each vector
-		const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+		const UINT vbByteSize = (UINT)vertices.size() * sizeof(GeometryGenerator::Vertex);
 		const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 		//Make a MeshGeometry to hold all the data
@@ -698,7 +699,7 @@ void CubeGame::BuildShapeGeometry()
 		geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
 			mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
 
-		geo->VertexByteStride = sizeof(Vertex);
+		geo->VertexByteStride = sizeof(GeometryGenerator::Vertex);
 		geo->VertexBufferByteSize = vbByteSize;
 		geo->IndexFormat = DXGI_FORMAT_R16_UINT;
 		geo->IndexBufferByteSize = ibByteSize;

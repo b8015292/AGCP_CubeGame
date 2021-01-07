@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Common/GeometryGenerator.h"
 #include "GameData.h"
 #include "Common/d3dUtil.h"
 
@@ -8,14 +7,6 @@ using Microsoft::WRL::ComPtr;
 
 class UI {
 public:
-	//Temp
-	struct Vertex
-	{
-		DirectX::XMFLOAT3 Pos;
-		DirectX::XMFLOAT3 Normal;
-		DirectX::XMFLOAT2 TexC;
-	};
-
 	//Init
 	void Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdList);	//Sets the verticies list and other variables. Use after the RI has been made with CreateUIPlane2D
 	void InitFont();	//Calculates and stores the location of each character in the font.dds.  Use this before using the main LoadTextures function in CubeGame.cpp.
@@ -37,7 +28,7 @@ public:
 	void SetRIDirty() { mRI->NumFramesDirty++; mDirty = false; };
 
 private:
-	void SetChar(char character, int position, std::vector<Vertex>& vertices);	//Sets a single character. Called from the SetString function
+	void SetChar(char character, int position, std::vector<GeometryGenerator::Vertex>& vertices);	//Sets a single character. Called from the SetString function
 
 private:
 	Font mFnt;
@@ -47,8 +38,8 @@ private:
 	UINT mVertsPerObj = 0;	//The number of verticies in the render item. 
 	UINT mVbByteSize = 0;	//Number of verticies * size of vertex
 
-	std::vector<Vertex> mVertices;		//Holds all the verticies. The texCoords are changed to display different characters
-	std::vector<Vertex> mStartVertices;	//Holds the initial, unaltered verticies. Used to refresh the gui to make it blank.
+	std::vector<GeometryGenerator::Vertex> mVertices;		//Holds all the verticies. The texCoords are changed to display different characters
+	std::vector<GeometryGenerator::Vertex> mStartVertices;	//Holds the initial, unaltered verticies. Used to refresh the gui to make it blank.
 
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCmdList;
 	std::shared_ptr<RenderItem> mRI;

@@ -100,7 +100,7 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 
 	//Set these for use in later functions
 	mVertsPerObj = mSizeX * mSizeY;
-	mVbByteSize = mVertsPerObj * sizeof(Vertex);
+	mVbByteSize = mVertsPerObj * sizeof(GeometryGenerator::Vertex);
 	mVertices.resize(mVertsPerObj);
 
 
@@ -128,9 +128,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 			float x = -halfWidth + (float)(j - decJ) * (dx * 2.f);
 			size_t index = i * mSizeY + j;
 
-			meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
+			meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 			meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-			meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 			// Stretch texture over grid.
 			meshData.Vertices[index].TexC.x = (float)j * du;
@@ -140,9 +139,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 				j++;
 				index = i * mSizeY + j;
 
-				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
+				meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-				meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 				// Stretch texture over grid.
 				meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
@@ -163,9 +161,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 				float x = -halfWidth + (float)(j - decJ) * (dx * 2);
 				size_t index = i * mSizeY + j;
 
-				meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
+				meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-				meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 				// Stretch texture over grid.
 				meshData.Vertices[index].TexC.x = (float)j * du;
@@ -175,9 +172,8 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 					j++;
 					index = i * mSizeY + j;
 
-					meshData.Vertices[index].Position = DirectX::XMFLOAT3(x, y, 0.0f);
+					meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 					meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-					meshData.Vertices[index].TangentU = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 
 					// Stretch texture over grid.
 					meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
@@ -219,7 +215,7 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 	return meshData;
 }
 
-void UI::SetChar(char c, int p, std::vector<Vertex>& vs) {
+void UI::SetChar(char c, int p, std::vector<GeometryGenerator::Vertex>& vs) {
 	//Skip every other position
 	int pos = p + p;				//Skip every other colomn
 	int row = (p / (mSizeX / 2));	//Calculate the row number
@@ -268,7 +264,7 @@ void UI::UpdateBuffer() {
 		// Describe the data we want to copy into the default buffer.
 		D3D12_SUBRESOURCE_DATA subResourceData = {};
 		subResourceData.pData = mVertices.data();
-		subResourceData.RowPitch = (UINT)sizeof(Vertex) * (UINT)mVertices.size();
+		subResourceData.RowPitch = (UINT)sizeof(GeometryGenerator::Vertex) * (UINT)mVertices.size();
 		subResourceData.SlicePitch = subResourceData.RowPitch;
 
 		// Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources

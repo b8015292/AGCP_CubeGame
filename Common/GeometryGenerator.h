@@ -47,6 +47,14 @@ public:
 			TangentU(tx, ty, tz), 
             TexC(u,v){}
 
+		Vertex& operator=(const Vertex& v) {
+			Position = v.Position;
+			Normal = v.Normal;
+			TangentU = v.TangentU;
+			TexC = v.TexC;
+			return *this;
+		}
+
         DirectX::XMFLOAT3 Position;
         DirectX::XMFLOAT3 Normal;
         DirectX::XMFLOAT3 TangentU;

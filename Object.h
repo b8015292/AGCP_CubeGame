@@ -4,6 +4,7 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
+//#include "Common/GeometryGenerator.h" //For the mesh data struct
 #include "Camera.h"
 
 
@@ -133,9 +134,12 @@ public:
     Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     ~Block();
 
+    static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth);
+
     void Init();
     void createBlock(blockType newType);
     void destroyBlock();
+
     
     //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
 
