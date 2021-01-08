@@ -140,6 +140,7 @@ public:
     void createBlock(blockType newType);
     void destroyBlock();
 
+    float GetDurability() { return mDurability; };
     
     //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
 
@@ -149,7 +150,7 @@ private:
     blockType type;
     float worldCoord[3];
 
-
+    float mDurability = 1.f;
     //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
     //void SetTexture(blockType type);
 

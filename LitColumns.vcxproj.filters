@@ -63,6 +63,9 @@
     <ClCompile Include="PerlinNoise.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Text.cpp">
+      <Filter>GameData\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FrameResource.h">
@@ -108,6 +111,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PerlinNoise.h">
+      <Filter>GameData\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Text.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>

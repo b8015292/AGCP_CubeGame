@@ -6,7 +6,7 @@
 
 #include "GameData.h"
 #include "Object.h"
-#include "UI.h"
+#include "Text.h"
 
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;
@@ -79,6 +79,11 @@ private:
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
 
+    //Block stuff
+    void UpdateBlockSelector();
+    void MineSelectedBlock(const float dTime);
+    void DestroySelectedBlock();
+
 private:
     //Each render layer is rendered in a different way (using different PSOs)
     enum class RenderLayer : int
@@ -117,25 +122,40 @@ private:
 
     PassConstants mMainPassCB;
 
-
-    POINT mLastMousePos;
-
     std::shared_ptr<Player> mPlayer;
+
+    //Camera variables
     const float mBackPlane = 1000.0f;
     const float mFrontPlane = 0.0001f;
-    std::shared_ptr<GameObject> mBlockSelector;
 
-    UI mUI;
+    //User interface
+    Text mUI;
     Font fnt;
     const int mUIRows = 26;
     const int mUICols = 26;
 
+    //Mouse input
+    POINT mLastMousePos;
+    bool mLeftMouseDown = false;
+    bool mRightMouseDown = false;
+
+    //Block textures
     const int mBlockTexSize = 32;
     const int mBlockTexRows = 1;
     const int mBlockTexCols = 7;
     const std::string mBlockTexNames[7] = { "null", "dirt", "grassSide", "grass", "stone", "null", "null"};
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
 
+    //Block Break
+    std::shared_ptr<GameObject> mBlockSelector;
     const std::string mBlockBreakTexNames[7] = { "select", "b0", "b1", "b2", "b3", "b4", "b5" };
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockBreakTexturePositions;
+    std::shared_ptr<Block> mPreviousSelectedBlock = nullptr;
+    //Used to determine when to break the block
+    float mCurrentBlockDurability = -1;
+    //Used to determine the texture of the block selector
+    float mBlockTimerMax = -1;
+    float mBlockSelectorTimer = 0;
+    int mBlockSelectorTextureCount = 0;
+
 };

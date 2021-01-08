@@ -155,6 +155,7 @@
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PerlinNoise.cpp" />
     <ClCompile Include="Raycast.cpp" />
+    <ClCompile Include="Text.cpp" />
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -172,6 +173,7 @@
     <ClInclude Include="Object.h" />
     <ClInclude Include="PerlinNoise.h" />
     <ClInclude Include="Raycast.h" />
+    <ClInclude Include="Text.h" />
     <ClInclude Include="UI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

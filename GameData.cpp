@@ -28,6 +28,11 @@ std::wstring GameData::StringToWString(std::string s) {
 	return temp;
 }
 
+void GameData::Print(std::string message) {
+	OutputDebugStringW(StringToWString(message).c_str());
+}
+
+
 GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
 {
 	MeshData meshData;

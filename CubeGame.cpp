@@ -194,16 +194,16 @@ void CubeGame::Update(const GameTimer& gt)
 			mAllEnts->at(i)->Update(gt.DeltaTime());
 		}
 
-		SetUIString("hello", 0, 0);
-
-
-
-
 		for (int i = 0; i < mAllGObjs->size(); i++) {
 			if (mAllGObjs->at(i)->GetDirty()) 
 				mAllGObjs->at(i)->SetRIDirty();
 		}
 		if (mUI.GetDirty()) mUI.SetRIDirty();
+		if (mBlockSelector->GetDirty()) {
+			mBlockSelector->SetRIDirty();
+			mBlockSelector->SetRIDirty();
+			mBlockSelector->SetRIDirty();
+		}
 	}
 
 
@@ -291,6 +291,14 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
     mLastMousePos.y = y;
 
     SetCapture(mhMainWnd);
+
+	if ((btnState & MK_LBUTTON) != 0)
+		mLeftMouseDown = true;
+
+	if ((btnState & MK_RBUTTON) != 0)
+		mRightMouseDown = true;
+	
+
 }
 
 void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
@@ -309,20 +317,33 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->Pitch(dy);
 		mPlayer->RotateY(dx);
 
-		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-		if (block != nullptr && block->GetActive()) {
-			mBlockSelector->SetActive(true);
-			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
-			mBlockSelector->SetRIDirty();
-		}
-		else {
-			mBlockSelector->SetActive(false);
-			mBlockSelector->SetRIDirty();
-		}
+		UpdateBlockSelector();
     }
 
     mLastMousePos.x = x;
     mLastMousePos.y = y;
+}
+
+void CubeGame::UpdateBlockSelector() {
+	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+	if (block != nullptr && block->GetActive()) {
+		if (mPreviousSelectedBlock == nullptr || block->GetID() != mPreviousSelectedBlock->GetID()) {
+			mPreviousSelectedBlock = block;
+
+			mBlockSelector->SetActive(true);
+			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect"].get();
+
+			mBlockSelectorTimer = 0.f;
+			mBlockSelectorTextureCount = 0;
+			mCurrentBlockDurability = block->GetDurability();
+			mBlockTimerMax = mCurrentBlockDurability / (float)mBlockBreakTexNames->size();
+		}
+	}
+	else {
+		mBlockSelector->SetActive(false);
+		mPreviousSelectedBlock = nullptr;
+	}
 }
  
 void CubeGame::OnKeyboardInput(const GameTimer& gt)
@@ -345,9 +366,8 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mPlayer->Jump();
 
 	if (GetAsyncKeyState('E') & 0x8000) {
-		std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-		if (block != nullptr) {
-			block->SetActive(false);
+		if (mPreviousSelectedBlock != nullptr) {
+			MineSelectedBlock(gt.DeltaTime());
 		}
 	}
 	if (GetAsyncKeyState('F') & 0x8000) {
@@ -358,6 +378,49 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
+}
+
+void CubeGame::MineSelectedBlock(const float dTime) {
+	mCurrentBlockDurability -= dTime;	// dTime * mineingRate; (different tools mine quicker)
+	mBlockSelectorTimer += dTime;
+
+	if (mBlockSelectorTimer >= mBlockTimerMax) {
+		mBlockSelectorTimer = 0;
+		mBlockSelectorTextureCount++;
+		switch (mBlockSelectorTextureCount) {
+		default:
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect"].get();
+			break;
+		case(1):
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect1"].get();
+			break;
+		case(2):
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect2"].get();
+			break;
+		case(3):
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect3"].get();
+			break;
+		case(4):
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect4"].get();
+			break;
+		case(5):
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect5"].get();
+			break;
+		case(6):
+			mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect6"].get();
+			break;
+		}
+	}
+	
+	if (mCurrentBlockDurability <= 0)
+		DestroySelectedBlock();
+}
+void CubeGame::DestroySelectedBlock() {
+	mPreviousSelectedBlock->SetActive(false);
+	mPreviousSelectedBlock = mAllBlocks->at(0);
+	mBlockSelectorTextureCount = 0;
+	mBlockSelector->GetRI()->Mat = mMaterials["mat_blockSelect"].get();
+	UpdateBlockSelector();
 }
 
 
@@ -490,7 +553,7 @@ void CubeGame::BuildRootSignature()
 
 	if(errorBlob != nullptr)
 	{
-		::OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	}
 	ThrowIfFailed(hr);
 
@@ -841,7 +904,15 @@ void CubeGame::BuildMaterials()
 
 	CreateMaterial("mat_sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
 	CreateMaterial("mat_font", 0, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+
 	CreateMaterial("mat_blockSelect", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+	CreateMaterial("mat_blockSelect1", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2, 0.f });
+	CreateMaterial("mat_blockSelect2", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 2, 0.f });
+	CreateMaterial("mat_blockSelect3", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 3, 0.f });
+	CreateMaterial("mat_blockSelect4", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 4, 0.f });
+	CreateMaterial("mat_blockSelect5", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 5, 0.f });
+	CreateMaterial("mat_blockSelect6", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 6, 0.f });
+
 
 }
 
@@ -925,15 +996,15 @@ void CubeGame::BuildWorld() {
 	{
 		for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
 		{
-			////Debug output
-			//std::wostringstream ss;
-			//ss << roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)) << "\n";
-			//std::wstring s(ss.str());
-			//OutputDebugStringW(s.c_str());
+			//////Debug output
+			//std::string msg = std::to_string(roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8))) + '\n';
+			//GameData::Print(msg);
 
 			CreateCube("mat_grass", { 1.0f * (float)worldX, -20.f + roundf(10.0f * (float)noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * (float)worldZ });
 		}
 	}
+
+	mPreviousSelectedBlock = mAllBlocks->at(0);
 }
 
 void CubeGame::BuildWorld1() {
