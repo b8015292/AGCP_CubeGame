@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 
-#include "globalThings.h"
+#include "GameData.h"
 
 class inventory
 {

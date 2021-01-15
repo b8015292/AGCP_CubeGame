@@ -7,6 +7,24 @@
 #include "Common/GeometryGenerator.h"
 #include "Common/d3dUtil.h"
 
+enum items
+{
+    bread,
+    meat,
+    cookedMeat,
+
+    pickaxe,
+    shovel,
+    sword,
+
+    dirt,
+    stone,
+    wood,
+    iron,
+    gold,
+    diamond
+};
+
 class GameData {
 public:
     static const int sNumFrameResources = 3;
