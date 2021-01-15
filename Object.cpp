@@ -23,13 +23,15 @@ GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 
-GameObject::GameObject() : mRI() {
+GameObject::GameObject(){// : mRI() {
 }
 
 GameObject::~GameObject() {
 	//--sMaxID;					//For degbugging
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	if(mAllGObjs != nullptr)
+		mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	if(mRI != nullptr)
+		mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void GameObject::CreateBoundingBox() {
@@ -132,8 +134,8 @@ Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 }
 
 Entity::~Entity() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void Entity::Init() {
@@ -235,8 +237,8 @@ Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
 }
 Player::~Player() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void Player::Update(const float dTime) {
@@ -330,6 +332,9 @@ void Player::RotateY(float dx) {
 // Block
 //************************************************************************************************************
 
+Block::Block() : GameObject() {
+}
+
 Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
@@ -345,12 +350,13 @@ Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs,
 }
 
 Block::~Block() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
 	//GameObject::~GameObject();
 }
 
-GeometryGenerator::MeshData Block::CreateCubeGeometry(float width, float height, float depth){
+
+GeometryGenerator::MeshData Block::CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight) {
 	GeometryGenerator::MeshData meshData;
 
 	// Create the vertices.
@@ -361,40 +367,41 @@ GeometryGenerator::MeshData Block::CreateCubeGeometry(float width, float height,
 
 	GeometryGenerator::Vertex v[24] = {
 		// Fill in the front face vertex data.
-		{-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f},
+		//Coords,       Normal,            Tex Coords
+		{-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, texHeight},
 		{-w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f},
-		{+w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f},
-		{+w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 1.0f},
+		{+w2, +h2, -d2, 0.0f, 0.0f, -1.0f, texWidth, 0.0f},
+		{+w2, -h2, -d2, 0.0f, 0.0f, -1.0f, texWidth, texHeight},
 
-		// Fill in the back face vertex data.
-		{-w2, -h2, +d2, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f},
-		{+w2, -h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f},
+		//Back
+		{-w2, -h2, +d2, 0.0f, 0.0f, 1.0f, texWidth, texHeight},
+		{+w2, -h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, texHeight},
 		{+w2, +h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
-		{-w2, +h2, +d2, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f},
+		{-w2, +h2, +d2, 0.0f, 0.0f, 1.0f, texWidth, 0.0f},
 
 		// Fill in the top face vertex data.
-		{-w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f},
+		{-w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 0.0f, texHeight},
 		{-w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
-		{+w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f},
-		{+w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f},
+		{+w2, +h2, +d2, 0.0f, 1.0f, 0.0f, texWidth, 0.0f},
+		{+w2, +h2, -d2, 0.0f, 1.0f, 0.0f, texWidth, texHeight},
 
 		// Fill in the bottom face vertex data.
-		{-w2, -h2, -d2, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f},
-		{+w2, -h2, -d2, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f},
+		{-w2, -h2, -d2, 0.0f, -1.0f, 0.0f, texWidth, texHeight},
+		{+w2, -h2, -d2, 0.0f, -1.0f, 0.0f, 0.0f, texHeight},
 		{+w2, -h2, +d2, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f},
-		{-w2, -h2, +d2, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f},
+		{-w2, -h2, +d2, 0.0f, -1.0f, 0.0f, texWidth, 0.0f},
 
 		// Fill in the left face vertex data.
-		{-w2, -h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f},
+		{-w2, -h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, texHeight},
 		{-w2, +h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-		{-w2, +h2, -d2, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f},
-		{-w2, -h2, -d2, -1.0f, 0.0f, 0.0f,  1.0f, 1.0f},
+		{-w2, +h2, -d2, -1.0f, 0.0f, 0.0f, texWidth, 0.0f},
+		{-w2, -h2, -d2, -1.0f, 0.0f, 0.0f, texWidth, texHeight},
 
 		// Fill in the right face vertex data.
-		{+w2, -h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f},
+		{+w2, -h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, texHeight},
 		{+w2, +h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-		{+w2, +h2, +d2, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f},
-		{+w2, -h2, +d2, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f},
+		{+w2, +h2, +d2, 1.0f, 0.0f, 0.0f, texWidth, 0.0f},
+		{+w2, -h2, +d2, 1.0f, 0.0f, 0.0f, texWidth, texHeight},
 	};
 
 	meshData.Vertices.assign(&v[0], &v[24]);

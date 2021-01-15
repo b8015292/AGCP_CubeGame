@@ -157,6 +157,7 @@
     <ClCompile Include="Raycast.cpp" />
     <ClCompile Include="Text.cpp" />
     <ClCompile Include="UI.cpp" />
+    <ClCompile Include="WorldManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\d3dApp.h" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Raycast.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="UI.h" />
+    <ClInclude Include="WorldManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -85,6 +85,7 @@ int D3DApp::Run()
 
 	while(msg.message != WM_QUIT)
 	{
+
 		// If there are Window messages then process them.
 		if(PeekMessage( &msg, 0, 0, 0, PM_REMOVE ))
 		{

@@ -65,8 +65,8 @@ protected:
     bool mApplyGravity = true;
     bool mDirty = false;
 
-    std::shared_ptr<RenderItem> mRI;
-    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
+    std::shared_ptr<RenderItem> mRI = nullptr;
+    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs = nullptr;
 
     BoundingBox mBoundingBox;    //Contains the center point and the size
 
@@ -130,11 +130,12 @@ private:
 
 class Block : public GameObject {
 public:
+    Block();
     Block(std::shared_ptr<GameObject> GObj);
     Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     ~Block();
 
-    static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth);
+    static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight);
 
     void Init();
     void createBlock(blockType newType);

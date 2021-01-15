@@ -59,8 +59,9 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 			meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 			// Stretch texture over grid.
-			meshData.Vertices[index].TexC.x = (float)j * du;
-			meshData.Vertices[index].TexC.y = (float)i * dv;
+			//meshData.Vertices[index].TexC.x = (float)j * du;
+			//meshData.Vertices[index].TexC.y = (float)i * dv;
+			meshData.Vertices[index].TexC = { 0.f, 0.f };
 
 			if (j != 0 && j < mSizeY - 1) {
 				j++;
@@ -70,8 +71,9 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 				// Stretch texture over grid.
-				meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
-				meshData.Vertices[index].TexC.y = (float)(i - 1) * dv;
+				//meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
+				//meshData.Vertices[index].TexC.y = (float)(i - 1) * dv;
+				meshData.Vertices[index].TexC = { 0.f, 0.f };
 
 				decJ++;
 			}
@@ -92,8 +94,9 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 				// Stretch texture over grid.
-				meshData.Vertices[index].TexC.x = (float)j * du;
-				meshData.Vertices[index].TexC.y = (float)i * dv;
+				//meshData.Vertices[index].TexC.x = (float)j * du;
+				//meshData.Vertices[index].TexC.y = (float)i * dv;
+				meshData.Vertices[index].TexC = { 0.f, 0.f };
 
 				if (j != 0 && j < mSizeY - 1) {
 					j++;
@@ -103,8 +106,9 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 					meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 					// Stretch texture over grid.
-					meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
-					meshData.Vertices[index].TexC.y = (float)(i - 1) * dv;
+					//meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
+					//meshData.Vertices[index].TexC.y = (float)(i - 1) * dv;
+					meshData.Vertices[index].TexC = { 0.f, 0.f };
 
 					decJ++;
 				}

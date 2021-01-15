@@ -7,11 +7,23 @@
 //#include "Common/GeometryGenerator.h"
 #include "Common/d3dUtil.h"
 
+
 class GameData {
 public:
     static const int sNumFrameResources = 3;
     static const float sGrav;
     static bool sRunning;
+
+    //Each render layer is rendered in a different way (using different PSOs)
+    enum class RenderLayer : int
+    {
+        Main = 0,
+        UserInterface,
+        Sky,
+        Transparent,
+        Count
+    };
+
 
     static void StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMFLOAT4X4 source);
     static std::wstring StringToWString(std::string s);

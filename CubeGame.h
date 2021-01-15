@@ -7,6 +7,7 @@
 #include "GameData.h"
 #include "Object.h"
 #include "Text.h"
+#include "WorldManager.h"
 
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;
@@ -56,7 +57,7 @@ private:
 
     //Drawing
     virtual void Draw(const GameTimer& gt)override;
-    void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
+    void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems);
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();   //Creates the static samples - different ways to interperate textures
 
 
@@ -69,6 +70,8 @@ private:
     void LoadTextures();                
     //Splits textures up into texel location maps.
     void SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]);
+    //Creates all the UI objects
+    void BuildUserInterfaces();
     //Makes a material, using default values for roughness and fresnel
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform);
     //Makes a material with a different top and bottom texture
@@ -85,16 +88,6 @@ private:
     void DestroySelectedBlock();
 
 private:
-    //Each render layer is rendered in a different way (using different PSOs)
-    enum class RenderLayer : int
-    {
-        Main = 0,
-        UserInterface,
-        Sky,
-        Transparent,
-        Count
-    };
-
     //Each frame resource has its own copy of the pass constant, materials and objects
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrFrameResource = nullptr;
@@ -104,32 +97,36 @@ private:
 
     ComPtr<ID3D12DescriptorHeap> mSrvDescriptorHeap = nullptr;
 
-    std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
-    std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+    std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> mGeometries;
+    std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> mMaterials;
     std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
-    std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)RenderLayer::Count];
+    std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)GameData::RenderLayer::Count];
 
     // List of all the render items.
     std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
     std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
     std::shared_ptr<std::vector<std::shared_ptr<Block>>> mAllBlocks;
+    std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<UI>>> mAllUIs;
 
     // Render items divided by PSO.
-    std::vector<std::shared_ptr<RenderItem>> mRitemLayer[(int)RenderLayer::Count];
+    std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[(int)GameData::RenderLayer::Count];
 
     PassConstants mMainPassCB;
 
+    WorldManager mWorldMgr;
+
     std::shared_ptr<Player> mPlayer;
+    bool mPlayerChangedView = false;
 
     //Camera variables
     const float mBackPlane = 1000.0f;
     const float mFrontPlane = 0.0001f;
 
     //User interface
-    Text mUI;
+    std::shared_ptr<Text> mUI_Text;
     Font fnt;
     const int mUIRows = 26;
     const int mUICols = 26;
@@ -138,6 +135,8 @@ private:
     POINT mLastMousePos;
     bool mLeftMouseDown = false;
     bool mRightMouseDown = false;
+    float mRightMouseDownTimer = 0.f;
+    float mRightMouseDownTimerMax = 0.3f;
 
     //Block textures
     const int mBlockTexSize = 32;
