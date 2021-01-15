@@ -29,8 +29,7 @@ public:
 
     virtual bool Initialize()override;
 
-    //Testing inventory
-    inventory inv;
+    inventory mInventory;
 
 private:
     //Initialization

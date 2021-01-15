@@ -1,6 +1,6 @@
 #include "Inventory.h"
 #include <algorithm>
-
+#include "GameData.h"
 
 void inventory::addItem(items newItem, int numOfItem)
 {
