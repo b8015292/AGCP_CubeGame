@@ -172,7 +172,6 @@
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="GameData.h" />
     <ClInclude Include="CubeGame.h" />
-    <ClInclude Include="globalThings.h" />
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="PerlinNoise.h" />

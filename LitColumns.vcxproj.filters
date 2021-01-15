@@ -122,8 +122,5 @@
     <ClInclude Include="Inventory.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="globalThings.h">
-      <Filter>GameData\Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
