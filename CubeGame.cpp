@@ -5,6 +5,8 @@
 #include "CubeGame.h"
 #include "Raycast.h"
 #include "PerlinNoise.h"
+#include <map>
+#include <algorithm>
 
 bool GameData::sRunning = true;
 const int worldWidthLength = 20;
