@@ -45,6 +45,9 @@
     <ClCompile Include="Common\GameTimer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Common\GeometryGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Common\MathHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -63,10 +66,7 @@
     <ClCompile Include="PerlinNoise.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Text.cpp">
-      <Filter>GameData\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="WorldManager.cpp">
+    <ClCompile Include="Inventory.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -107,6 +107,9 @@
     <ClInclude Include="Common\GameTimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common\GeometryGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Common\MathHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -116,10 +119,10 @@
     <ClInclude Include="PerlinNoise.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Text.h">
+    <ClInclude Include="Inventory.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="WorldManager.h">
+    <ClInclude Include="globalThings.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
