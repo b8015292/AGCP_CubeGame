@@ -27,11 +27,8 @@ GameObject::GameObject(){// : mRI() {
 }
 
 GameObject::~GameObject() {
-	//--sMaxID;					//For degbugging
-	if(mAllGObjs != nullptr)
-		mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	if(mRI != nullptr)
-		mRI.~shared_ptr();			//Delete the pointer to this render item
+	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void GameObject::CreateBoundingBox() {
@@ -339,7 +336,7 @@ Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
-Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) :  GameObject() {
+Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI){// :  GameObject() {
 
 	mAllGObjs = allGObjs;
 	mRI = rI;
@@ -353,6 +350,7 @@ Block::~Block() {
 	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
 	//mRI.~shared_ptr();			//Delete the pointer to this render item
 	//GameObject::~GameObject();
+
 }
 
 

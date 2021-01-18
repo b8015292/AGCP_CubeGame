@@ -14,29 +14,37 @@ int WorldManager::sChunkMaxID = 0;
 WorldManager::Chunk::Chunk(DirectX::XMFLOAT3 pos) {
 	mBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();// (size_t)WorldManager::sChunkSize, std::make_shared<Block>());
 	mActiveBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
+	mRItems = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 	mID = WorldManager::sChunkMaxID++;
 
 	Init(pos);
 }
 
+//WorldManager::Chunk::~Chunk() {
+//	//mRItems.~shared_ptr();
+//	//mActiveBlocks.~shared_ptr();
+//	//mBlocks.~shared_ptr();
+//}
+
 void WorldManager::Chunk::Init(DirectX::XMFLOAT3 pos) {
 	mPosition = pos;
 
-	size_t index = 0;
 	for (float worldX = 0; worldX < (float)WorldManager::sChunkDimension; ++worldX)
 	{
 		for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
 		{
-			CreateCube("mat_dirt",
+			float y = (float)WorldManager::sChunkDimension + -20.f 
+				+ roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension), 
+				(double)worldZ / ((double)WorldManager::sChunkDimension), 
+				0.8));
+			
+			CreateCube("mat_grass",
 				{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-				pos.y * (float)WorldManager::sChunkDimension + -20.f + roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension), (double)worldZ / ((double)WorldManager::sChunkDimension), 0.8)),
-				pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, mBlocks, index);
-			index++;
+				pos.y * y,
+				pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, mBlocks, mRItems);
+
 		}
 	}
-
-	int a = 9;
-
 }
 
 
@@ -51,8 +59,12 @@ WorldManager::WorldManager(){
 	srand(time_t(NULL));
 	unsigned int seed = rand() % 10000;//237;
 	sNoise = PerlinNoise(seed);
+}
 
-	//mChunks.insert(mChunks.begin(), (size_t)mMaxHeight * mMaxLength * mMaxLength, Chunk());
+WorldManager::~WorldManager() {
+	sAllGObjs.reset();
+	sMaterials.reset();
+	sGeometries.reset();
 }
 
 void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> geos,
@@ -73,21 +85,22 @@ void WorldManager::CreateWorld() {
 	for (int i = 0; i < mMaxLength; i++) {
 		for (int j = 0; j < mMaxHeight; j++) {
 			for (int k = 0; k < mMaxLength; k++) {
-				mChunks.push_back(Chunk({ (float)i, (float)j, (float)k }));
-				//GetChunk(i, j, k).Init({ (float)i, (float)j, (float)k });
+				//mChunks.push_back(std::make_unique<Chunk>(DirectX::XMFLOAT3( (float)i, (float)j, (float)k )));
+				mChunks.push_back(Chunk(DirectX::XMFLOAT3( (float)i, (float)j, (float)k )));
+
 			}
 		}
 	}
 }
 
-void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, size_t index) {
+void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris) {
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
-	auto ri = std::make_shared<RenderItem>(sGeometries->at("geo_shape").get(), "mesh_cube", sMaterials->at(materialName).get(), XMMatrixTranslation(pos.x, pos.y, pos.z));
+	//auto ri = std::make_shared<RenderItem>(sGeometries->at("geo_shape").get(), "mesh_cube", sMaterials->at(materialName).get(), XMMatrixTranslation(pos.x, pos.y, pos.z));
+	ris->push_back(std::make_shared<RenderItem>(sGeometries->at("geo_shape").get(), "mesh_cube", sMaterials->at(materialName).get(), XMMatrixTranslation(pos.x, pos.y, pos.z)));
 
 	//Create the block directly inside the block list
-	//std::vector<std::shared_ptr<Block>>::iterator it = blocks->begin() + index;
-	//blocks->insert(it, 1, std::make_shared<Block>(std::make_shared<GameObject>(sAllGObjs, ri)));
-	blocks->push_back(std::make_shared<Block>(std::make_shared<GameObject>(sAllGObjs, ri)));
+	blocks->push_back(std::make_shared<Block>(sAllGObjs, ris->at(ris->size() - 1)));
+
 
 }
 

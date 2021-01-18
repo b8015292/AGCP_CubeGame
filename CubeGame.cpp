@@ -899,7 +899,10 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
-	UINT totalRI = (UINT)mRitemLayer[(int)GameData::RenderLayer::Main]->size() + (UINT)mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() + (UINT)mRitemLayer[(int)GameData::RenderLayer::Sky]->size();
+	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
+		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
+		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
+		+ mWorldMgr.GetChunkSize());
 
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
@@ -991,38 +994,15 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
 
 	//World
-	//BuildWorld();
-	BuildWorld1();
-
-	//mWorldMgr.CreateWorld();
-	//mWorldMgr.LoadChunk();
-}
-
-void CubeGame::BuildWorld() {
-	//srand(time_t(NULL));
-	//unsigned int seed = rand() % 10000;//237;
-	//noise = PerlinNoise(seed);
-	//for (int worldX = 0; worldX < worldWidthLength; ++worldX)
-	//{
-	//	for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
-	//	{
-	//		//////Debug output
-	//		//std::string msg = std::to_string(roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8))) + '\n';
-	//		//GameData::Print(msg);
-
-	//		CreateCube("mat_grass", { 1.0f * (float)worldX, -20.f + roundf(10.0f * (float)noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * (float)worldZ });
-	//	}
-	//}
-
-	//mPreviousSelectedBlock = mAllBlocks->at(0);
+	mWorldMgr.CreateWorld();
+	mWorldMgr.LoadChunk();
 }
 
 void CubeGame::BuildWorld1() {
 	CreateCube("mat_grass", {0, 0, 0});
 	CreateCube("mat_grass", {1, 0, 0});
 	CreateCube("mat_grass", {1, 0, 1});
-	CreateCube("mat_blockSelect", {0, 0, 1});
-	CreateCube("mat_blockSelect", {2, 1, 1});
+	CreateCube("mat_grass", {0, 0, 1});
 	CreateCube("mat_grass", {3, 1, 1});
 }
 

@@ -38,7 +38,7 @@ private:
     void BuildFrameResources();             //Each frame resource has its own version of the Pass Constant, materials and objects
     void BuildMaterials();
     void BuildGameObjects();                //Creates all the gameobjects
-    void BuildWorld();                      //Creates the terrain
+
     void BuildWorld1();                     //TEMP - creates a 2 by 1 by 2 section of cubes
 
     //Input handling
