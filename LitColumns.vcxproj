@@ -159,6 +159,7 @@
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bock.h" />
     <ClInclude Include="Common\d3dApp.h" />
     <ClInclude Include="Common\d3dUtil.h" />
     <ClInclude Include="Common\d3dx12.h" />
@@ -171,10 +172,14 @@
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="GameData.h" />
     <ClInclude Include="CubeGame.h" />
+    <ClInclude Include="Inventory.h" />
+    <ClInclude Include="Item.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="PerlinNoise.h" />
     <ClInclude Include="Raycast.h" />
+    <ClInclude Include="Tool.h" />
     <ClInclude Include="UI.h" />
+    <ClInclude Include="WoodPickaxe.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
