@@ -1,13 +1,18 @@
 #pragma once
+#include <map>
 
-#include "Item.h"
+//#include "GameData.h"
 
-class Inventory {
+class inventory
+{
 public:
-    void te() {
-        items = Item[10];
-    }
+	inventory() {};
+
+	static void addItem(items newItem, int numOfItem);
+	static void removeItem(items removedItem, int numOfItem);
+
+	//static std::map<items, int> getItems() { return invItems; }
+	static std::map<items, int> invItems;
+
 private:
-    Item *items;
-    short int size;
 };

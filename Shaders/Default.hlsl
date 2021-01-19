@@ -141,7 +141,7 @@ float4 PS(VertexOut pin) : SV_Target
 	// Indirect lighting.
     float4 ambient = gAmbientLight*col;
 
-    //const float shininess = 1.0f - gRoughness;
+    //const float shininess = 1.0f - gRoughness;ee
     const float shininess = 0.0f;
     Material mat = { col, gFresnelR0, shininess };
     float3 shadowFactor = 1.0f;
@@ -151,7 +151,8 @@ float4 PS(VertexOut pin) : SV_Target
     float4 litColor = ambient + directLight;
 
     // Common convention to take alpha from diffuse material.
-    litColor.a = gDiffuseAlbedo.a;
+    //litColor.a = gDiffuseAlbedo.a;
+    //litColor.a = 0.0f;
 
     return litColor;
 }
@@ -162,13 +163,34 @@ float4 PS(VertexOut pin) : SV_Target
 //*************************************************************************
 
 
-//User interface shader (doesn't take lighting in account)
-float4 UIPS(VertexOut pin) : SV_Target
+////User interface shader (doesn't take lighting in account)
+//float4 UIPS(VertexOut pin) : SV_Target
+//{
+//    return textureMap.Sample(gsamPointClamp, pin.TexC);
+//}
+
+
+struct TwoDInput{
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD;
+};
+
+
+TwoDInput TwoDVS(float4 position : POSITION, float2 uv : TEXCOORD)
 {
-    return textureMap.Sample(gsamPointClamp, pin.TexC);
+    TwoDInput result;
+    
+    result.position = mul(position, gWorld);
+    //result.position = position;
+    result.uv = uv;
+
+    return result;
 }
 
-
+float4 TwoDPS(TwoDInput input) : SV_TARGET
+{
+    return textureMap.Sample(gsamPointWrap, input.uv);
+}
 
 
 //*************************************************************************
@@ -182,23 +204,22 @@ struct SkyVertexOut {
     float3 PosL : POSITION;
 };
 
-SkyVertexOut SkyVS(VertexIn vin)
+SkyVertexOut SkyVS(float3 pos : POSITION)
 {
     SkyVertexOut vout;
 
-    // Use local vertex position as cubemap lookup vector.
-    vout.PosL = vin.PosL;
+	// Use local vertex position as cubemap lookup vector.
+    vout.PosL = pos;
+	
+	// Transform to world space.
+    float4 posW = mul(float4(pos, 1.0f), gWorld);
 
-    // Transform to world space.
-    float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
-
-    // Always center sky about camera.
+	// Always center sky about camera.
     posW.xyz += gEyePosW;
 
-    // Set z = w so that z/w = 1 (i.e., skydome always on far plane).
-    //vout.PosH = mul(posW, gViewProj).xyww;
+	// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
     vout.PosH = mul(posW, gViewProj).xyww;
-
+	
     return vout;
 }
 

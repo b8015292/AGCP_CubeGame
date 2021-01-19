@@ -4,6 +4,7 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
+//#include "Common/GeometryGenerator.h" //For the mesh data struct
 #include "Camera.h"
 
 
@@ -30,6 +31,7 @@ public:
     //Constructor & Initializer
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     GameObject(std::shared_ptr<GameObject> gobj);
+    GameObject();
     ~GameObject();
     void CreateBoundingBox();
 
@@ -55,18 +57,20 @@ public:
     //Mutators
     void Translate(const float dTime, float x, float y, float z);
 
+private:
+    bool mActive = true;        //This can only be affected by the SetActive function because it's value needs to match the render item's value
+
 protected:
     int mID = 0;
     bool mApplyGravity = true;
     bool mDirty = false;
 
-    std::shared_ptr<RenderItem> mRI;
-    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
+    std::shared_ptr<RenderItem> mRI = nullptr;
+    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs = nullptr;
 
     BoundingBox mBoundingBox;    //Contains the center point and the size
 
-private:
-    bool mActive = true;
+
 
 };
 
@@ -126,12 +130,18 @@ private:
 
 class Block : public GameObject {
 public:
+    Block();
     Block(std::shared_ptr<GameObject> GObj);
+    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     ~Block();
+
+    static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight);
 
     void Init();
     void createBlock(blockType newType);
     void destroyBlock();
+
+    float GetDurability() { return mDurability; };
     
     //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
 
@@ -141,7 +151,7 @@ private:
     blockType type;
     float worldCoord[3];
 
-
+    float mDurability = 1.f;
     //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
     //void SetTexture(blockType type);
 

@@ -1,63 +1,42 @@
 #pragma once
 
-#include "Common/GeometryGenerator.h"
 #include "GameData.h"
 #include "Common/d3dUtil.h"
 
 using Microsoft::WRL::ComPtr;
 
-
-
 class UI {
 public:
-	//Temp
-	struct Vertex
-	{
-		DirectX::XMFLOAT3 Pos;
-		DirectX::XMFLOAT3 Normal;
-		DirectX::XMFLOAT2 TexC;
-	};
+	//Init
+	void Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdList);	//Sets the verticies list and other variables. Use after the RI has been made with CreateUIPlane2D
+	GeometryGenerator::MeshData CreateUIPlane2D(float width, float depth, int oM, int oN);					//Creates a 2D plane which can display characters
+	~UI();				//Releases the render item and command list
 
-	void SetRenderItem(std::shared_ptr<RenderItem> ri);
-	void InitFont();
-	GeometryGenerator::MeshData CreateUIPlane(float width, float depth, int oM, int oN);
-	~UI();
+	//Mutators
+	void UpdateBuffer();									//Updates the GPUs version of the verticies. Use this in the main Draw function in CubeGame.cpp, before drawing this.
+	void ResetVerticies() { mVertices = mStartVertices; };	//Clears the GUI.
 
-	void UpdateUIPos(DirectX::XMVECTOR camPos);
-	void UpdateAspectRatio(float camNearWindowWidth, float camNearWindowHeight);
-	void UpdateRotation(float rotX, float rotY, DirectX::XMVECTOR look);
+	//Getters/Setters
+	std::shared_ptr<RenderItem> GetRI() { return mRI; };
 
-	void SetChar(char character, int position, std::vector<Vertex>& vertices);
-	void SetString(ID3D12GraphicsCommandList* cmdList, std::string str, float posX, float posY);
-	//void DrawUI(ID3D12GraphicsCommandList* cmdList, const std::vector<std::shared_ptr<RenderItem>> ritems);
-	Font* GetFont() { return &mFnt; };
-
-	void UpdateBuffer(ID3D12GraphicsCommandList* cmdList, std::vector<Vertex> vertices);
-
+	//Dirty
 	bool GetDirty() { return mDirty; };
-	void SetDirtyFlag() { mDirty = true; };
+	void SetDirtyFlag() { mDirty = true; mChanged = true; };
 	void SetRIDirty() { mRI->NumFramesDirty++; mDirty = false; };
 
+protected:
+	int mSizeX = 0;			//The number of colomns (including the hidden colomns inbetween the visible)
+	int mSizeY = 0;			//The number of rows (see above comment)
 
-private:
-	Font mFnt;
-	int mSizeX = 0;
-	int mSizeZ = 0; //Y - because the UI is built on a plane which is parallel to the Z axis before rotation,
-					//	  after rotation its Z becomes its height
+	UINT mVertsPerObj = 0;	//The number of verticies in the render item. 
+	UINT mVbByteSize = 0;	//Number of verticies * size of vertex
 
-	const float mScaleVal = 1.f;				//Scale
-	const float offsetFromPlayer = 1.00001f;	//Translate
-	const float mRotToPlayer = -1.57079633f;	//-90 degrees rotate
-	DirectX::XMMATRIX mRotToPlayerMat = DirectX::XMMatrixRotationX(mRotToPlayer);
-	DirectX::XMMATRIX mScale = DirectX::XMMatrixIdentity();
-	DirectX::XMMATRIX mRotation = DirectX::XMMatrixIdentity();
-	DirectX::XMVECTOR mLook = { 0, 0, 0 };
+	std::vector<GeometryGenerator::Vertex> mVertices;		//Holds all the verticies. The texCoords are changed to display different characters
+	std::vector<GeometryGenerator::Vertex> mStartVertices;	//Holds the initial, unaltered verticies. Used to refresh the gui to make it blank.
 
-	float rotXX = 0;
-	float rotYY = 0;
-	float windWidth = 0;
-	float windHeight = 0;
-
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCmdList;
 	std::shared_ptr<RenderItem> mRI;
-	bool mDirty = false;
+	bool mDirty = false;				//Used to update the render items dirty flag.
+	bool mChanged = false;				//Used in UpdateBuffer. If there has been no change, the buffer is not updated.
+										//The mDirty flag is already reset by this time so it cannot be used.
 };
