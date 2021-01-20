@@ -1,18 +1,20 @@
 #pragma once
 #include <map>
 
-//#include "GameData.h"
+#include "Item.h"
 
 class inventory
 {
 public:
 	inventory() {};
 
-	static void addItem(items newItem, int numOfItem);
-	static void removeItem(items removedItem, int numOfItem);
+	void addItem(Item newItem, int numOfItem);
+	void removeItem(Item removedItem, int numOfItem);
+	bool checkIfFull() { return invItems.size() <= 64; };
 
-	//static std::map<items, int> getItems() { return invItems; }
-	static std::map<items, int> invItems;
+	std::map<std::string, int> getItems() { return invItems; };
 
-private:
+protected:
+	std::map<std::string, int> invItems;
 };
+

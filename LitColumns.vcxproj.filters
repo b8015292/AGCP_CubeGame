@@ -28,7 +28,7 @@
     <Filter Include="GameData\Header Files\Items\Blocks">
       <UniqueIdentifier>{df35e791-ffc1-4886-9427-ed9ee8c9b19c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GameData\Header Files\Items\Items">
+    <Filter Include="GameData\Header Files\Items\Tools">
       <UniqueIdentifier>{9d2ba1e6-b19f-43ae-b021-936a9f1c91ee}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -147,15 +147,18 @@
       <Filter>GameData\Header Files\Items</Filter>
     </ClInclude>
     <ClInclude Include="WoodPickaxe.h">
-      <Filter>GameData\Header Files\Items\Items</Filter>
+      <Filter>GameData\Header Files\Items\Tools</Filter>
     </ClInclude>
     <ClInclude Include="Tool.h">
       <Filter>GameData\Header Files\Items</Filter>
     </ClInclude>
-    <ClInclude Include="Bock.h">
+    <ClInclude Include="Inventory.h">
       <Filter>GameData\Header Files\Items</Filter>
     </ClInclude>
     <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Block.h">
       <Filter>GameData\Header Files\Items</Filter>
     </ClInclude>
   </ItemGroup>

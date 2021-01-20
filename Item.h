@@ -3,8 +3,17 @@
 #include <string>
 
 enum class ItemType {
-    ITEM,
-    BLOCK
+    BLOCK,
+    TOOL
+};
+
+enum class blockType {
+    type_Default = 0,
+    type_Dirt,
+    type_Grass,
+    type_Stone,
+    type_Wood,
+    type_Count
 };
 
 class Item {

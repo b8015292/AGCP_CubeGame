@@ -459,5 +459,5 @@ void Block::createBlock(blockType newType)
 void Block::destroyBlock()
 {
 	SetActive(false);
-	type = type_Default;
+	type = blockType::type_Default;
 }
