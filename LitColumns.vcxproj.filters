@@ -161,5 +161,11 @@
     <ClInclude Include="Block.h">
       <Filter>GameData\Header Files\Items</Filter>
     </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pathfinding.h">
+      <Filter>GameData\Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
