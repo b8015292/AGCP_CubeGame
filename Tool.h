@@ -8,8 +8,8 @@ static ToolType STONE = ToolType(60, 2.f);
 class ToolType {
 public:
     ToolType(short int durability, int speedMultiplier) { mDurability = durability; mSpeedMultiplier = speedMultiplier; }
-    int GetDurability() { return mDurability; }
     float GetSpeedMultiplier() { return mSpeedMultiplier; }
+    int GetDurability() { return mDurability; }
 private:
     short int mDurability;
     float mSpeedMultiplier;
@@ -17,9 +17,7 @@ private:
 
 class Tool : public Item {
 public:
-    Tool(std::string name, ItemType type, short int maxStackSize, ToolType toolType) : mToolType(toolType), mDurability(toolType.GetDurability()), Item(name, type, maxStackSize) {}
-    int GetDurability() { return mDurability; }
+    Tool(std::string name, ItemType type, short int maxStackSize, ToolType toolType) : mToolType(toolType), Item(name, type, maxStackSize, toolType.GetDurability()) {}
 protected:
     ToolType mToolType;
-    int mDurability;
 };

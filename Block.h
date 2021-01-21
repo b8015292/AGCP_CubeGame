@@ -4,7 +4,7 @@
 
 class Block : public Item {
 public:
-    Block(std::string name, ItemType type, short int maxStackSize, blockType blockType) : mBlockType(blockType), Item(name, type, maxStackSize) {}
+    Block(std::string name, ItemType type, blockType blockType) : mBlockType(blockType), Item(name, type, 64, 1) {}
 protected:
     blockType mBlockType;
 };

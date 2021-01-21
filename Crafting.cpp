@@ -3,7 +3,7 @@
 //
 //void crafting::craftSticks(inventory& inv)
 //{
-//	bool wood = inv.invItems.find(Item)->second >= 2;
+//	bool wood = inv.mInvItems.find(Item)->second >= 2;
 //
 //	if (wood)
 //	{
@@ -14,8 +14,8 @@
 //
 //void crafting::craftIronPick(inventory& inv)
 //{
-//	bool iron = inv.invItems.find(Item)->second >= 3;
-//	bool sticks = inv.invItems.find(Item)->second >= 2;
+//	bool iron = inv.mInvItems.find(Item)->second >= 3;
+//	bool sticks = inv.mInvItems.find(Item)->second >= 2;
 //
 //	if (iron && sticks)
 //	{
@@ -27,8 +27,8 @@
 //
 //void crafting::craftIronShovel(inventory& inv)
 //{
-//	bool iron = inv.invItems.find(Item)->second >= 1;
-//	bool sticks = inv.invItems.find(Item)->second >= 2;
+//	bool iron = inv.mInvItems.find(Item)->second >= 1;
+//	bool sticks = inv.mInvItems.find(Item)->second >= 2;
 //
 //	if (iron && sticks)
 //	{
@@ -40,8 +40,8 @@
 //
 //void crafting::craftIronSword(inventory& inv)
 //{
-//	bool iron = inv.invItems.find(items::iron)->second >= 2;
-//	bool sticks = inv.invItems.find(items::sticks)->second >= 1;
+//	bool iron = inv.mInvItems.find(items::iron)->second >= 2;
+//	bool sticks = inv.mInvItems.find(items::sticks)->second >= 1;
 //
 //	if (iron && sticks)
 //	{
