@@ -3,14 +3,16 @@
 
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
-//std::unordered_map<std::string, DirectX::XMFLOAT2> Block::mBlockTexturePositions;
+
+std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> GameObject::sAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
+std::shared_ptr<std::vector<std::shared_ptr<Entity>>> Entity::sAllEntities = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
+std::shared_ptr<std::vector<std::shared_ptr<Block>>> Block::sAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
 
 //************************************************************************************************************
 // GameObject
 //************************************************************************************************************
 
-GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) {
-	mAllGObjs = allGObjs;
+GameObject::GameObject(std::shared_ptr<RenderItem> rI) {
 	mRI = rI;
 
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
@@ -24,11 +26,6 @@ GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
 }
 
 GameObject::GameObject(){// : mRI() {
-}
-
-GameObject::~GameObject() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void GameObject::CreateBoundingBox() {
@@ -130,11 +127,6 @@ Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
-Entity::~Entity() {
-	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	//mRI.~shared_ptr();			//Delete the pointer to this render item
-}
-
 void Entity::Init() {
 	mID = GameObject::mID;
 	mVel = { 0, 0, 0 };
@@ -196,8 +188,8 @@ void Entity::SetMaxVelocity(XMFLOAT3 newMaxVel) {
 
 std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 	std::vector<int> collisionIndexs;
-	for (int i = 0; i < mAllGObjs->size(); i++){
-		if (mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+	for (int i = 0; i < sAllGObjs->size(); i++){
+		if (sAllGObjs->at(i)->GetActive() && nextPos.Contains(sAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
 			collisionIndexs.push_back(i);
 		}
 	}
@@ -205,25 +197,15 @@ std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 }
 
 bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
-	for (int i = 0; i < mAllGObjs->size(); i++) {
+	for (int i = 0; i < sAllGObjs->size(); i++) {
 		//If the IDs arent the same, the block is active, and it is colliding
-		std::shared_ptr<GameObject> go = mAllGObjs->at(i);
+		std::shared_ptr<GameObject> go = sAllGObjs->at(i);
 		if (mID != go->GetID())
 			if(go->GetActive())
 				if(nextPos.Contains(go->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT)
 					return true;
 	}
 	return false;
-
-	//for (int i = 0; i < mAllGObjs->size(); i++) {
-	//	//If the IDs arent the same, the block is active, and it is colliding
-	//	if (mID != mAllGObjs->at(i)->GetID() &&
-	//		mAllGObjs->at(i)->GetActive() &&
-	//		nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
-	//		return true;
-	//	}
-	//}
-	//return false;
 }
 
 //************************************************************************************************************
@@ -232,10 +214,6 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 
 Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
-}
-Player::~Player() {
-	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	//mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void Player::Update(const float dTime) {
@@ -336,23 +314,14 @@ Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
-Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI){// :  GameObject() {
+Block::Block(std::shared_ptr<RenderItem> rI){// :  GameObject() {
 
-	mAllGObjs = allGObjs;
 	mRI = rI;
 
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 
 	CreateBoundingBox();
 }
-
-Block::~Block() {
-	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	//mRI.~shared_ptr();			//Delete the pointer to this render item
-	//GameObject::~GameObject();
-
-}
-
 
 GeometryGenerator::MeshData Block::CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight) {
 	GeometryGenerator::MeshData meshData;

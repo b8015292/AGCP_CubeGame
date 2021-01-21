@@ -4,15 +4,12 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
-//#include "Common/GeometryGenerator.h" //For the mesh data struct
 #include "Camera.h"
-
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
 enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8 };
-
 //enum Face { top = 0, bottom = 1, front = 2, back = 3, left = 4, right = 5};
 
 enum blockType {
@@ -26,13 +23,13 @@ enum blockType {
 
 class GameObject {
 public:
+    static std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> sAllGObjs;
     static int sMaxID;
 
     //Constructor & Initializer
-    GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
+    GameObject(std::shared_ptr<RenderItem> rI);
     GameObject(std::shared_ptr<GameObject> gobj);
     GameObject();
-    ~GameObject();
     void CreateBoundingBox();
 
     bool operator==(GameObject& obj) { return GetID() == obj.GetID(); };
@@ -66,7 +63,6 @@ protected:
     bool mDirty = false;
 
     std::shared_ptr<RenderItem> mRI = nullptr;
-    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs = nullptr;
 
     BoundingBox mBoundingBox;    //Contains the center point and the size
 
@@ -76,10 +72,10 @@ protected:
 
 class Entity : public GameObject {
 public:
+    static std::shared_ptr<std::vector<std::shared_ptr<Entity>>> sAllEntities;
 
     //Constructors
     Entity(std::shared_ptr<GameObject> gobj);
-    ~Entity();
     void Init();
 
     //Getters/Setters
@@ -106,7 +102,6 @@ protected:
 class Player : public Entity {
 public:
     Player(std::shared_ptr<GameObject> gobj);
-    ~Player();
 
     void Update(const float dTime) override; //overides entities update
     void TranslateCamera(float dTime, float x, float y, float z);
@@ -130,10 +125,11 @@ private:
 
 class Block : public GameObject {
 public:
+    static std::shared_ptr<std::vector<std::shared_ptr<Block>>> sAllBlocks;
+
     Block();
     Block(std::shared_ptr<GameObject> GObj);
-    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
-    ~Block();
+    Block(std::shared_ptr<RenderItem> rI);
 
     static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight);
 

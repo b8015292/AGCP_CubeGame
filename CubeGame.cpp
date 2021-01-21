@@ -54,16 +54,14 @@ bool CubeGame::Initialize()
         return false;
 
 	GameData::sRunning = true;
-	mAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
-	mAllEnts = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
-	mAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
+
 	mAllUIs = std::make_shared<std::unordered_map<std::string, std::shared_ptr<UI>>>();
 	mGeometries = std::make_shared<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>>();
 	mMaterials = std::make_shared<std::unordered_map<std::string, std::shared_ptr<Material>>>();
 	for(int i = 0; i < (int)GameData::RenderLayer::Count; i++)
 		mRitemLayer[i] = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 
-	mWorldMgr.Init(mGeometries, mMaterials, mAllGObjs, mAllBlocks, mRitemLayer);
+	mWorldMgr.Init(mGeometries, mMaterials, mRitemLayer);
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -204,8 +202,8 @@ void CubeGame::Update(const GameTimer& gt)
 
 
 	if (GameData::sRunning) {
-		for (int i = 0; i < mAllEnts->size(); i++) {
-			mAllEnts->at(i)->Update(gt.DeltaTime());
+		for (int i = 0; i < Entity::sAllEntities->size(); i++) {
+			Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
 		}
 
 		if (mLeftMouseDown) {
@@ -218,7 +216,7 @@ void CubeGame::Update(const GameTimer& gt)
 			if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
 				mRightMouseDownTimer = 0.f;
 
-				std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+				std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 				if (block != nullptr) {
 					block->SetActive(true);
 					mPlayerChangedView = true;
@@ -232,11 +230,10 @@ void CubeGame::Update(const GameTimer& gt)
 		}
 
 
-
 		//Update the frame resources
-		for (int i = 0; i < mAllGObjs->size(); i++) {
-			if (mAllGObjs->at(i)->GetDirty())
-				mAllGObjs->at(i)->SetRIDirty();
+		for (int i = 0; i < GameObject::sAllGObjs->size(); i++) {
+			if (GameObject::sAllGObjs->at(i)->GetDirty())
+				GameObject::sAllGObjs->at(i)->SetRIDirty();
 		}
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
@@ -253,7 +250,6 @@ void CubeGame::Update(const GameTimer& gt)
 			mBlockSelector->SetRIDirty();
 		}
 	}
-
 
 
 	AnimateMaterials(gt);
@@ -381,7 +377,7 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 }
 
 void CubeGame::UpdateBlockSelector() {
-	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(mAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 	if (block != nullptr && block->GetActive()) {
 		if (mPreviousSelectedBlock == nullptr || block->GetID() != mPreviousSelectedBlock->GetID()) {
 			mPreviousSelectedBlock = block;
@@ -422,6 +418,18 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mPlayer->Jump();
 
 	mPlayer->GetCam()->UpdateViewMatrix();
+
+
+	if (GetAsyncKeyState('Z') & 0x8000)
+		mWorldMgr.LoadChunk(3, 0, 0);
+
+	if (GetAsyncKeyState('X') & 0x8000)
+		mWorldMgr.UnloadChunk(3, 0, 0);
+
+	if (GetAsyncKeyState('C') & 0x8000) 
+		mWorldMgr.SwapChunk(0, 0, 0, 1, 0, 0);
+
+
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {
@@ -461,7 +469,7 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 }
 void CubeGame::DestroySelectedBlock() {
 	mPreviousSelectedBlock->SetActive(false);
-	mPreviousSelectedBlock = mAllBlocks->at(0);
+	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = mMaterials->at("mat_blockSelect").get();
 	
@@ -902,7 +910,7 @@ void CubeGame::BuildFrameResources()
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
-		+ mWorldMgr.GetChunkSize());
+		+ mWorldMgr.GetChunkSize() * mWorldMgr.GetNumberOfChunksToLoad());
 
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
@@ -960,11 +968,11 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 void CubeGame::CreateCube(std::string materialName, XMFLOAT3 pos) {
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
 	auto ri = std::make_shared<RenderItem>(mGeometries->at("geo_shape").get(), "mesh_cube", mMaterials->at(materialName).get(), XMMatrixTranslation(pos.x, pos.y, pos.z));
-	mAllBlocks->push_back(std::make_shared<Block>(std::make_shared<GameObject>(mAllGObjs, ri)));
-	mAllGObjs->push_back(mAllBlocks->at(mAllBlocks->size() - 1));
+	Block::sAllBlocks->push_back(std::make_shared<Block>(std::make_shared<GameObject>(ri)));
+	GameObject::sAllGObjs->push_back(Block::sAllBlocks->at(Block::sAllBlocks->size() - 1));
 
 	//Add the blocks render item to the main items list
-	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mAllGObjs->at(mAllGObjs->size() - 1)->GetRI());
+	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(GameObject::sAllGObjs->at(GameObject::sAllGObjs->size() - 1)->GetRI());
 }
 
 void CubeGame::BuildGameObjects()
@@ -974,9 +982,9 @@ void CubeGame::BuildGameObjects()
 
 	//Player
 	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", mMaterials->at("mat_player").get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
-	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
-	mAllGObjs->push_back(mPlayer);
-	mAllEnts->push_back(mPlayer);												//Add the player to the enities list
+	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI));						//Make the Player
+	GameObject::sAllGObjs->push_back(mPlayer);
+	Entity::sAllEntities->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mPlayer->GetRI());			//Add the players render item to the main list
 
 	//Sky----------------------------
@@ -990,12 +998,18 @@ void CubeGame::BuildGameObjects()
 
 	//Block selector
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", mMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
-	mBlockSelector = std::make_shared<GameObject>(mAllGObjs, selectorRI);
+	mBlockSelector = std::make_shared<GameObject>(selectorRI);
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
 
+	CreateCube("mat_grass", { 0,0,0 });
 	//World
 	mWorldMgr.CreateWorld();
-	mWorldMgr.LoadChunk();
+	mWorldMgr.LoadChunk(0,0,0);
+
+	mWorldMgr.LoadChunk(2,0,0);
+	mWorldMgr.LoadChunk(3,0,0);
+
+
 }
 
 void CubeGame::BuildWorld1() {

@@ -106,9 +106,9 @@ private:
     std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)GameData::RenderLayer::Count];
 
     // List of all the render items.
-    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
-    std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
-    std::shared_ptr<std::vector<std::shared_ptr<Block>>> mAllBlocks;
+    //std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
+    //std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
+    //std::shared_ptr<std::vector<std::shared_ptr<Block>>> mAllBlocks;
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<UI>>> mAllUIs;
 
     // Render items divided by PSO.
