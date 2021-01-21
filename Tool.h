@@ -7,12 +7,12 @@ static ToolType STONE = ToolType(60, 2.f);
 
 class ToolType {
 public:
-    ToolType(short int durability, int speed) { mDurability = durability; mSpeed = speed; }
+    ToolType(short int durability, int speedMultiplier) { mDurability = durability; mSpeedMultiplier = speedMultiplier; }
     int GetDurability() { return mDurability; }
-    float GetSpeed() { return mSpeed; }
+    float GetSpeedMultiplier() { return mSpeedMultiplier; }
 private:
     short int mDurability;
-    float mSpeed;
+    float mSpeedMultiplier;
 };
 
 class Tool : public Item {
