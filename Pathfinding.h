@@ -1,14 +1,14 @@
 #pragma once
 
 #include <math.h>
-#include <vector>
+#include <set>
 #include <array>
 #include <stack>
 #include <set>
 
-#define MAX_X 16
-#define MAX_Y 16
-#define MAX_Z 16
+#define MAX_X 12
+#define MAX_Y 12
+#define MAX_Z 12
 
 struct Node
 {
@@ -50,13 +50,13 @@ public:
         return H;
     }
 
-    static std::vector<Node> makePath(std::array<std::array<std::array<Node, MAX_Z>, MAX_Y>, MAX_X> map, Node destination)
+    static std::set<Node> makePath(std::array<std::array<std::array<Node, MAX_Z>, MAX_Y>, MAX_X> map, Node destination)
     {
 		int x = destination.x;
 		int y = destination.y;
 		int z = destination.z;
 		std::stack<Node> path;
-		std::vector<Node> usablePath;
+		std::set<Node> usablePath;
 
 		while (!(map[x][y][z].parentX == x && map[x][y][z].parentY == y && map[x][y][z].parentZ  == z)
 			&& map[x][y][z].x != -1 && map[x][y][z].y != -1 && map[x][y][z].z != -1)
@@ -75,13 +75,13 @@ public:
 		while (!path.empty()) {
 			Node top = path.top();
 			path.pop();
-			usablePath.emplace_back(top);
+			usablePath.emplace(top);
 		}
 		return usablePath;
 	}
 
-	static std::vector<Node> aStar(Node start, Node destination) {
-		std::vector<Node> empty;
+	static std::set<Node> aStar(Node start, Node destination) {
+		std::set<Node> empty;
 
 		//TODO: Check if the destination is not air		
 
@@ -121,7 +121,7 @@ public:
 
 		std::set<Node> openList;
 
-		openList.emplace(allMap[x][y]);
+		openList.emplace(allMap[x][y][z]);
 		bool destinationFound = false;
 
 		while (!openList.empty() && openList.size() < MAX_X * MAX_Y * MAX_Z) {

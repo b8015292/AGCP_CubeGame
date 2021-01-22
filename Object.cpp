@@ -417,9 +417,9 @@ void LivingEntity::WalkToBlock(XMFLOAT3 blockLocation) {
 	destination.y = blockLocation.y;
 	destination.z = blockLocation.z;
 
-	for (Node node : Pathfinding::aStar(player, destination)) {
+	//for (Node node : Pathfinding::aStar(player, destination)) {
 		
-	}
+	//}
 }
 
 
