@@ -6,15 +6,19 @@
 class inventory
 {
 public:
-	inventory() {};
+	inventory() : InumOfItems(0), HnumOfItems(0) {};
 
-	void addItem(Item newItem, int numOfItem);
-	void removeItem(Item removedItem, int numOfItem);
-	bool checkIfFull() { return invItems.size() <= 64; };
+	void addItem(Item newItem);
+	void removeItem(int spaceToDelete, bool deleteAll);
+	bool checkIfInvFull() { return InumOfItems <= 64; };
+	bool checkIfHotbarFull() { return HnumOfItems <= 8; };
 
-	std::map<std::string, int> getItems() { return invItems; };
+	std::map<int, Item*> getItems() { return mInvItems; };
 
 protected:
-	std::map<std::string, int> invItems;
+	std::map<int, Item*> mInvItems;
+	std::map<int, Item*> mHotbarItems;
+	short int InumOfItems;
+	short int HnumOfItems;
 };
 
