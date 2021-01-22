@@ -81,7 +81,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
+	mPlayer->GetCam()->SetPosition(1.0f, 11.0f, 1.0f);
 
 	//Initialise the user interface
 	mUI.SetRenderItem(mRitemLayer[(int)RenderLayer::Transparent].at(0));
@@ -864,7 +864,7 @@ void CubeGame::BuildRenderItems()
 	auto geo = mGeometries["shapeGeo"].get();
 
 	//Player
-	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
+	auto playerRI = std::make_shared<RenderItem>(geo, "player", mMaterials["player"].get(), XMMatrixTranslation(1.0f, 10.0f, 1.0f));	//Make a render item
 	//mAllGObjs->push_back(std::make_shared<GameObject>(mAllGObjs, playerRI));	//Make a gameobject from the RI and add it to the list
 	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(mAllGObjs, playerRI));						//Make the Player
 	mAllGObjs->push_back(mPlayer);
