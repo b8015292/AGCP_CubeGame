@@ -4,7 +4,9 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
+//#include "Common/GeometryGenerator.h" //For the mesh data struct
 #include "Camera.h"
+#include "Item.h"
 
 
 using Microsoft::WRL::ComPtr;
@@ -14,15 +16,6 @@ enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr =
 
 //enum Face { top = 0, bottom = 1, front = 2, back = 3, left = 4, right = 5};
 
-enum blockType {
-    type_Default = 0,
-    type_Dirt,
-    type_Grass,
-    type_Stone,
-    type_Wood,
-    type_Count
-};
-
 class GameObject {
 public:
     static int sMaxID;
@@ -30,6 +23,7 @@ public:
     //Constructor & Initializer
     GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     GameObject(std::shared_ptr<GameObject> gobj);
+    GameObject();
     ~GameObject();
     void CreateBoundingBox();
 
@@ -55,18 +49,20 @@ public:
     //Mutators
     void Translate(const float dTime, float x, float y, float z);
 
+private:
+    bool mActive = true;        //This can only be affected by the SetActive function because it's value needs to match the render item's value
+
 protected:
     int mID = 0;
     bool mApplyGravity = true;
     bool mDirty = false;
 
-    std::shared_ptr<RenderItem> mRI;
-    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
+    std::shared_ptr<RenderItem> mRI = nullptr;
+    std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs = nullptr;
 
     BoundingBox mBoundingBox;    //Contains the center point and the size
 
-private:
-    bool mActive = true;
+
 
 };
 
@@ -126,15 +122,49 @@ private:
     const float mCameraOffsetY = 0.6f;  //Height
 };
 
+class LivingEntity : public Entity {
+public:
+    LivingEntity(std::shared_ptr<GameObject> gobj);
+    ~LivingEntity();
+
+    void Update(const float dTime) override; //overides entities update
+    void Jump();
+    void Walk(float d, float dTime);
+    void Strafe(float d, float dTime);
+    void WalkToBlock(XMFLOAT3 blockLocation);
+
+private:
+    bool mJumped = true;
+
+    const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
+
+    float walkSpeed;
+    float maxHealth;
+    float health;
+};
+
+class Enemy : public LivingEntity {
+public:
+    
+private:
+    
+};
+
 
 class Block : public GameObject {
 public:
+    Block();
     Block(std::shared_ptr<GameObject> GObj);
+    Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI);
     ~Block();
+
+    static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight);
 
     void Init();
     void createBlock(blockType newType);
     void destroyBlock();
+
+    float GetDurability() { return mDurability; };
     
     //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
 
@@ -144,12 +174,8 @@ private:
     blockType type;
     float worldCoord[3];
 
-
+    float mDurability = 1.f;
     //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
     //void SetTexture(blockType type);
-
-};
-
-class Item : protected GameObject {
 
 };

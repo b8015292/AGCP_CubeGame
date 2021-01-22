@@ -1,6 +1,8 @@
 #include "Object.h"
 #include <algorithm>
 
+#include "Pathfinding.h"
+
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
 //std::unordered_map<std::string, DirectX::XMFLOAT2> Block::mBlockTexturePositions;
@@ -20,12 +22,18 @@ GameObject::GameObject(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>>
 
 GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
 	*this = *gobj;
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+}
+
+GameObject::GameObject(){// : mRI() {
 }
 
 GameObject::~GameObject() {
-	--sMaxID;					//For degbugging
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//--sMaxID;					//For degbugging
+	if(mAllGObjs != nullptr)
+		mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	if(mRI != nullptr)
+		mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void GameObject::CreateBoundingBox() {
@@ -58,7 +66,7 @@ std::array<XMFLOAT3, 8> GameObject::GetCoords() {
 	const UINT vertsPerObj = 24;
 	const UINT vertsNeeded = 8;
 	const UINT numbOfVerts = vertsPerObj * (UINT)(mRI->Geo->DrawArgs.size());
-	const UINT vbByteSize = numbOfVerts * sizeof(Vertex);
+	const UINT vbByteSize = numbOfVerts * sizeof(GeometryGenerator::Vertex);
 
 	//Where the verticies for this item start in the buffer
 	const int vertStart = mRI->BaseVertexLocation;
@@ -67,7 +75,7 @@ std::array<XMFLOAT3, 8> GameObject::GetCoords() {
 	ComPtr<ID3DBlob> verticesBlob = mRI->Geo->VertexBufferCPU;
 
 	//Move the data from the buffer onto a vector we can view/manipulate
-	std::vector<Vertex> vs(numbOfVerts);
+	std::vector<GeometryGenerator::Vertex> vs(numbOfVerts);
 	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
 
 	//Get the items world transformation matrix
@@ -128,8 +136,8 @@ Entity::Entity(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 }
 
 Entity::~Entity() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void Entity::Init() {
@@ -204,11 +212,23 @@ std::vector<int> Entity::CheckAllCollisionsAtBox(BoundingBox nextPos) {
 bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	for (int i = 0; i < mAllGObjs->size(); i++) {
 		//If the IDs arent the same, the block is active, and it is colliding
-		if (mID != mAllGObjs->at(i)->GetID() && mAllGObjs->at(i)->GetActive() && nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
-			return true;
-		}
+		std::shared_ptr<GameObject> go = mAllGObjs->at(i);
+		if (mID != go->GetID())
+			if(go->GetActive())
+				if(nextPos.Contains(go->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT)
+					return true;
 	}
 	return false;
+
+	//for (int i = 0; i < mAllGObjs->size(); i++) {
+	//	//If the IDs arent the same, the block is active, and it is colliding
+	//	if (mID != mAllGObjs->at(i)->GetID() &&
+	//		mAllGObjs->at(i)->GetActive() &&
+	//		nextPos.Contains(mAllGObjs->at(i)->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) {
+	//		return true;
+	//	}
+	//}
+	//return false;
 }
 
 //************************************************************************************************************
@@ -219,8 +239,8 @@ Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 
 }
 Player::~Player() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
 }
 
 void Player::Update(const float dTime) {
@@ -235,7 +255,7 @@ void Player::Update(const float dTime) {
 			mJumped = false;
 		}
 		else {
-			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
+			AddVelocity(0, GameData::sGrav / 50.f, 0);
 		}
 
 		if (mVel.y != 0) {
@@ -257,168 +277,49 @@ void Player::Jump() {
 }
 void Player::Walk(float d, float dTime) {
 
-	bool move = false;
-
-	//add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
-	float addedCollisionOffset = (d * 2) * dTime;
-
-	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
+	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(d * dTime, 0.2f, 0);
 	BoundingBox nextBoxX;
 	mBoundingBox.Transform(nextBoxX, translateX);
 
-	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
+	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, d * dTime);
 	BoundingBox nextBoxZ;
 	mBoundingBox.Transform(nextBoxZ, translateZ);
 
-	//if player is not colliding
-	if (!(CheckIfCollidingAtBox(nextBoxX))) {
+	if (!(CheckIfCollidingAtBox(nextBoxX) && CheckIfCollidingAtBox(nextBoxZ))) {
+
 		mCamera.Walk(d, dTime);
 
 		DirectX::XMMATRIX oldWorldMatrix;
 		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-		newWorldMatrix = oldWorldMatrix - cameraMatrix;
-		newWorldMatrix.r[3].m128_f32[2] = oldWorldMatrix.r[3].m128_f32[2];
-		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, oldWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
+		//if(newWorldMatrix.r[3].m128_f32[2] < mCamera.GetPosition3f().z)
+		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 
 		SetDirtyFlag();
-		move = true;
 	}
-	//if player is not colliding
-	if (!(CheckIfCollidingAtBox(nextBoxZ))) {
-		mCamera.Walk(d, dTime);
-
-		DirectX::XMMATRIX oldWorldMatrix;
-		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-		newWorldMatrix = oldWorldMatrix - cameraMatrix;
-		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-		SetDirtyFlag();
-		move = true;
-	}
-
-	if(move)
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-
-
-	//else
-	//{
-	//	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
-	//	BoundingBox nextBoxX;
-	//	mBoundingBox.Transform(nextBoxX, translateX);
-
-	//	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
-	//	BoundingBox nextBoxZ;
-	//	mBoundingBox.Transform(nextBoxZ, translateZ);
-
-	//}
 }
-
-//sideways movement
 void Player::Strafe(float d, float dTime) {
 
-	bool move = false;
-
-	//add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
-	float addedCollisionOffset = (d * 2) * dTime;
-
-	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
+	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(d * dTime, 0.2f, 0);
 	BoundingBox nextBoxX;
-	mBoundingBox.Transform(nextBoxX, translateX);
+	mBoundingBox.Transform(nextBoxX, translate);
 
-	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
-	BoundingBox nextBoxZ;
-	mBoundingBox.Transform(nextBoxZ, translateZ);
+	if (!CheckIfCollidingAtBox(nextBoxX)) {
 
-	//if player is not colliding
-	if (!(CheckIfCollidingAtBox(nextBoxX))) {
 		mCamera.Strafe(d, dTime);
+
 
 		DirectX::XMMATRIX oldWorldMatrix;
 		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-		newWorldMatrix = oldWorldMatrix - cameraMatrix;
-		newWorldMatrix.r[3].m128_f32[2] = oldWorldMatrix.r[3].m128_f32[2];
-		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, oldWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
+		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 
 		SetDirtyFlag();
-		move = true;
 	}
-	//if player is not colliding
-	if (!(CheckIfCollidingAtBox(nextBoxZ))) {
-		mCamera.Strafe(d, dTime);
-
-		DirectX::XMMATRIX oldWorldMatrix;
-		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-		newWorldMatrix = oldWorldMatrix - cameraMatrix;
-		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-		SetDirtyFlag();
-		move = true;
-	}
-
-	if (move)
-	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-	////if player is not going to collide
-	//if (!(CheckIfCollidingAtBox(nextBoxX) || CheckIfCollidingAtBox(nextBoxZ))) {
-
-	//	mCamera.Strafe(d, dTime);
-
-	//	DirectX::XMMATRIX oldWorldMatrix;
-	//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-	//	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-	//	DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-	//	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	//	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-	//	SetDirtyFlag();
-	//}
-
-
-
-	//else //if he is going to collide
-	//{
-	//	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
-	//	BoundingBox nextBoxX;
-	//	mBoundingBox.Transform(nextBoxX, translateX);
-
-	//	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
-	//	BoundingBox nextBoxZ;
-	//	mBoundingBox.Transform(nextBoxZ, translateZ);
-
-
-	//	if (CheckIfCollidingAtBox(nextBoxX))
-	//	{
-	//		mCamera.SetPosition(mCamera.GetPosition3f().x - d * dTime, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-
-	//		DirectX::XMMATRIX oldWorldMatrix;
-	//		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-	//		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-	//		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-	//		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	//		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-	//		SetDirtyFlag();
-	//	}
-	//	if (CheckIfCollidingAtBox(nextBoxZ))
-	//	{
-	//		mCamera.SetPosition(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z - d * dTime);
-
-	//		DirectX::XMMATRIX oldWorldMatrix;
-	//		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
-	//		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
-	//		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
-	//		//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - offsetY, -newWorldMatrix.r[3].m128_f32[2] + offsetZ);
-	//		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
-
-	//		SetDirtyFlag();
-	//	}
-	//}
-
 }
 void Player::Pitch(float dy) {
 	mCamera.Pitch(dy);
@@ -427,34 +328,216 @@ void Player::Pitch(float dy) {
 void Player::RotateY(float dx) {
 	mCamera.RotateY(dx);
 }
-bool Player::MovementCollisionCheck(float d, float dTime) {
 
-	//add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
-	float addedCollisionOffset = (d * 1.25) * dTime;
+//************************************************************************************************************
+// LivingEntity
+//************************************************************************************************************
 
-	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
+LivingEntity::LivingEntity(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
+
+}
+LivingEntity::~LivingEntity() {
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
+}
+
+void LivingEntity::Update(const float dTime) {
+	if (!GetActive()) return;
+	if (mApplyGravity)
+	{
+		//Create a bounding box in the next location in the Y axis (X and Z are handled within the Walk and Strafe functions)
+		BoundingBox nextBox;
+		mBoundingBox.Transform(nextBox, DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0));
+		if (CheckIfCollidingAtBox(nextBox)) {
+			mVel.y = 0.0f;
+			mJumped = false;
+		}
+		else {
+			AddVelocity(0, GameData::sGrav / 50.f, 0);
+		}
+
+		if (mVel.y != 0) {
+			Translate(dTime, 0, mVel.y, 0);
+			SetDirtyFlag();
+		}
+	}
+}
+void LivingEntity::Jump() {
+	if (!mJumped) {
+		AddVelocity(0, 15.0f, 0);
+		mJumped = true;
+		SetDirtyFlag();
+	}
+}
+void LivingEntity::Walk(float d, float dTime) {
+
+	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(d * dTime, 0.2f, 0);
 	BoundingBox nextBoxX;
 	mBoundingBox.Transform(nextBoxX, translateX);
 
-	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
+	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, d * dTime);
 	BoundingBox nextBoxZ;
 	mBoundingBox.Transform(nextBoxZ, translateZ);
 
-	return (!(CheckIfCollidingAtBox(nextBoxX) || CheckIfCollidingAtBox(nextBoxZ)));
+	if (!(CheckIfCollidingAtBox(nextBoxX) && CheckIfCollidingAtBox(nextBoxZ))) {
+		DirectX::XMMATRIX oldWorldMatrix;
+		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mBoundingBox.Center.x, mBoundingBox.Center.y, mBoundingBox.Center.z);
+		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1], -newWorldMatrix.r[3].m128_f32[2]);
 
+		SetDirtyFlag();
+	}
 }
+void LivingEntity::Strafe(float d, float dTime) {
+
+	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(d * dTime, 0.2f, 0);
+	BoundingBox nextBoxX;
+	mBoundingBox.Transform(nextBoxX, translate);
+
+	if (!CheckIfCollidingAtBox(nextBoxX)) {
+		DirectX::XMMATRIX oldWorldMatrix;
+		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mBoundingBox.Center.x, mBoundingBox.Center.y, mBoundingBox.Center.z);
+		DirectX::XMMATRIX newWorldMatrix = oldWorldMatrix - cameraMatrix;
+		Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1], -newWorldMatrix.r[3].m128_f32[2]);
+
+		SetDirtyFlag();
+	}
+}
+
+void LivingEntity::WalkToBlock(XMFLOAT3 blockLocation) {
+	Node player;
+	player.x = mBoundingBox.Center.x;
+	player.y = mBoundingBox.Center.y;
+	player.z = mBoundingBox.Center.z;
+
+	Node destination;
+	destination.x = blockLocation.x;
+	destination.y = blockLocation.y;
+	destination.z = blockLocation.z;
+
+	//for (Node node : Pathfinding::aStar(player, destination)) {
+		
+	//}
+}
+
 
 //************************************************************************************************************
 // Block
 //************************************************************************************************************
 
+Block::Block() : GameObject() {
+}
+
 Block::Block(std::shared_ptr<GameObject> gobj) : GameObject(gobj) {
 	Init();
 }
 
+Block::Block(std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> allGObjs, std::shared_ptr<RenderItem> rI) :  GameObject() {
+
+	mAllGObjs = allGObjs;
+	mRI = rI;
+
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+
+	CreateBoundingBox();
+}
+
 Block::~Block() {
-	mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
-	mRI.~shared_ptr();			//Delete the pointer to this render item
+	//mAllGObjs.~shared_ptr();	//Delete the pointer to the list of all game objects
+	//mRI.~shared_ptr();			//Delete the pointer to this render item
+	//GameObject::~GameObject();
+}
+
+
+GeometryGenerator::MeshData Block::CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight) {
+	GeometryGenerator::MeshData meshData;
+
+	// Create the vertices.
+
+	float w2 = 0.5f * width;
+	float h2 = 0.5f * height;
+	float d2 = 0.5f * depth;
+
+	GeometryGenerator::Vertex v[24] = {
+		// Fill in the front face vertex data.
+		//Coords,       Normal,            Tex Coords
+		{-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, texHeight},
+		{-w2, +h2, -d2, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f},
+		{+w2, +h2, -d2, 0.0f, 0.0f, -1.0f, texWidth, 0.0f},
+		{+w2, -h2, -d2, 0.0f, 0.0f, -1.0f, texWidth, texHeight},
+
+		//Back
+		{-w2, -h2, +d2, 0.0f, 0.0f, 1.0f, texWidth, texHeight},
+		{+w2, -h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, texHeight},
+		{+w2, +h2, +d2, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+		{-w2, +h2, +d2, 0.0f, 0.0f, 1.0f, texWidth, 0.0f},
+
+		// Fill in the top face vertex data.
+		{-w2, +h2, -d2, 0.0f, 1.0f, 0.0f, 0.0f, texHeight},
+		{-w2, +h2, +d2, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
+		{+w2, +h2, +d2, 0.0f, 1.0f, 0.0f, texWidth, 0.0f},
+		{+w2, +h2, -d2, 0.0f, 1.0f, 0.0f, texWidth, texHeight},
+
+		// Fill in the bottom face vertex data.
+		{-w2, -h2, -d2, 0.0f, -1.0f, 0.0f, texWidth, texHeight},
+		{+w2, -h2, -d2, 0.0f, -1.0f, 0.0f, 0.0f, texHeight},
+		{+w2, -h2, +d2, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f},
+		{-w2, -h2, +d2, 0.0f, -1.0f, 0.0f, texWidth, 0.0f},
+
+		// Fill in the left face vertex data.
+		{-w2, -h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, texHeight},
+		{-w2, +h2, +d2, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{-w2, +h2, -d2, -1.0f, 0.0f, 0.0f, texWidth, 0.0f},
+		{-w2, -h2, -d2, -1.0f, 0.0f, 0.0f, texWidth, texHeight},
+
+		// Fill in the right face vertex data.
+		{+w2, -h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, texHeight},
+		{+w2, +h2, -d2, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{+w2, +h2, +d2, 1.0f, 0.0f, 0.0f, texWidth, 0.0f},
+		{+w2, -h2, +d2, 1.0f, 0.0f, 0.0f, texWidth, texHeight},
+	};
+
+	meshData.Vertices.assign(&v[0], &v[24]);
+
+	// Create the indices.
+
+	GeometryGenerator::uint32 i[36];
+
+	// Fill in the front face index data
+	i[0] = 0; i[1] = 1; i[2] = 2;
+	i[3] = 0; i[4] = 2; i[5] = 3;
+
+	// Fill in the back face index data
+	i[6] = 4; i[7] = 5; i[8] = 6;
+	i[9] = 4; i[10] = 6; i[11] = 7;
+
+	// Fill in the top face index data
+	i[12] = 8; i[13] = 9; i[14] = 10;
+	i[15] = 8; i[16] = 10; i[17] = 11;
+
+	// Fill in the bottom face index data
+	i[18] = 12; i[19] = 13; i[20] = 14;
+	i[21] = 12; i[22] = 14; i[23] = 15;
+
+	// Fill in the left face index data
+	i[24] = 16; i[25] = 17; i[26] = 18;
+	i[27] = 16; i[28] = 18; i[29] = 19;
+
+	// Fill in the right face index data
+	i[30] = 20; i[31] = 21; i[32] = 22;
+	i[33] = 20; i[34] = 22; i[35] = 23;
+
+	meshData.Indices32.assign(&i[0], &i[36]);
+
+	//// Put a cap on the number of subdivisions.
+	//numSubdivisions = std::min<GeometryGenerator::uint32>(numSubdivisions, 6u);
+
+	//for (int i = 0; i < numSubdivisions; ++i)
+	//	Subdivide(meshData);
+
+	return meshData;
 }
 
 void Block::Init() {
@@ -471,5 +554,5 @@ void Block::createBlock(blockType newType)
 void Block::destroyBlock()
 {
 	SetActive(false);
-	type = type_Default;
+	type = blockType::type_Default;
 }
