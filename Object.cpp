@@ -255,7 +255,7 @@ void Player::Update(const float dTime) {
 			mJumped = false;
 		}
 		else {
-			AddVelocity(0, GameData::sGrav / 50.f, 0);
+			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
 		}
 
 		if (mVel.y != 0) {
@@ -299,6 +299,52 @@ void Player::Walk(float d, float dTime) {
 
 		SetDirtyFlag();
 	}
+
+	//bool move = false;
+
+	////add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
+	//float addedCollisionOffset = (d * 2) * dTime;
+
+	//DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
+	//BoundingBox nextBoxX;
+	//mBoundingBox.Transform(nextBoxX, translateX);
+
+	//DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
+	//BoundingBox nextBoxZ;
+	//mBoundingBox.Transform(nextBoxZ, translateZ);
+
+	////if player is not colliding
+	//if (!(CheckIfCollidingAtBox(nextBoxX))) {
+	//	mCamera.Walk(d, dTime);
+
+	//	DirectX::XMMATRIX oldWorldMatrix;
+	//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+	//	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
+	//	newWorldMatrix = oldWorldMatrix - cameraMatrix;
+	//	newWorldMatrix.r[3].m128_f32[2] = oldWorldMatrix.r[3].m128_f32[2];
+	//	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, oldWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+
+	//	SetDirtyFlag();
+	//	move = true;
+	//}
+	////if player is not colliding
+	//if (!(CheckIfCollidingAtBox(nextBoxZ))) {
+	//	mCamera.Walk(d, dTime);
+
+	//	DirectX::XMMATRIX oldWorldMatrix;
+	//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+	//	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
+	//	newWorldMatrix = oldWorldMatrix - cameraMatrix;
+	//	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+
+	//	SetDirtyFlag();
+	//	move = true;
+	//}
+
+	//if (move)
+	//	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+
+
 }
 void Player::Strafe(float d, float dTime) {
 
@@ -320,6 +366,50 @@ void Player::Strafe(float d, float dTime) {
 
 		SetDirtyFlag();
 	}
+
+	//bool move = false;
+
+	////add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
+	//float addedCollisionOffset = (d * 2) * dTime;
+
+	//DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
+	//BoundingBox nextBoxX;
+	//mBoundingBox.Transform(nextBoxX, translateX);
+
+	//DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
+	//BoundingBox nextBoxZ;
+	//mBoundingBox.Transform(nextBoxZ, translateZ);
+
+	////if player is not colliding
+	//if (!(CheckIfCollidingAtBox(nextBoxX))) {
+	//	mCamera.Strafe(d, dTime);
+
+	//	DirectX::XMMATRIX oldWorldMatrix;
+	//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+	//	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
+	//	newWorldMatrix = oldWorldMatrix - cameraMatrix;
+	//	newWorldMatrix.r[3].m128_f32[2] = oldWorldMatrix.r[3].m128_f32[2];
+	//	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, oldWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+
+	//	SetDirtyFlag();
+	//	move = true;
+	//}
+	////if player is not colliding
+	//if (!(CheckIfCollidingAtBox(nextBoxZ))) {
+	//	mCamera.Strafe(d, dTime);
+
+	//	DirectX::XMMATRIX oldWorldMatrix;
+	//	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+	//	DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mCamera.GetPosition3f().x, mCamera.GetPosition3f().y, mCamera.GetPosition3f().z);
+	//	newWorldMatrix = oldWorldMatrix - cameraMatrix;
+	//	//Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
+
+	//	SetDirtyFlag();
+	//	move = true;
+	//}
+
+	//if (move)
+	//	Translate(1, -newWorldMatrix.r[3].m128_f32[0], -newWorldMatrix.r[3].m128_f32[1] - mCameraOffsetY, -newWorldMatrix.r[3].m128_f32[2] + mCameraOffsetZ);
 }
 void Player::Pitch(float dy) {
 	mCamera.Pitch(dy);
@@ -327,6 +417,22 @@ void Player::Pitch(float dy) {
 }
 void Player::RotateY(float dx) {
 	mCamera.RotateY(dx);
+}
+bool Player::MovementCollisionCheck(float d, float dTime) {
+
+	//add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
+	float addedCollisionOffset = (d * 1.25) * dTime;
+
+	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
+	BoundingBox nextBoxX;
+	mBoundingBox.Transform(nextBoxX, translateX);
+
+	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
+	BoundingBox nextBoxZ;
+	mBoundingBox.Transform(nextBoxZ, translateZ);
+
+	return (!(CheckIfCollidingAtBox(nextBoxX) || CheckIfCollidingAtBox(nextBoxZ)));
+
 }
 
 //************************************************************************************************************

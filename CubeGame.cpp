@@ -993,30 +993,30 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
 
 	//World
-	//BuildWorld();
-	BuildWorld1();
+	BuildWorld();
+	//BuildWorld1();
 
 	//mWorldMgr.CreateWorld();
 	//mWorldMgr.LoadChunk();
 }
 
 void CubeGame::BuildWorld() {
-	//srand(time_t(NULL));
-	//unsigned int seed = rand() % 10000;//237;
-	//noise = PerlinNoise(seed);
-	//for (int worldX = 0; worldX < worldWidthLength; ++worldX)
-	//{
-	//	for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
-	//	{
-	//		//////Debug output
-	//		//std::string msg = std::to_string(roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8))) + '\n';
-	//		//GameData::Print(msg);
+	srand(time_t(NULL));
+	unsigned int seed = rand() % 10000;//237;
+	noise = PerlinNoise(seed);
+	for (int worldX = 0; worldX < worldWidthLength; ++worldX)
+	{
+		for (int worldZ = 0; worldZ < worldWidthLength; ++worldZ)
+		{
+			//////Debug output
+			//std::string msg = std::to_string(roundf(10.0f * noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8))) + '\n';
+			//GameData::Print(msg);
 
-	//		CreateCube("mat_grass", { 1.0f * (float)worldX, -20.f + roundf(10.0f * (float)noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * (float)worldZ });
-	//	}
-	//}
+			CreateCube("mat_grass", { 1.0f * (float)worldX, -20.f + roundf(10.0f * (float)noise.noise((double)worldX / ((double)worldWidthLength), (double)worldZ / ((double)worldWidthLength), 0.8)), 1.0f * (float)worldZ });
+		}
+	}
 
-	//mPreviousSelectedBlock = mAllBlocks->at(0);
+	mPreviousSelectedBlock = mAllBlocks->at(0);
 }
 
 void CubeGame::BuildWorld1() {
