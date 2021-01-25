@@ -428,13 +428,13 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 
 	if (GetAsyncKeyState('Z') & 0x8000)
-		mWorldMgr.LoadChunk(3, 0, 0);
+		mWorldMgr.LoadChunk(1, 0, 1);
 
 	if (GetAsyncKeyState('X') & 0x8000)
-		mWorldMgr.UnloadChunk(3, 0, 0);
+		mWorldMgr.UnloadChunk(0, 0, 1);
 
 	if (GetAsyncKeyState('C') & 0x8000) 
-		mWorldMgr.SwapChunk(0, 0, 0, 1, 0, 0);
+		mWorldMgr.SwapChunk(2, 0, 2, 1, 0, 1);
 
 
 }
@@ -913,7 +913,7 @@ void CubeGame::BuildFrameResources()
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
-		//+ mWorldMgr.GetChunkSize() * mWorldMgr.GetNumberOfChunksToLoad()
+		+ mWorldMgr.GetChunkSize() * 4
 		);
 
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
@@ -942,8 +942,6 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_blockSelect4", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 4, 0.f });
 	CreateMaterial("mat_blockSelect5", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 5, 0.f });
 	CreateMaterial("mat_blockSelect6", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 6, 0.f });
-
-
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {

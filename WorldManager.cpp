@@ -28,8 +28,7 @@ void WorldManager::Chunk::Init(DirectX::XMFLOAT3 pos) {
 
 			//float noise = roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension),
 			//		(double)worldZ / ((double)WorldManager::sChunkDimension), 0.8));
-			float noise = roundf(10.0f * 
-				(float)WorldManager::sNoise.noise((double)worldX + pos.x, (double)worldZ + pos.z, 0.8));
+			float noise = roundf(10.0f * (float)WorldManager::sNoise.noise(((double)worldX + pos.x) / 10.f, (double)(worldZ + pos.z) / 10.f, 0.8));
 
 			for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
 				if (worldY < noise) {
@@ -44,7 +43,7 @@ void WorldManager::Chunk::Init(DirectX::XMFLOAT3 pos) {
 						pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
 						pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mRItems);
 				}
-				else {
+				else {	//Blocks above the noise wave are not active upon creation
 					CreateCube("mat_grass",
 						{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
 						pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
@@ -121,7 +120,7 @@ void WorldManager::CreateWorld() {
 		for (int j = 0; j < mMaxHeight; j++) {
 			for (int k = 0; k < mMaxLength; k++) {
 				//mChunks.push_back(std::make_unique<Chunk>(DirectX::XMFLOAT3( (float)i, (float)j, (float)k )));
-				mChunks.push_back(std::make_shared<Chunk>(DirectX::XMFLOAT3( (float)i, (float)j, (float)k )));
+				mChunks.push_back(std::make_shared<Chunk>(DirectX::XMFLOAT3((float)k, (float)j, (float)i)));
 
 			}
 		}
@@ -194,14 +193,12 @@ void WorldManager::SwapChunk(int x1, int y1, int z1, int x2, int y2, int z2) {
 
 	oldChunk->SetAcitve(false);
 	newChunk->SetAcitve(true);
-	int count = GetRenderItemCount();
+	int count = GetRenderItemCount(); //------------------------------ COUNT WILL BE THE SAME SO MINUS INSATEAD
 
 	//Copy the chunk into the main lists, replacing the old chunk
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), Block::sAllBlocks->begin() + oldChunk->GetBlockStartIndex());
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), GameObject::sAllGObjs->begin() + oldChunk->GetGObjStartIndex());
-	std::copy(newChunk->GetRItems()->begin(), 
-		newChunk->GetRItems()->end(), 
-		mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + oldChunk->GetRIStartIndex());
+	std::copy(newChunk->GetRItems()->begin(), newChunk->GetRItems()->end(),  mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + oldChunk->GetRIStartIndex());
 
 	//Set the render items object CB index so it can be found and updated by the GPU
 	for (int i = oldChunk->GetRIStartIndex(); i < oldChunk->GetRIStartIndex() + sChunkSize; i++, count++) {
@@ -226,12 +223,19 @@ int WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos) {
 	int x = (int)floorf(pos.x / sChunkDimension);
 	int y = (int)floorf(pos.y / sChunkDimension);
 	int z = (int)floorf(pos.z / sChunkDimension);
-	return z + (z * x);
+	return x + (z * mMaxLength);
 }
 
 void WorldManager::LoadFirstChunks() {
 	LoadChunk(0, 0, 0);
-	//LoadChunk(1, 0, 0);
+	LoadChunk(1, 0, 0);
 	LoadChunk(2, 0, 0);
+
 	LoadChunk(0, 0, 1);
+	//LoadChunk(1, 0, 1);
+	LoadChunk(2, 0, 1);
+
+	LoadChunk(0, 0, 2);
+	LoadChunk(1, 0, 2);
+	LoadChunk(2, 0, 2);
 }
