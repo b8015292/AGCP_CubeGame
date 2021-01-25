@@ -39,8 +39,6 @@ private:
     void BuildMaterials();
     void BuildGameObjects();                //Creates all the gameobjects
 
-    void BuildWorld1();                     //TEMP - creates a 2 by 1 by 2 section of cubes
-
     //Input handling
     virtual void OnResize()override;
     virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
@@ -68,7 +66,7 @@ private:
     void CreateTextureSRV(std::string textureName, CD3DX12_CPU_DESCRIPTOR_HANDLE handle);
     //Loads all the textures and splits some textures into texel location maps
     void LoadTextures();                
-    //Splits textures up into texel location maps.
+    //Splits textures map up into texel location maps.
     void SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]);
     //Creates all the UI objects
     void BuildUserInterfaces();
@@ -103,13 +101,12 @@ private:
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
-    std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)GameData::RenderLayer::Count];
-
     // List of all the render items.
-    //std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> mAllGObjs;
-    //std::shared_ptr<std::vector<std::shared_ptr<Entity>>> mAllEnts;
-    //std::shared_ptr<std::vector<std::shared_ptr<Block>>> mAllBlocks;
+    std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)GameData::RenderLayer::Count];
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<UI>>> mAllUIs;
+
+    UINT mObjCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+    UINT mMatCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 
     // Render items divided by PSO.
     std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[(int)GameData::RenderLayer::Count];

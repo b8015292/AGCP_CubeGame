@@ -104,6 +104,7 @@ void Text::SetString(std::string str, float posX, float posY) {
 
 	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
 	for each (char c in str) {
+		if (c == '-') c = 'm';
 		SetChar(c, pos, mVertices);
 		pos++;
 	}

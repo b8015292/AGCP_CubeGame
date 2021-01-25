@@ -65,9 +65,14 @@ public:
 
 	int GetChunkSize() { return sChunkDimension; };
 	int GetNumberOfChunksToLoad() { return mChunksToLoad; };
+	int GetRenderItemCount();
+
+	int GetPlayerChunk(DirectX::XMFLOAT3 pos);
+	void LoadFirstChunks();
 
 private:
-	static void CreateCube(std::string materialName, XMFLOAT3 pos, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris);
+	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris);
+
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
 
 private:
@@ -79,7 +84,7 @@ private:
 	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[(int)GameData::RenderLayer::Count];
 
 	static const int sChunkDimension = 8;
-	static const int sChunkSize = sChunkDimension * sChunkDimension;// *sChunkDimension;
+	static const int sChunkSize = sChunkDimension * sChunkDimension * sChunkDimension;
 	static int sChunkMaxID;
 
 	const int mMaxHeight = 1;
