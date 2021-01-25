@@ -1,16 +1,24 @@
 #pragma once
 #include <map>
 
-#include "GameData.h"
+#include "Item.h"
 
 class inventory
 {
 public:
-	void addItem(items newItem, int numOfItem);
-	void removeItem(items removedItem, int numOfItem);
+	inventory() : InumOfItems(0), HnumOfItems(0) {};
 
-	std::map<items, int> returnItems() { return invItems; }
+	void addItem(Item newItem);
+	void removeItem(int spaceToDelete, bool deleteAll);
+	bool checkIfInvFull() { return InumOfItems <= 64; };
+	bool checkIfHotbarFull() { return HnumOfItems <= 8; };
 
-private:
-	std::map<items, int> invItems;
+	std::map<int, Item*> getItems() { return mInvItems; };
+
+protected:
+	std::map<int, Item*> mInvItems;
+	std::map<int, Item*> mHotbarItems;
+	short int InumOfItems;
+	short int HnumOfItems;
 };
+

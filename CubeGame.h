@@ -8,6 +8,7 @@
 #include "Object.h"
 #include "Text.h"
 #include "WorldManager.h"
+#include "Inventory.h"
 
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;
@@ -27,6 +28,8 @@ public:
     ~CubeGame();
 
     virtual bool Initialize()override;
+
+    inventory mInventory;
 
 private:
     //Initialization

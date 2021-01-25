@@ -7,6 +7,8 @@
 //#include "Common/GeometryGenerator.h"
 #include "Common/d3dUtil.h"
 
+#include "Inventory.h"
+
 enum items
 {
     bread,
@@ -20,6 +22,7 @@ enum items
     dirt,
     stone,
     wood,
+    sticks,
     iron,
     gold,
     diamond

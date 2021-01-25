@@ -22,6 +22,15 @@
     <Filter Include="GameData\Source Files">
       <UniqueIdentifier>{b3592309-503e-4fe8-a98f-bd56913a86a0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GameData\Header Files\Items">
+      <UniqueIdentifier>{c25506dd-87d5-4c7b-bcb2-562a6ba291d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameData\Header Files\Items\Blocks">
+      <UniqueIdentifier>{df35e791-ffc1-4886-9427-ed9ee8c9b19c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameData\Header Files\Items\Tools">
+      <UniqueIdentifier>{9d2ba1e6-b19f-43ae-b021-936a9f1c91ee}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FrameResource.cpp">
@@ -66,10 +75,13 @@
     <ClCompile Include="Inventory.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Text.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="WorldManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Text.cpp">
+    <ClCompile Include="Crafting.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -122,10 +134,37 @@
     <ClInclude Include="Inventory.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Text.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="WorldManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Text.h">
+    <ClInclude Include="Crafting.h">
+      <Filter>GameData\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Item.h">
+      <Filter>GameData\Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="WoodPickaxe.h">
+      <Filter>GameData\Header Files\Items\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Tool.h">
+      <Filter>GameData\Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>GameData\Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Block.h">
+      <Filter>GameData\Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pathfinding.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -5,21 +5,13 @@
 
 #include "GameData.h"
 #include "Camera.h"
+#include "Item.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
 enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8 };
 //enum Face { top = 0, bottom = 1, front = 2, back = 3, left = 4, right = 5};
-
-enum blockType {
-    type_Default = 0,
-    type_Dirt,
-    type_Grass,
-    type_Stone,
-    type_Wood,
-    type_Count
-};
 
 class GameObject {
 public:
@@ -110,6 +102,7 @@ public:
     void Strafe(float d, float dTime);
     void Pitch(float d);
     void RotateY(float d);
+    bool MovementCollisionCheck(float d, float dTime);
 
     Camera* GetCam() { return &mCamera; };
 
@@ -117,9 +110,39 @@ private:
     Camera mCamera;
     bool mJumped = true;
 
+    DirectX::XMMATRIX newWorldMatrix;
+
     const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
-    const float mCameraOffsetZ = 0.f;   //For 3rd person
+    const float mCameraOffsetZ = 2.f;   //For 3rd person
     const float mCameraOffsetY = 0.6f;  //Height
+};
+
+class LivingEntity : public Entity {
+public:
+    LivingEntity(std::shared_ptr<GameObject> gobj);
+    ~LivingEntity();
+
+    void Update(const float dTime) override; //overides entities update
+    void Jump();
+    void Walk(float d, float dTime);
+    void Strafe(float d, float dTime);
+    void WalkToBlock(XMFLOAT3 blockLocation);
+
+private:
+    bool mJumped = true;
+
+    const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
+
+    float walkSpeed;
+    float maxHealth;
+    float health;
+};
+
+class Enemy : public LivingEntity {
+public:
+    
+private:
+    
 };
 
 
@@ -150,9 +173,5 @@ private:
     float mDurability = 1.f;
     //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
     //void SetTexture(blockType type);
-
-};
-
-class Item : protected GameObject {
 
 };

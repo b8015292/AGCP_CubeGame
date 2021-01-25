@@ -1,20 +1,52 @@
-#include "Inventory.h"
 #include <algorithm>
 
+#include "Inventory.h"
 
-void inventory::addItem(items newItem, int numOfItem)
+void inventory::addItem(Item newItem)
 {
-	std::map<items, int>::iterator it = invItems.find(newItem);
-	if (it != invItems.end())
-		invItems.find(newItem)->second += numOfItem;
-	else
-		invItems.insert(std::pair<items, int>(newItem, numOfItem));
+	bool complete = false;
+	std::string itemName = newItem.GetName();
+	int amountToAdd = newItem.GetAmountInStack();
+	std::for_each(mInvItems.begin(), mInvItems.end(), [&](std::pair<int, Item*> p)
+		{
+			if ((p.second->GetName() == itemName) && !complete)
+			{
+				if (!p.second->fullStack())
+				{
+					int spaceInInv = (p.second->GetMaxStackSize() - p.second->GetAmountInStack());
+					if (amountToAdd < spaceInInv)
+					{
+						p.second->increaseStack(amountToAdd);
+						complete = true;
+					}
+					else
+					{
+						amountToAdd = spaceInInv;
+						newItem.decreaseStack(spaceInInv);
+					}
+				}
+			}
+		});
+	if (!complete)
+	{
+		mInvItems.insert(std::make_pair(mInvItems.size() + 1, &newItem));
+	}
 }
-void inventory::removeItem(items removedItem, int numOfItem)
-{
-	std::map<items, int>::iterator it = invItems.find(removedItem);
-	invItems.find(removedItem)->second -= numOfItem;
 
-	if (invItems.find(removedItem)->second <= 0)
-		invItems.erase(it);
+
+void inventory::removeItem(int spaceToDelete, bool deleteAll)
+{
+	std::map<int, Item*>::iterator it = mInvItems.find(spaceToDelete);
+	int amountToDelete = 1;
+	if (deleteAll)
+	{
+		amountToDelete = it->second->GetAmountInStack();
+	}
+	it->second->decreaseStack(amountToDelete);
+
+	if (it->second->GetAmountInStack() <= 0)
+	{
+		mInvItems.erase(spaceToDelete);
+		std::for_each(mInvItems.begin(), mInvItems.end(), [spaceToDelete](std::pair<int, Item*> p) { if (p.first > spaceToDelete) p.first - 1; });
+	}
 }
