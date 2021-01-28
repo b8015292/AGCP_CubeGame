@@ -119,7 +119,10 @@ private:
     WorldManager mWorldMgr;
 
     std::shared_ptr<Player> mPlayer;
+    float mPlayerSpawnX = 12;
+    float mPlayerSpawnZ = 12;
     bool mPlayerChangedView = false;
+    bool mPlayerMoved = false;
 
     //Camera variables
     const float mBackPlane = 1000.0f;

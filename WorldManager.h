@@ -12,7 +12,7 @@ public:
 		Pos() {
 			x = 0; y = 0; z = 0;
 		}
-		Pos(size_t nx, size_t ny, size_t nz) {
+		Pos(int nx, int ny, int nz) {
 			x = nx; y = ny; z = nz;
 		}
 		Pos& operator=(Pos& p) {
@@ -21,9 +21,13 @@ public:
 			z = p.z;
 			return (*this);
 		}
-		size_t x;
-		size_t y;
-		size_t z;
+		bool operator!=(Pos& p) {
+			return (x != p.x || y != p.y || z != p.z);
+		}
+
+		int x;
+		int y;
+		int z;
 	};
 
 	class Chunk {
@@ -77,6 +81,9 @@ public:
 		std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[]);
 	void CreateWorld();
 
+	void UpdatePlayerPosition(DirectX::XMFLOAT3 pos);
+
+
 	void LoadChunk(int x, int y, int z);
 	void UnloadChunk(int x, int y, int z);
 	//Chunk 1 is currently active, to be swapped with chunk 2
@@ -85,9 +92,9 @@ public:
 	int GetChunkSize() { return sChunkSize; };
 	int GetNumberOfChunksToLoad() { return mChunksToLoad; };
 
-
-	int GetPlayerChunk(DirectX::XMFLOAT3 pos);
-	void LoadFirstChunks();
+	int GetPlayerChunkIndex(DirectX::XMFLOAT3 pos);
+	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
+	void LoadFirstChunks(float playerX, float playerZ);
 
 private:
 	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris);
@@ -111,14 +118,16 @@ private:
 	//The height of the world (in chunks)
 	const int mMaxHeight = 1;
 	//The length and depth of the world (in chunks)
-	const int mMaxLength = 3;// 6;
+	const int mMaxLength = 6;
 
 	int mLoadedChunksAroundCurrentChunk = 1; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
-	int mChunksToLoad = 9;
+	int mChunksToLoad;
+	int mChunkRowsToLoad;
 
 	bool mCreatedWorld = false;
 
 	//Player variables
-	size_t mPlayerPos;
-	size_t mPlayerPrevPos;
+
+	Pos mPlayerPos;
+	Pos mChangeInPlayerPos;
 };

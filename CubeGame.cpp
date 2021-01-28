@@ -81,7 +81,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
+	mPlayer->GetCam()->SetPosition(mPlayerSpawnX, 7.0f, mPlayerSpawnZ);
 	mPlayer->Walk(0, 0);
 
     // Execute the initialization commands.
@@ -231,7 +231,17 @@ void CubeGame::Update(const GameTimer& gt)
 			SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
 			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
 			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
-			SetUIString(("chunk:" + std::to_string(mWorldMgr.GetPlayerChunk(pos))), 3, 0);
+
+			WorldManager::Pos cPos = mWorldMgr.GetPlayerChunk(pos)->GetPos();
+			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
+			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
+			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
+
+		}
+
+		if (mPlayerMoved) {
+			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
+			mPlayerMoved = false;
 		}
 
 		//Update the UI
@@ -402,26 +412,31 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('W') & 0x8000) {
 		mPlayer->Walk(5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState('S') & 0x8000) {
 		mPlayer->Walk(-5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState('A') & 0x8000) {
 		mPlayer->Strafe(-5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState('D') & 0x8000) {
 		mPlayer->Strafe(5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
 		mPlayer->Jump();
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
@@ -1013,7 +1028,7 @@ void CubeGame::BuildGameObjects()
 
 	//World-------------------------
 	mWorldMgr.CreateWorld();
-	mWorldMgr.LoadFirstChunks();
+	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnZ);
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems)

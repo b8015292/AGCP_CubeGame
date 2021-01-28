@@ -95,15 +95,17 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, std::sha
 
 	for (int i = 0; i < (int)GameData::RenderLayer::Count; i++)
 		mRitemLayer[i] = riLayers[i];
+
+	mChangeInPlayerPos = Pos();
+	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
+	mChunksToLoad = (int)sqrtf(mChunkRowsToLoad);			//Change this to chube root
 }
 
 void WorldManager::CreateWorld() {
-	for (size_t i = 0; i < mMaxLength; i++) {
-		for (size_t j = 0; j < mMaxHeight; j++) {
-			for (size_t k = 0; k < mMaxLength; k++) {
-				//mChunks.push_back(std::make_unique<Chunk>(DirectX::XMFLOAT3( (float)i, (float)j, (float)k )));
-				mChunks.push_back(std::make_shared<Chunk>(Pos(i, j, k)));
-
+	for (int z = 0; z < mMaxLength; z++) {
+		for (int y = 0; y < mMaxHeight; y++) {
+			for (int x = 0; x < mMaxLength; x++) {
+				mChunks.push_back(std::make_shared<Chunk>(Pos(x, y, z)));
 			}
 		}
 	}
@@ -115,12 +117,12 @@ void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool activ
 
 	//Create the block directly inside the block list
 	blocks->push_back(std::make_shared<Block>( ris->at(ris->size() - 1)));
-
 	blocks->at(blocks->size()- 1)->SetActive(active);
 }
 
 std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunk(int x, int y, int z) {
-	assert(x >= mMaxLength - 1 || y >= mMaxHeight - 1|| z >= mMaxLength - 1);
+	assert(x >= mMaxLength - 1 || y >= mMaxHeight - 1|| z >= mMaxLength - 1
+			|| x < 0 || y < 0 || z < 0);
 	return mChunks.at((size_t)x + (y * mMaxLength) + (z * mMaxHeight * mMaxLength));
 }
 
@@ -218,25 +220,68 @@ UINT WorldManager::GetRenderItemCount() {
 	return (UINT)r;
 }
 
-int WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos) {
+int WorldManager::GetPlayerChunkIndex(DirectX::XMFLOAT3 pos) {
 	int x = (int)floorf(pos.x / sChunkDimension);
 	int y = (int)floorf(pos.y / sChunkDimension);
 	int z = (int)floorf(pos.z / sChunkDimension);
 	return x + (z * mMaxLength);
 }
 
-void WorldManager::LoadFirstChunks() {
-	LoadChunk(0, 0, 0);
-	LoadChunk(1, 0, 0);
-	//LoadChunk(2, 0, 0);
+std::shared_ptr<WorldManager::Chunk> WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos){
+	int x = (int)floorf(pos.x / sChunkDimension);
+	int y = (int)floorf(pos.y / sChunkDimension);
+	int z = (int)floorf(pos.z / sChunkDimension);
+	return GetChunk(x, 0, z);
+}
 
-	//LoadChunk(0, 0, 1);
-	//LoadChunk(1, 0, 1);
-	//LoadChunk(2, 0, 1);
+void WorldManager::LoadFirstChunks(float playerX, float playerZ) {
 
-	//LoadChunk(0, 0, 2);
-	//LoadChunk(1, 0, 2);
-	//LoadChunk(2, 0, 2);
+	mPlayerPos = GetPlayerChunk({ playerX, 0, playerZ})->GetPos();
+	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, 0, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
+	for (int i = 0; i < mChunkRowsToLoad; i++) {
+		//for (int j = 0; j < mChunkRowsToLoad; j++) {
+			for (int k = 0; k < mChunkRowsToLoad; k++) {
+				LoadChunk(k, 0, i);
+			}
+		//}
+	}
 
 	mCreatedWorld = true;
+}
+
+void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 pos) {
+	Pos newPos = GetPlayerChunk(pos)->GetPos();
+	if (mPlayerPos != newPos) {
+		//Calculate the change
+		mChangeInPlayerPos.x = newPos.x - mPlayerPos.x;
+		mChangeInPlayerPos.y = newPos.y - mPlayerPos.y;
+		mChangeInPlayerPos.z = newPos.z - mPlayerPos.z;
+
+
+		//Load new chunks and unload old chunks
+		//Change in X
+		if (mChangeInPlayerPos.x != 0) {
+			int oldX = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos.x) + mPlayerPos.x;
+			int newX = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos.x) + newPos.x;
+			if (newX < 0 || newX >= mMaxLength)
+				return;
+			for (int z = -mLoadedChunksAroundCurrentChunk; z <= mLoadedChunksAroundCurrentChunk; z++) {
+				int newZ = mPlayerPos.z + z;
+				SwapChunk(oldX, 0, newZ, newX, 0, newZ);
+			}
+		}
+		//Change in Z
+		if (mChangeInPlayerPos.z != 0) {
+			int oldZ = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos.z) + mPlayerPos.z;
+			int newZ = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos.z) + newPos.z;
+			if (newZ < 0 || newZ >= mMaxLength)
+				return;
+			for (int x = -mLoadedChunksAroundCurrentChunk; x <= mLoadedChunksAroundCurrentChunk; x++) {
+				int newX = mPlayerPos.x + x;
+				SwapChunk(newX, 0, oldZ, newX, 0, newZ);
+			}
+		}
+
+		mPlayerPos = newPos;
+	}
 }
