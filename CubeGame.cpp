@@ -431,11 +431,13 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mWorldMgr.LoadChunk(1, 0, 1);
 
 	if (GetAsyncKeyState('X') & 0x8000)
-		mWorldMgr.UnloadChunk(0, 0, 1);
+		mWorldMgr.UnloadChunk(1, 0, 1);
 
 	if (GetAsyncKeyState('C') & 0x8000) 
-		mWorldMgr.SwapChunk(2, 0, 2, 1, 0, 1);
+		mWorldMgr.SwapChunk(1, 0, 0, 1, 0, 1);
 
+	if (GetAsyncKeyState('V') & 0x8000)
+		mWorldMgr.SwapChunk(1, 0, 1, 1, 0, 0);
 
 }
 
@@ -910,10 +912,11 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
+	UINT totalExtraRI = mWorldMgr.GetChunkSize() * 4; // + maxEntityCount + maxUICount;		//Render items which have not yet been created
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
-		+ mWorldMgr.GetChunkSize() * 4
+		+ totalExtraRI
 		);
 
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
@@ -921,6 +924,10 @@ void CubeGame::BuildFrameResources()
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
             1, totalRI, (UINT)mMaterials->size()));
     }
+
+	for (UINT i = totalExtraRI; i > 0; i--) {
+		GameData::sAvailableObjCBIndexes.push_back(totalRI - i);
+	}
 }
 
 void CubeGame::BuildMaterials()

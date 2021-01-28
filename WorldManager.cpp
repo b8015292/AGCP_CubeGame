@@ -9,7 +9,7 @@ int WorldManager::sChunkMaxID = 0;
 //						Chunk
 //************************************************************************
 
-WorldManager::Chunk::Chunk(DirectX::XMFLOAT3 pos) {
+WorldManager::Chunk::Chunk(Pos pos) {
 	mBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();// (size_t)WorldManager::sChunkSize, std::make_shared<Block>());
 	mActiveBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
 	mRItems = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
@@ -18,7 +18,7 @@ WorldManager::Chunk::Chunk(DirectX::XMFLOAT3 pos) {
 	Init(pos);
 }
 
-void WorldManager::Chunk::Init(DirectX::XMFLOAT3 pos) {
+void WorldManager::Chunk::Init(Pos pos) {
 	mPosition = pos;
 
 	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
@@ -52,25 +52,6 @@ void WorldManager::Chunk::Init(DirectX::XMFLOAT3 pos) {
 			}
 		}
 	}
-
-
-
-	//for (float worldX = 0; worldX < (float)WorldManager::sChunkDimension; ++worldX)
-	//{
-	//	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
-	//	{
-	//		float noise = -20.f 
-	//			+ roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension), 
-	//			(double)worldZ / ((double)WorldManager::sChunkDimension), 
-	//			0.8));
-	//		
-	//		CreateCube("mat_grass",
-	//			{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-	//			pos.y * (float)WorldManager::sChunkDimension + noise,
-	//			pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, mBlocks, mRItems);
-
-	//	}
-	//}
 }
 
 WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
@@ -79,6 +60,7 @@ WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
 	mBlocks = c.mBlocks;
 	mActiveBlocks = c.mActiveBlocks;
 	mRItems = c.mRItems;
+	mPosition = c.mPosition;
 	return (*this);
 }
 
@@ -116,11 +98,11 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, std::sha
 }
 
 void WorldManager::CreateWorld() {
-	for (int i = 0; i < mMaxLength; i++) {
-		for (int j = 0; j < mMaxHeight; j++) {
-			for (int k = 0; k < mMaxLength; k++) {
+	for (size_t i = 0; i < mMaxLength; i++) {
+		for (size_t j = 0; j < mMaxHeight; j++) {
+			for (size_t k = 0; k < mMaxLength; k++) {
 				//mChunks.push_back(std::make_unique<Chunk>(DirectX::XMFLOAT3( (float)i, (float)j, (float)k )));
-				mChunks.push_back(std::make_shared<Chunk>(DirectX::XMFLOAT3((float)k, (float)j, (float)i)));
+				mChunks.push_back(std::make_shared<Chunk>(Pos(i, j, k)));
 
 			}
 		}
@@ -154,17 +136,27 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
 	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris = chunk->GetRItems();
-	int count = GetRenderItemCount();
+	UINT count = GetRenderItemCount();
 
 	//Insert the chunk
 	Block::sAllBlocks->insert(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
+
 	GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
 	mRitemLayer[(int)GameData::RenderLayer::Main]->insert(mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex(), ris->begin(), ris->end());
 
 	//Set the render items object CB index so it can be found and updated by the GPU
-	for (int i = chunk->GetRIStartIndex(); i < chunk->GetRIStartIndex() + sChunkSize; i++, count++) {
-		mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->ObjCBIndex = count;
-		mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->NumFramesDirty = gNumFrameResources;
+	if (mCreatedWorld) {
+		//Once the world has been loaded, get the CB index from the list of free indexes
+		for (size_t i = chunk->GetRIStartIndex(); i < chunk->GetRIStartIndex() + sChunkSize; i++) {
+			mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->ObjCBIndex = GameData::GetObjectCBIndex();
+			mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->NumFramesDirty = GameData::sNumFrameResources;
+		}
+	}
+	else {
+		//If these are the first chunks being loaded, set their CB index to be ordered 0.... inifinate. So there are no gaps.
+		for (size_t i = chunk->GetRIStartIndex(); i < chunk->GetRIStartIndex() + sChunkSize; i++, count++) {
+			mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->ObjCBIndex = count;
+		}
 	}
 }
 
@@ -175,6 +167,10 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 		return;
 
 	chunk->SetAcitve(false);
+
+	for (std::vector<std::shared_ptr<RenderItem>>::iterator it = chunk->GetRItems()->begin(); it != chunk->GetRItems()->end(); it++) {
+		GameData::AddNewObjectCBIndex((*it)->ObjCBIndex);
+	}
 
 	Block::sAllBlocks->erase(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), Block::sAllBlocks->begin() + chunk->GetBlockStartIndex() + sChunkSize - 1 );
 	GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex() + sChunkSize - 1);
@@ -188,22 +184,25 @@ void WorldManager::SwapChunk(int x1, int y1, int z1, int x2, int y2, int z2) {
 	std::shared_ptr<Chunk> oldChunk = GetChunk(x1, y1, z1);
 	std::shared_ptr<Chunk> newChunk = GetChunk(x2, y2, z2);
 
+	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> oldRIs = oldChunk->GetRItems();
+	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> newRIs = newChunk->GetRItems();
+
+
 	if (!oldChunk->GetAcitve() || newChunk->GetAcitve())
 		return;
 
 	oldChunk->SetAcitve(false);
 	newChunk->SetAcitve(true);
-	int count = GetRenderItemCount(); //------------------------------ COUNT WILL BE THE SAME SO MINUS INSATEAD
 
 	//Copy the chunk into the main lists, replacing the old chunk
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), Block::sAllBlocks->begin() + oldChunk->GetBlockStartIndex());
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), GameObject::sAllGObjs->begin() + oldChunk->GetGObjStartIndex());
-	std::copy(newChunk->GetRItems()->begin(), newChunk->GetRItems()->end(),  mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + oldChunk->GetRIStartIndex());
+	std::copy(newRIs->begin(), newRIs->end(),  mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + oldChunk->GetRIStartIndex());
 
-	//Set the render items object CB index so it can be found and updated by the GPU
-	for (int i = oldChunk->GetRIStartIndex(); i < oldChunk->GetRIStartIndex() + sChunkSize; i++, count++) {
-		mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->ObjCBIndex = count;
-		mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->NumFramesDirty = gNumFrameResources;
+	//Swap the chunks object CB indexes
+	for (size_t i = 0; i < sChunkSize; i++) {
+		newRIs->at(i)->ObjCBIndex = oldRIs->at(i)->ObjCBIndex;
+		newRIs->at(i)->NumFramesDirty = GameData::sNumFrameResources;
 	}
 
 	//Set the new iterators
@@ -211,12 +210,12 @@ void WorldManager::SwapChunk(int x1, int y1, int z1, int x2, int y2, int z2) {
 	oldChunk->SetStartIndexes(-1, -1, -1);
 }
 
-int WorldManager::GetRenderItemCount() {
-	int r = 0;
-	for (int i = 0; i < (int)GameData::RenderLayer::Count; i++) {
+UINT WorldManager::GetRenderItemCount() {
+	size_t r = 0;
+	for (size_t i = 0; i < (size_t)GameData::RenderLayer::Count; i++) {
 		r += mRitemLayer[i]->size();
 	}
-	return r;
+	return (UINT)r;
 }
 
 int WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos) {
@@ -229,13 +228,15 @@ int WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos) {
 void WorldManager::LoadFirstChunks() {
 	LoadChunk(0, 0, 0);
 	LoadChunk(1, 0, 0);
-	LoadChunk(2, 0, 0);
+	//LoadChunk(2, 0, 0);
 
-	LoadChunk(0, 0, 1);
+	//LoadChunk(0, 0, 1);
 	//LoadChunk(1, 0, 1);
-	LoadChunk(2, 0, 1);
+	//LoadChunk(2, 0, 1);
 
-	LoadChunk(0, 0, 2);
-	LoadChunk(1, 0, 2);
-	LoadChunk(2, 0, 2);
+	//LoadChunk(0, 0, 2);
+	//LoadChunk(1, 0, 2);
+	//LoadChunk(2, 0, 2);
+
+	mCreatedWorld = true;
 }

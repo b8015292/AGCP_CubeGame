@@ -33,6 +33,7 @@ public:
     static const int sNumFrameResources = 3;
     static const float sGrav;
     static bool sRunning;
+    static std::vector<UINT> sAvailableObjCBIndexes;
 
     //Each render layer is rendered in a different way (using different PSOs)
     enum class RenderLayer : int
@@ -44,6 +45,8 @@ public:
         Count
     };
 
+    static UINT GetObjectCBIndex();
+    static void AddNewObjectCBIndex(UINT i);
 
     static void StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMFLOAT4X4 source);
     static std::wstring StringToWString(std::string s);
