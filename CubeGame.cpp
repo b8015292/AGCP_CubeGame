@@ -202,6 +202,19 @@ void CubeGame::Update(const GameTimer& gt)
 				Entity::sAllEntities->at(i)->SetRIDirty();
 		}
 
+		if (mPlayerMoved) {
+			//DEBUG
+			DirectX::XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
+			pos.y += 2.f;
+			std::shared_ptr<Block> b = mWorldMgr.GetBlock(pos);
+			b->SetActive(true);
+			DirectX::XMFLOAT3 posb = b->GetBoundingBox().Center;
+			SetUIString("blockx:" + std::to_string(posb.x), 8, 0);
+			SetUIString("blocky:" + std::to_string(posb.y), 9, 0);
+			SetUIString("blockz:" + std::to_string(posb.z), 10, 0);
+
+		}
+
 		//Hanlde mouse input - Place and destroy blocks
 		if (mLeftMouseDown) {
 			if (mPreviousSelectedBlock != nullptr) {
@@ -242,6 +255,11 @@ void CubeGame::Update(const GameTimer& gt)
 		if (mPlayerMoved) {
 			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
 			mPlayerMoved = false;
+
+			//DEBUG
+			DirectX::XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
+			pos.y += 2.f;
+			mWorldMgr.GetBlock(pos)->SetActive(true);
 		}
 
 		//Update the UI

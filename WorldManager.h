@@ -96,6 +96,9 @@ public:
 	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
 	void LoadFirstChunks(float playerX, float playerZ);
 
+	//Returns an index (in Block::sAllBlocks) used by a given block 
+	std::shared_ptr<Block> GetBlock(DirectX::XMFLOAT3 pos);
+
 private:
 	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris);
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);

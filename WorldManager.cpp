@@ -220,6 +220,21 @@ UINT WorldManager::GetRenderItemCount() {
 	return (UINT)r;
 }
 
+std::shared_ptr<Block> WorldManager::GetBlock(DirectX::XMFLOAT3 pos) {
+	//Get the chunk
+	int cx = (int)floorf(pos.x / sChunkDimension);
+	int cy = (int)floorf(pos.y / sChunkDimension);
+	int cz = (int)floorf(pos.z / sChunkDimension);
+	std::shared_ptr<Chunk> c = mChunks.at(cx + (cz * mMaxLength));
+
+	//Find the block coords in terms of its chunk
+	int bx = (int)floorf(pos.x) - cx * sChunkDimension;
+	int by = (int)floorf(pos.y);// -cy * sChunkDimension;	//There is only one Y chunk!
+	int bz = (int)floorf(pos.z) - cz * sChunkDimension;
+
+	return c->GetBlocks()->at((size_t)by + (bx * sChunkDimension) + (bz * sChunkDimension * sChunkDimension) - 1);
+}
+
 int WorldManager::GetPlayerChunkIndex(DirectX::XMFLOAT3 pos) {
 	int x = (int)floorf(pos.x / sChunkDimension);
 	int y = (int)floorf(pos.y / sChunkDimension);
