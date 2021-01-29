@@ -132,7 +132,7 @@ private:
     const int mUICols = 26;
 
     //Mouse input
-    POINT mLastMousePos;
+    POINT mLastMousePos = { 0,0 };
     bool mLeftMouseDown = false;
     bool mRightMouseDown = false;
     float mRightMouseDownTimer = 0.f;
