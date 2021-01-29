@@ -2,6 +2,8 @@
 // CubeGame.cpp by Frank Luna (C) 2015 All Rights Reserved.
 //***************************************************************************************
 
+#include <ctime>
+
 #include "CubeGame.h"
 #include "Raycast.h"
 #include "PerlinNoise.h"
@@ -63,6 +65,9 @@ bool CubeGame::Initialize()
 
 	mWorldMgr.Init(mGeometries, mMaterials, mRitemLayer);
 
+	std::srand(std::time(nullptr));
+	noise = PerlinNoise(std::rand());
+
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
@@ -81,7 +86,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->GetCam()->SetPosition(1.0f, 7.0f, 1.0f);
+	mPlayer->GetCam()->SetPosition(mPlayerSpawnX, 7.0f, mPlayerSpawnZ);
 	mPlayer->Walk(0, 0);
 
     // Execute the initialization commands.
@@ -191,7 +196,15 @@ void CubeGame::Update(const GameTimer& gt)
 		CloseHandle(eventHandle);
 	}
 
+	if (mCursorInUse != mCursorInUsePrev) {
+		mCursorInUsePrev = mCursorInUse;
+		ShowCursor(!mCursorInUse);
 
+		if(!mCursorInUse)
+			ReleaseCapture();
+		else
+			SetCapture(mhMainWnd);
+	}
 
 	if (GameData::sRunning) {
 		//Update entities and set dirty flag
@@ -231,7 +244,17 @@ void CubeGame::Update(const GameTimer& gt)
 			SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
 			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
 			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
-			SetUIString(("chunk:" + std::to_string(mWorldMgr.GetPlayerChunk(pos))), 3, 0);
+
+			WorldManager::Pos cPos = mWorldMgr.GetPlayerChunk(pos)->GetPos();
+			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
+			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
+			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
+
+		}
+
+		if (mPlayerMoved) {
+			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
+			mPlayerMoved = false;
 		}
 
 		//Update the UI
@@ -331,15 +354,15 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
     mLastMousePos.x = x;
     mLastMousePos.y = y;
 
-    SetCapture(mhMainWnd);
-
-	if ((btnState & MK_LBUTTON) != 0)
+	if ((btnState & MK_LBUTTON) != 0) {
 		mLeftMouseDown = true;
+		mCursorInUse = true;
+	}
 
-	if ((btnState & MK_RBUTTON) != 0)
+	if ((btnState & MK_RBUTTON) != 0) {
 		mRightMouseDown = true;
-	
-
+		mCursorInUse = true;
+	}
 }
 
 void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
@@ -351,13 +374,11 @@ void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
 		mRightMouseDown = false;
 		mRightMouseDownTimer = mRightMouseDownTimerMax;
 	}
-
-    ReleaseCapture();
 }
 
 void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 {
-    //if(mLeftMouseDown || mRightMouseDown)
+    if(mCursorInUse)
     {
         // Make each pixel correspond to a quarter of a degree.
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
@@ -367,10 +388,10 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->RotateY(dx);
 
 		mPlayerChangedView = true;
-    }
 
-    mLastMousePos.x = x;
-    mLastMousePos.y = y;
+		mLastMousePos.x = x;
+		mLastMousePos.y = y;
+    }
 }
 
 void CubeGame::UpdateBlockSelector() {
@@ -402,41 +423,38 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('W') & 0x8000) {
 		mPlayer->Walk(5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState('S') & 0x8000) {
 		mPlayer->Walk(-5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState('A') & 0x8000) {
 		mPlayer->Strafe(-5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState('D') & 0x8000) {
 		mPlayer->Strafe(5.0f, dt);
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
 	}
 
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
 		mPlayer->Jump();
 		mPlayerChangedView = true;
+		mPlayerMoved = true;
+	}
+
+	if (GetAsyncKeyState('1') & 0x8000) {
+		mCursorInUse = false;
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
-
-
-	if (GetAsyncKeyState('Z') & 0x8000)
-		mWorldMgr.LoadChunk(1, 0, 1);
-
-	if (GetAsyncKeyState('X') & 0x8000)
-		mWorldMgr.UnloadChunk(0, 0, 1);
-
-	if (GetAsyncKeyState('C') & 0x8000) 
-		mWorldMgr.SwapChunk(2, 0, 2, 1, 0, 1);
-
-
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {
@@ -910,10 +928,11 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
+	UINT totalExtraRI = mWorldMgr.GetChunkSize() * 4; // + maxEntityCount + maxUICount;		//Render items which have not yet been created
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
-		+ mWorldMgr.GetChunkSize() * 4
+		+ totalExtraRI
 		);
 
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
@@ -921,6 +940,10 @@ void CubeGame::BuildFrameResources()
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
             1, totalRI, (UINT)mMaterials->size()));
     }
+
+	for (UINT i = totalExtraRI; i > 0; i--) {
+		GameData::sAvailableObjCBIndexes.push_back(totalRI - i);
+	}
 }
 
 void CubeGame::BuildMaterials()
@@ -1006,7 +1029,7 @@ void CubeGame::BuildGameObjects()
 
 	//World-------------------------
 	mWorldMgr.CreateWorld();
-	mWorldMgr.LoadFirstChunks();
+	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnZ);
 }
 
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems)

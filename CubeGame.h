@@ -119,7 +119,10 @@ private:
     WorldManager mWorldMgr;
 
     std::shared_ptr<Player> mPlayer;
+    float mPlayerSpawnX = 12;
+    float mPlayerSpawnZ = 12;
     bool mPlayerChangedView = false;
+    bool mPlayerMoved = false;
 
     //Camera variables
     const float mBackPlane = 1000.0f;
@@ -132,7 +135,9 @@ private:
     const int mUICols = 26;
 
     //Mouse input
-    POINT mLastMousePos = { 0,0 };
+    bool mCursorInUse = false;
+    bool mCursorInUsePrev = false;
+    POINT mLastMousePos;
     bool mLeftMouseDown = false;
     bool mRightMouseDown = false;
     float mRightMouseDownTimer = 0.f;

@@ -1,6 +1,7 @@
 #include "GameData.h"
 
 int RenderItem::sCBIndex = -1;
+std::vector<UINT> GameData::sAvailableObjCBIndexes;
 
 RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world) {
 	ObjCBIndex = ++sCBIndex;
@@ -11,6 +12,15 @@ RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* ma
 	StartIndexLocation = Geo->DrawArgs[MeshName].StartIndexLocation;
 	BaseVertexLocation = Geo->DrawArgs[MeshName].BaseVertexLocation;
 	XMStoreFloat4x4(&World, world);
+}
+
+UINT GameData::GetObjectCBIndex() {
+	UINT ret = sAvailableObjCBIndexes.at(sAvailableObjCBIndexes.size() - 1);
+	sAvailableObjCBIndexes.pop_back();
+	return ret;
+}
+void GameData::AddNewObjectCBIndex(UINT i) {
+	sAvailableObjCBIndexes.push_back(i);
 }
 
 void GameData::StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMFLOAT4X4 source) {

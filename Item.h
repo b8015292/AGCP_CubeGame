@@ -26,8 +26,8 @@ public:
     void decreaseStack(int amountToDecrease) { mAmountInStack -= amountToDecrease; }
     bool fullStack() { return mMaxStackSize == mAmountInStack; }
     void increaseStack(int amountAdded) { if(!fullStack()) mAmountInStack += amountAdded; }
+    Item(std::string name, ItemType type, short int maxStackSize, int durability) : mAmountInStack(0), mName(name), mType(type), mMaxStackSize(maxStackSize), mDurability(durability) {}
 protected:
-    Item(std::string name, ItemType type, short int maxStackSize, int durability) : mName(name), mType(type), mMaxStackSize(maxStackSize), mDurability(durability) {}
     std::string mName;
     ItemType mType;
     short int mMaxStackSize;
