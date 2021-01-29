@@ -2,6 +2,8 @@
 // CubeGame.cpp by Frank Luna (C) 2015 All Rights Reserved.
 //***************************************************************************************
 
+#include <ctime>
+
 #include "CubeGame.h"
 #include "Raycast.h"
 #include "PerlinNoise.h"
@@ -62,6 +64,9 @@ bool CubeGame::Initialize()
 		mRitemLayer[i] = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 
 	mWorldMgr.Init(mGeometries, mMaterials, mRitemLayer);
+
+	std::srand(std::time(nullptr));
+	noise = PerlinNoise(std::rand());
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
