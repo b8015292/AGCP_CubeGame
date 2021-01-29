@@ -191,7 +191,15 @@ void CubeGame::Update(const GameTimer& gt)
 		CloseHandle(eventHandle);
 	}
 
+	if (mCursorInUse != mCursorInUsePrev) {
+		mCursorInUsePrev = mCursorInUse;
+		ShowCursor(!mCursorInUse);
 
+		if(!mCursorInUse)
+			ReleaseCapture();
+		else
+			SetCapture(mhMainWnd);
+	}
 
 	if (GameData::sRunning) {
 		//Update entities and set dirty flag
@@ -200,19 +208,6 @@ void CubeGame::Update(const GameTimer& gt)
 
 			if (Entity::sAllEntities->at(i)->GetDirty())
 				Entity::sAllEntities->at(i)->SetRIDirty();
-		}
-
-		if (mPlayerMoved) {
-			//DEBUG
-			DirectX::XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
-			pos.y += 2.f;
-			std::shared_ptr<Block> b = mWorldMgr.GetBlock(pos);
-			b->SetActive(true);
-			DirectX::XMFLOAT3 posb = b->GetBoundingBox().Center;
-			SetUIString("blockx:" + std::to_string(posb.x), 8, 0);
-			SetUIString("blocky:" + std::to_string(posb.y), 9, 0);
-			SetUIString("blockz:" + std::to_string(posb.z), 10, 0);
-
 		}
 
 		//Hanlde mouse input - Place and destroy blocks
@@ -255,11 +250,6 @@ void CubeGame::Update(const GameTimer& gt)
 		if (mPlayerMoved) {
 			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
 			mPlayerMoved = false;
-
-			//DEBUG
-			DirectX::XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
-			pos.y += 2.f;
-			mWorldMgr.GetBlock(pos)->SetActive(true);
 		}
 
 		//Update the UI
@@ -359,15 +349,15 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
     mLastMousePos.x = x;
     mLastMousePos.y = y;
 
-    SetCapture(mhMainWnd);
-
-	if ((btnState & MK_LBUTTON) != 0)
+	if ((btnState & MK_LBUTTON) != 0) {
 		mLeftMouseDown = true;
+		mCursorInUse = true;
+	}
 
-	if ((btnState & MK_RBUTTON) != 0)
+	if ((btnState & MK_RBUTTON) != 0) {
 		mRightMouseDown = true;
-	
-
+		mCursorInUse = true;
+	}
 }
 
 void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
@@ -379,13 +369,11 @@ void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
 		mRightMouseDown = false;
 		mRightMouseDownTimer = mRightMouseDownTimerMax;
 	}
-
-    ReleaseCapture();
 }
 
 void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 {
-    if(mLeftMouseDown || mRightMouseDown)
+    if(mCursorInUse)
     {
         // Make each pixel correspond to a quarter of a degree.
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
@@ -395,10 +383,10 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mPlayer->RotateY(dx);
 
 		mPlayerChangedView = true;
-    }
 
-    mLastMousePos.x = x;
-    mLastMousePos.y = y;
+		mLastMousePos.x = x;
+		mLastMousePos.y = y;
+    }
 }
 
 void CubeGame::UpdateBlockSelector() {
@@ -457,21 +445,11 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mPlayerMoved = true;
 	}
 
+	if (GetAsyncKeyState('1') & 0x8000) {
+		mCursorInUse = false;
+	}
+
 	mPlayer->GetCam()->UpdateViewMatrix();
-
-
-	if (GetAsyncKeyState('Z') & 0x8000)
-		mWorldMgr.LoadChunk(1, 0, 1);
-
-	if (GetAsyncKeyState('X') & 0x8000)
-		mWorldMgr.UnloadChunk(1, 0, 1);
-
-	if (GetAsyncKeyState('C') & 0x8000) 
-		mWorldMgr.SwapChunk(1, 0, 0, 1, 0, 1);
-
-	if (GetAsyncKeyState('V') & 0x8000)
-		mWorldMgr.SwapChunk(1, 0, 1, 1, 0, 0);
-
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {

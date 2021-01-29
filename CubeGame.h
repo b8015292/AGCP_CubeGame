@@ -135,6 +135,8 @@ private:
     const int mUICols = 26;
 
     //Mouse input
+    bool mCursorInUse = false;
+    bool mCursorInUsePrev = false;
     POINT mLastMousePos;
     bool mLeftMouseDown = false;
     bool mRightMouseDown = false;
