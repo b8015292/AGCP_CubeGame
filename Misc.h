@@ -17,3 +17,9 @@ class Stick : public Item
 public:
 	Stick() : Item("stick", ItemType::MISC, 64, 1, 1) {}
 };
+
+class Torch : public Item
+{
+public:
+	Torch() : Item("torch", ItemType::MISC, 64, 1, 1) {}
+};

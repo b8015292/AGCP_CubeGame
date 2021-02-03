@@ -15,6 +15,10 @@ class Inventory
 {
 public:
 	Inventory();
+
+	std::vector<invItem> getInventory() { return mInventory; }
+	std::vector<invItem> getHotbar() { return mHotbar; }
+
 	bool fullInventory() { return mInventory.size() == 64; }
 	bool fullHotbar() { return mHotbar.size() == 8; }
 
