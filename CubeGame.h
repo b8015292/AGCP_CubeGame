@@ -29,8 +29,6 @@ public:
 
     virtual bool Initialize()override;
 
-    inventory mInventory;
-
 private:
     //Initialization
     void BuildRootSignature();              //Tells the GPU which registers to expect to use   

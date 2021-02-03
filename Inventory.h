@@ -1,23 +1,31 @@
 #pragma once
-#include <map>
+#include <vector>
 
 #include "Item.h"
 
-class inventory
-{
-public:
-	inventory() {};
-
-	void addItem(Item &newItem, const bool mainInv);
-	void removeItem(const int spaceToDelete, const bool deleteAll, const bool mainInv);
-
-	void moveItemHotbarToInv(const int pos, const bool movAll);
-	void moveItemInvToHotbar(const int pos, const bool movAll);
-
-	std::map<int, Item*> getItems() { return mInvItems; };
-
-protected:
-	std::map<int, Item*> mInvItems;
-	std::map<int, Item*> mHotbarItems;
+struct invItem {
+	std::string name;
+	int maxStackSize;
+	int stackSize;
+	int durability;
+	bool full = false;
 };
 
+class Inventory
+{
+public:
+	Inventory();
+	bool fullInventory() { return mInventory.size() == 64; }
+	bool fullHotbar() { return mHotbar.size() == 8; }
+
+	void invToHotbar(int spaceToMove);
+	void hotbarToInv(int spaceToMove);
+	void addItem(Item newItem, int &amount);
+	void removeItemCraft(std::string itemName, int name);
+	void removeItemFromInvClick(int spaceToRemove, bool all);
+	void removeItemFromHotbarClick(int spaceToRemove, bool all);
+
+private:
+	std::vector<invItem> mInventory;
+	std::vector<invItem> mHotbar;
+};
