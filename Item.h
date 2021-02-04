@@ -3,34 +3,25 @@
 #include <string>
 
 enum class ItemType {
-    BLOCK,
-    TOOL
-};
-
-enum class blockType {
-    type_Default = 0,
-    type_Dirt,
-    type_Grass,
-    type_Stone,
-    type_Wood,
-    type_Count
+    TOOL,
+    MISC,
+    BLOCK
 };
 
 class Item {
 public:
-    std::string GetName() { return mName; }
-    ItemType GetType() { return mType; }
-    short int GetMaxStackSize() { return mMaxStackSize; }
-    int GetDurability() { return mDurability; }
-    int GetAmountInStack() { return mAmountInStack; }
-    void decreaseStack(int amountToDecrease) { mAmountInStack -= amountToDecrease; }
-    bool fullStack() { return mMaxStackSize == mAmountInStack; }
-    void increaseStack(int amountAdded) { if(!fullStack()) mAmountInStack += amountAdded; }
-    Item(std::string name, ItemType type, short int maxStackSize, int durability) : mAmountInStack(0), mName(name), mType(type), mMaxStackSize(maxStackSize), mDurability(durability) {}
+    Item(std::string Name, ItemType Type, int MaxStackSize, int MeleeDamage, int Durability) : mName(Name), mType(Type), mMaxStackSize(MaxStackSize), mMeleeDamage(MeleeDamage), mDurability(Durability) {};
+    ~Item() {}
+    std::string getName() { return mName; }
+    ItemType getType() { return mType; }
+    int getMaxStackSize() { return mMaxStackSize; }
+    int getMeleeDamage() { return mMeleeDamage; }
+    int getDurability() { return mDurability; }
+
 protected:
     std::string mName;
     ItemType mType;
-    short int mMaxStackSize;
-    short int mAmountInStack;
+    int mMaxStackSize;
+    int mMeleeDamage;
     int mDurability;
 };

@@ -157,6 +157,7 @@
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PerlinNoise.cpp" />
     <ClCompile Include="Raycast.cpp" />
+    <ClCompile Include="PlayerStats.cpp" />
     <ClCompile Include="Text.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="WorldManager.cpp" />
@@ -178,15 +179,16 @@
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Item.h" />
+    <ClInclude Include="Misc.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Pathfinding.h" />
     <ClInclude Include="PerlinNoise.h" />
+    <ClInclude Include="PlayerStats.h" />
     <ClInclude Include="Raycast.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="Tool.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="WorldManager.h" />
-    <ClInclude Include="WoodPickaxe.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
