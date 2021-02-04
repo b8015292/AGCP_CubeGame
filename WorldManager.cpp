@@ -98,7 +98,7 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, std::sha
 
 	mChangeInPlayerPos = Pos();
 	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
-	mChunksToLoad = (int)sqrtf(mChunkRowsToLoad);			//Change this to chube root
+	mChunksToLoad = (int)cbrtf(mChunkRowsToLoad);
 }
 
 void WorldManager::CreateWorld() {
@@ -109,6 +109,16 @@ void WorldManager::CreateWorld() {
 			}
 		}
 	}
+	//DB
+	//for (int z = 0; z < mMaxLength; z++) {
+	//	for (int y = 0; y < mMaxHeight; y++) {
+	//		for (int x = 0; x < mMaxLength; x++) {
+	//			std::shared_ptr<Chunk> c = GetChunk(x, y, z);
+	//			Pos p = c->GetPos();
+	//			GameData::Print(std::to_string(c->GetID()) + ": x" + std::to_string(p.x) + ". y" + std::to_string(p.y) + ". z" + std::to_string(p.z) + '\n');
+	//		}
+	//	}
+	//}
 }
 
 void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris) {
@@ -121,12 +131,22 @@ void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool activ
 }
 
 std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunk(int x, int y, int z) {
-	assert(x >= mMaxLength - 1 || y >= mMaxHeight - 1|| z >= mMaxLength - 1
-			|| x < 0 || y < 0 || z < 0);
 	return mChunks.at((size_t)x + (y * mMaxLength) + (z * mMaxHeight * mMaxLength));
+	//return mChunks.at((size_t)x + (z * mMaxHeight * mMaxLength));
+}
+
+bool WorldManager::IsChunkCoordValid(int x, int y, int z) {
+	if (x >= mMaxLength || y >= mMaxHeight || z >= mMaxLength
+		|| x < 0 || y < 0 || z < 0)
+		return false;
+
+	return true;
 }
 
 void WorldManager::LoadChunk(int x, int y, int z) {
+	if (!IsChunkCoordValid(x, y, z))
+		return;
+
 	std::shared_ptr<Chunk> chunk = GetChunk(x, y, z);
 
 	if (chunk->GetAcitve())
@@ -138,7 +158,9 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
 	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris = chunk->GetRItems();
-	UINT count = GetRenderItemCount();
+	UINT count;
+	if(!mCreatedWorld )
+		count = GetRenderItemCount();
 
 	//Insert the chunk
 	Block::sAllBlocks->insert(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
@@ -165,6 +187,8 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 void WorldManager::UnloadChunk(int x, int y, int z) {
 	std::shared_ptr<Chunk> chunk = GetChunk(x, y, z);
 	
+	GameData::Print(std::to_string(chunk->GetID()));
+
 	if(!chunk->GetAcitve())
 		return;
 
@@ -174,17 +198,20 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 		GameData::AddNewObjectCBIndex((*it)->ObjCBIndex);
 	}
 
-	Block::sAllBlocks->erase(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), Block::sAllBlocks->begin() + chunk->GetBlockStartIndex() + sChunkSize - 1 );
-	GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex() + sChunkSize - 1);
+	Block::sAllBlocks->erase(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), Block::sAllBlocks->begin() + chunk->GetBlockStartIndex() + sChunkSize );
+	GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex() + sChunkSize);
 	mRitemLayer[(int)GameData::RenderLayer::Main]->erase(mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex(),
-		mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex() + sChunkSize - 1);
+		mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex() + sChunkSize);
 
 	chunk->SetStartIndexes(-1, -1, -1);
 }
 
-void WorldManager::SwapChunk(int x1, int y1, int z1, int x2, int y2, int z2) {
-	std::shared_ptr<Chunk> oldChunk = GetChunk(x1, y1, z1);
-	std::shared_ptr<Chunk> newChunk = GetChunk(x2, y2, z2);
+void WorldManager::SwapChunk(Pos old, Pos neew) {
+	if (!IsChunkCoordValid(old.x, old.y, old.z) || !IsChunkCoordValid(neew.x, neew.y, neew.z))
+		return;
+
+	std::shared_ptr<Chunk> oldChunk = GetChunk(old.x, old.y, old.z);
+	std::shared_ptr<Chunk> newChunk = GetChunk(neew.x, neew.y, neew.z);
 
 	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> oldRIs = oldChunk->GetRItems();
 	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> newRIs = newChunk->GetRItems();
@@ -246,17 +273,27 @@ std::shared_ptr<WorldManager::Chunk> WorldManager::GetPlayerChunk(DirectX::XMFLO
 	int x = (int)floorf(pos.x / sChunkDimension);
 	int y = (int)floorf(pos.y / sChunkDimension);
 	int z = (int)floorf(pos.z / sChunkDimension);
-	return GetChunk(x, 0, z);
+
+	if (!IsChunkCoordValid(x, y, z))
+		return GetChunk(0, 0, 0);
+
+	return GetChunk(x, y, z);
+}
+
+WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
+	return Pos((int)floorf(pos.x / sChunkDimension), (int)floorf(pos.y / sChunkDimension), (int)floorf(pos.z / sChunkDimension));
 }
 
 void WorldManager::LoadFirstChunks(float playerX, float playerZ) {
 
 	mPlayerPos = GetPlayerChunk({ playerX, 0, playerZ})->GetPos();
-	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, 0, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
+	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
+	//Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
 		//for (int j = 0; j < mChunkRowsToLoad; j++) {
+		int j = 0;
 			for (int k = 0; k < mChunkRowsToLoad; k++) {
-				LoadChunk(k, 0, i);
+				LoadChunk(k, j, i);
 			}
 		//}
 	}
@@ -264,39 +301,110 @@ void WorldManager::LoadFirstChunks(float playerX, float playerZ) {
 	mCreatedWorld = true;
 }
 
-void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 pos) {
-	Pos newPos = GetPlayerChunk(pos)->GetPos();
+void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
+
+	Pos playerChunkPos = GetPlayerChunkCoords(worldPos);
+	if (!IsChunkCoordValid(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z))
+		return;
+
+	Pos newPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
 	if (mPlayerPos != newPos) {
+		if (playerChunkPos.x == 3 && playerChunkPos.z == 3) {
+			int q = 7;
+		}
+
 		//Calculate the change
 		mChangeInPlayerPos.x = newPos.x - mPlayerPos.x;
 		mChangeInPlayerPos.y = newPos.y - mPlayerPos.y;
 		mChangeInPlayerPos.z = newPos.z - mPlayerPos.z;
 
+		//Loop through each axis to check if it needs updating
+		for (int axis = 0; axis < 3; axis++) {				
+			if (mChangeInPlayerPos[axis] != 0 && axis != 1) {
 
-		//Load new chunks and unload old chunks
-		//Change in X
-		if (mChangeInPlayerPos.x != 0) {
-			int oldX = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos.x) + mPlayerPos.x;
-			int newX = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos.x) + newPos.x;
-			if (newX < 0 || newX >= mMaxLength)
-				return;
-			for (int z = -mLoadedChunksAroundCurrentChunk; z <= mLoadedChunksAroundCurrentChunk; z++) {
-				int newZ = mPlayerPos.z + z;
-				SwapChunk(oldX, 0, newZ, newX, 0, newZ);
-			}
-		}
-		//Change in Z
-		if (mChangeInPlayerPos.z != 0) {
-			int oldZ = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos.z) + mPlayerPos.z;
-			int newZ = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos.z) + newPos.z;
-			if (newZ < 0 || newZ >= mMaxLength)
-				return;
-			for (int x = -mLoadedChunksAroundCurrentChunk; x <= mLoadedChunksAroundCurrentChunk; x++) {
-				int newX = mPlayerPos.x + x;
-				SwapChunk(newX, 0, oldZ, newX, 0, newZ);
+
+				//DEBUG
+				mChunkOrder += std::to_string(GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetID()) + ", ";
+
+
+				bool run = true;
+
+				//Get the position the player has just left
+				int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[axis]) + mPlayerPos[axis];
+				//Get the position the player is about to enter
+				int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[axis]) + newPos[axis];
+
+				int startSubAxis = -mLoadedChunksAroundCurrentChunk;
+				int endSubAxis = mLoadedChunksAroundCurrentChunk;
+
+				//Check the new value isn't out of range.
+				if (newAxis < 0) {
+					mPlayerAtEdge[axis] = 1;
+					run = false;
+				}
+				else if (newAxis >= mMaxLength) {
+					mPlayerAtEdge[axis] = -1;
+					run = false;
+				}
+
+				//Check if the player is at the edge of any other axies
+				for (int subAxis = 1; subAxis < 3; subAxis++) {
+					//If the player is at the edge
+					if (mPlayerAtEdge[axis + subAxis] != 0 && ((axis + subAxis != 1) || (axis + subAxis != 4))) {
+						//If the player has changed thair position along that axis, set mPlayerAtEdge[Axis] to zero
+						if (mChangeInPlayerPos[axis + subAxis] != 0) {
+							mPlayerAtEdge[axis + subAxis] = 0;
+						}
+						//Otherwise set the start iterator to take the edge into account
+						else {
+							startSubAxis += mPlayerAtEdge[axis + subAxis];
+							endSubAxis += mPlayerAtEdge[axis + subAxis];
+						}
+					}
+				}
+				//Temp while Y is not implemented
+				int a;
+				if (axis == 0) a = 2;
+				else if (axis == 2) a = 0;
+
+				if (run) {
+					//Swaps the old and new Chunks with a constant X and iteratres through each Z
+					for (int iterator = startSubAxis; iterator <= endSubAxis; iterator++) {
+						int currZ = mPlayerPos[a] + iterator;
+						//Another FOR for the y axis
+						Pos old;
+						Pos neew;
+
+						old[axis] = oldAxis;
+						old.y = 0;
+						old[a] = currZ;
+
+						neew[axis] = newAxis;
+						neew.y = 0;
+						neew[a] = currZ;
+
+						SwapChunk(old, neew);
+					}
+				}
 			}
 		}
 
 		mPlayerPos = newPos;
 	}
+}
+
+void WorldManager::PrintChunkOrder() {
+	std::string currentChunks = "\nCurrently loaded chunks: ";
+
+	//Get chunk IDS
+	for (int i =-mChunkRowsToLoad; i < mChunkRowsToLoad; i++) {
+		//for (int j = 0; j < mChunkRowsToLoad; j++) {
+		int j = 0;
+		for (int k = -mChunkRowsToLoad; k < mChunkRowsToLoad; k++) {
+			currentChunks += std::to_string(GetChunk(mPlayerPos.x + k, mPlayerPos.y + j, mPlayerPos.z + i)->GetID()) + ", ";
+		}
+		//}
+	}
+
+	GameData::Print("\n\n\nDEBUG MESSAGE:\n" + mChunkOrder + currentChunks + "\n\n\n");
 }

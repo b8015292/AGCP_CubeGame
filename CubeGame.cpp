@@ -7,11 +7,6 @@
 #include "PerlinNoise.h"
 
 bool GameData::sRunning = true;
-const int worldWidthLength = 20;
-const int worldHeight = 1;
-const int numOfCubes = worldWidthLength * worldWidthLength * worldHeight;
-
-PerlinNoise noise;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
     PSTR cmdLine, int showCmd)
@@ -240,11 +235,16 @@ void CubeGame::Update(const GameTimer& gt)
 			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
 			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
 
-			WorldManager::Pos cPos = mWorldMgr.GetPlayerChunk(pos)->GetPos();
+			std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
+			WorldManager::Pos cPos = c->GetPos();
 			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
 			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
 			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
-
+			int i = c->GetID();
+			if(i < 10)
+				SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
+			else
+				SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
 		}
 
 		if (mPlayerMoved) {
@@ -447,6 +447,14 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 	if (GetAsyncKeyState('1') & 0x8000) {
 		mCursorInUse = false;
+	}
+
+	if (GetAsyncKeyState('2') & 0x8000) {
+		mWorldMgr.PrintChunkOrder();
+	}
+
+	if (GetAsyncKeyState('X') & 0x8000) {
+		mWorldMgr.LoadChunk(1, 1, 1);
 	}
 
 	mPlayer->GetCam()->UpdateViewMatrix();
