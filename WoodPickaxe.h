@@ -2,7 +2,7 @@
 
 #include "Tool.h"
 
-class WoodPickaxe : public Tool {
+class Pickaxe : public Tool {
 public:
-    WoodPickaxe() : Tool("Wooden Pickaxe", ItemType::ITEM, 1, WOOD) {}      
+    Pickaxe(Type type) : Tool(type, ItemType::TOOL, 1) {}
 };

@@ -1,24 +1,35 @@
 #pragma once
-#include <map>
+#include <vector>
 
 #include "Item.h"
 
-class inventory
-{
-public:
-	inventory() : InumOfItems(0), HnumOfItems(0) {};
-
-	void addItem(Item newItem);
-	void removeItem(int spaceToDelete, bool deleteAll);
-	bool checkIfInvFull() { return InumOfItems <= 64; };
-	bool checkIfHotbarFull() { return HnumOfItems <= 8; };
-
-	std::map<int, Item*> getItems() { return mInvItems; };
-
-protected:
-	std::map<int, Item*> mInvItems;
-	std::map<int, Item*> mHotbarItems;
-	short int InumOfItems;
-	short int HnumOfItems;
+struct invItem {
+	std::string name;
+	int maxStackSize;
+	int stackSize;
+	int durability;
+	bool full = false;
 };
 
+class Inventory
+{
+public:
+	Inventory();
+
+	std::vector<invItem> getInventory() { return mInventory; }
+	std::vector<invItem> getHotbar() { return mHotbar; }
+
+	bool fullInventory() { return mInventory.size() == 64; }
+	bool fullHotbar() { return mHotbar.size() == 8; }
+
+	void invToHotbar(int spaceToMove);
+	void hotbarToInv(int spaceToMove);
+	void addItem(Item newItem, int &amount);
+	void removeItemCraft(std::string itemName, int name);
+	void removeItemFromInvClick(int spaceToRemove, bool all);
+	void removeItemFromHotbarClick(int spaceToRemove, bool all);
+
+private:
+	std::vector<invItem> mInventory;
+	std::vector<invItem> mHotbar;
+};

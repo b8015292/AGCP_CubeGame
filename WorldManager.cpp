@@ -28,7 +28,7 @@ void WorldManager::Chunk::Init(Pos pos) {
 
 			//float noise = roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension),
 			//		(double)worldZ / ((double)WorldManager::sChunkDimension), 0.8));
-			float noise = roundf(10.0f * (float)WorldManager::sNoise.noise(((double)worldX + pos.x) / 10.f, (double)(worldZ + pos.z) / 10.f, 0.8));
+			float noise = roundf(40.0f * (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (float)WorldManager::sChunkDimension)) * 0.1f, (double)(worldZ + (pos.z * (float)WorldManager::sChunkDimension)) * 0.1f, 0.8, 6, 10));
 
 			for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
 				if (worldY < noise) {
