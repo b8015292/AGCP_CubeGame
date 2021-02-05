@@ -109,6 +109,7 @@ public:
 	int GetChunkSize() { return sChunkSize; };
 	int GetNumberOfChunksToLoad() { return mChunksToLoad; };
 
+	int GetTotalAmountOfBlocks();
 	int GetPlayerChunkIndex(DirectX::XMFLOAT3 pos);
 	Pos GetPlayerChunkCoords(DirectX::XMFLOAT3 pos);
 	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
@@ -144,6 +145,8 @@ private:
 	const int mMaxHeight = 3;
 	//The length and depth of the world (in chunks)
 	const int mMaxLength = 6;
+
+	const int mRenderLayer = (int)GameData::RenderLayer::Instance;
 
 	int mLoadedChunksAroundCurrentChunk = 1; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
 	int mChunksToLoad;

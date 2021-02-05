@@ -10,6 +10,8 @@
 #include "WorldManager.h"
 #include "Inventory.h"
 
+#include "omp.h"
+
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;
 using namespace DirectX::PackedVector;
@@ -56,7 +58,9 @@ private:
 
     //Drawing
     virtual void Draw(const GameTimer& gt)override;
+    void GenerateListOfActiveItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems);
+    void DrawInstanceItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems);
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();   //Creates the static samples - different ways to interperate textures
 
 
@@ -104,6 +108,7 @@ private:
 
     // List of all the render items.
     std::vector<std::vector<D3D12_INPUT_ELEMENT_DESC>> mInputLayout[(int)GameData::RenderLayer::Count];
+    std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mActiveRItems;
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<UI>>> mAllUIs;
 
     UINT mObjCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));

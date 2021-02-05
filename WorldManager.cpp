@@ -75,6 +75,9 @@ WorldManager::WorldManager(){
 	srand(time_t(NULL));
 	unsigned int seed = rand() % 10000;//237;
 	sNoise = PerlinNoise(seed);
+
+	//std::srand(std::time(nullptr));
+	//noise = PerlinNoise(std::rand());
 }
 
 WorldManager::~WorldManager() {
@@ -98,7 +101,7 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, std::sha
 
 	mChangeInPlayerPos = Pos();
 	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
-	mChunksToLoad = (int)cbrtf(mChunkRowsToLoad);
+	mChunksToLoad = mChunkRowsToLoad * mChunkRowsToLoad * mChunkRowsToLoad;
 }
 
 void WorldManager::CreateWorld() {
@@ -153,7 +156,7 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 		return;
 
 	chunk->SetAcitve(true);
-	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), mRitemLayer[(int)GameData::RenderLayer::Main]->size());
+	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), mRitemLayer[mRenderLayer]->size());
 	
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
@@ -166,20 +169,20 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 	Block::sAllBlocks->insert(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
 
 	GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
-	mRitemLayer[(int)GameData::RenderLayer::Main]->insert(mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex(), ris->begin(), ris->end());
+	mRitemLayer[mRenderLayer]->insert(mRitemLayer[mRenderLayer]->begin() + chunk->GetRIStartIndex(), ris->begin(), ris->end());
 
 	//Set the render items object CB index so it can be found and updated by the GPU
 	if (mCreatedWorld) {
 		//Once the world has been loaded, get the CB index from the list of free indexes
 		for (size_t i = chunk->GetRIStartIndex(); i < chunk->GetRIStartIndex() + sChunkSize; i++) {
-			mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->ObjCBIndex = GameData::GetObjectCBIndex();
-			mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->NumFramesDirty = GameData::sNumFrameResources;
+			mRitemLayer[mRenderLayer]->at(i)->ObjCBIndex = GameData::GetObjectCBIndex();
+			mRitemLayer[mRenderLayer]->at(i)->NumFramesDirty = GameData::sNumFrameResources;
 		}
 	}
 	else {
 		//If these are the first chunks being loaded, set their CB index to be ordered 0.... inifinate. So there are no gaps.
 		for (size_t i = chunk->GetRIStartIndex(); i < chunk->GetRIStartIndex() + sChunkSize; i++, count++) {
-			mRitemLayer[(int)GameData::RenderLayer::Main]->at(i)->ObjCBIndex = count;
+			mRitemLayer[mRenderLayer]->at(i)->ObjCBIndex = count;
 		}
 	}
 }
@@ -200,8 +203,8 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 
 	Block::sAllBlocks->erase(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), Block::sAllBlocks->begin() + chunk->GetBlockStartIndex() + sChunkSize );
 	GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex() + sChunkSize);
-	mRitemLayer[(int)GameData::RenderLayer::Main]->erase(mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex(),
-		mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + chunk->GetRIStartIndex() + sChunkSize);
+	mRitemLayer[mRenderLayer]->erase(mRitemLayer[mRenderLayer]->begin() + chunk->GetRIStartIndex(),
+		mRitemLayer[mRenderLayer]->begin() + chunk->GetRIStartIndex() + sChunkSize);
 
 	chunk->SetStartIndexes(-1, -1, -1);
 }
@@ -226,7 +229,7 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 	//Copy the chunk into the main lists, replacing the old chunk
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), Block::sAllBlocks->begin() + oldChunk->GetBlockStartIndex());
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), GameObject::sAllGObjs->begin() + oldChunk->GetGObjStartIndex());
-	std::copy(newRIs->begin(), newRIs->end(),  mRitemLayer[(int)GameData::RenderLayer::Main]->begin() + oldChunk->GetRIStartIndex());
+	std::copy(newRIs->begin(), newRIs->end(),  mRitemLayer[mRenderLayer]->begin() + oldChunk->GetRIStartIndex());
 
 	//Swap the chunks object CB indexes
 	for (size_t i = 0; i < sChunkSize; i++) {
@@ -407,4 +410,8 @@ void WorldManager::PrintChunkOrder() {
 	}
 
 	GameData::Print("\n\n\nDEBUG MESSAGE:\n" + mChunkOrder + currentChunks + "\n\n\n");
+}
+
+int WorldManager::GetTotalAmountOfBlocks() {
+	return mChunksToLoad * sChunkSize;
 }

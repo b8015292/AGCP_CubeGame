@@ -58,10 +58,12 @@ bool CubeGame::Initialize()
 	for(int i = 0; i < (int)GameData::RenderLayer::Count; i++)
 		mRitemLayer[i] = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 
+	mActiveRItems = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
+
 	mWorldMgr.Init(mGeometries, mMaterials, mRitemLayer);
 
-	std::srand(std::time(nullptr));
-	noise = PerlinNoise(std::rand());
+	//std::srand(std::time(nullptr));
+	////noise = PerlinNoise(std::rand());
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -278,6 +280,8 @@ void CubeGame::Update(const GameTimer& gt)
 	UpdateObjectCBs(gt);
 	UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
+
+	//GenerateListOfActiveItems();
 }
 
 void CubeGame::Draw(const GameTimer& gt)
@@ -317,6 +321,7 @@ void CubeGame::Draw(const GameTimer& gt)
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+	//DrawRenderItems(mCommandList.Get(), mActiveRItems);
 
 	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
@@ -614,23 +619,26 @@ void CubeGame::BuildRootSignature()
 	CD3DX12_DESCRIPTOR_RANGE texTable;
 	texTable.Init(
 		D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-		1,  // number of descriptors
-		0); // register t0
+		7,  // number of descriptors
+		0,  // register t0
+		0); 
 
 	// Root parameter can be a table, root descriptor or root constants.
-	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
 
 	// Create root CBV.
 	slotRootParameter[0].InitAsConstantBufferView(0);	//Object
 	slotRootParameter[1].InitAsConstantBufferView(1);	//Material
 	slotRootParameter[2].InitAsConstantBufferView(2);	//MainPass
 	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);	//Texture
+	slotRootParameter[4].InitAsShaderResourceView(0, 1);	//Instance data
+	slotRootParameter[5].InitAsShaderResourceView(1, 1);	//Instance material data
 
 	auto staticSamplers = GetStaticSamplers();
 
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(6, slotRootParameter, (UINT)staticSamplers.size(), staticSamplers.data(), D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -661,6 +669,7 @@ void CubeGame::BuildShadersAndInputLayout()
 
 	//Standard
 	mShaders["shader_standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
+
 	mShaders["shader_opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
 	//UI / 2D
 	mShaders["shader_2DPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "TwoDPS", "ps_5_1");
@@ -668,6 +677,9 @@ void CubeGame::BuildShadersAndInputLayout()
 	//Sky
 	mShaders["shader_SkyVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyVS", "vs_5_1");
 	mShaders["shader_SkyPS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "SkyPS", "ps_5_1");
+	//Instance
+	mShaders["shader_InstanceVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "InstanceVS", "vs_5_1");
+	mShaders["shader_InstancePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "InstancePS", "ps_5_1");
 
 	//Main
 	mInputLayout->push_back({
@@ -685,8 +697,12 @@ void CubeGame::BuildShadersAndInputLayout()
 	//Sky
 	mInputLayout->push_back({{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }, });
 
-	//Transparent...
-
+	//Instance	//Same as main
+	mInputLayout->push_back({
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+	});
 }
 
 void CubeGame::CreateTextureSRV(std::string textureName, CD3DX12_CPU_DESCRIPTOR_HANDLE handle) {
@@ -887,12 +903,31 @@ void CubeGame::BuildPSOs()
 
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["pso_main"])));
 
+	//**********************************
+	//Instance
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC InstancePso = opaquePsoDesc;
+	InstancePso.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::Instance).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::Instance).size() };
+
+	InstancePso.VS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["shader_InstanceVS"]->GetBufferPointer()),
+		mShaders["shader_InstanceVS"]->GetBufferSize()
+	};
+	InstancePso.PS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["shader_InstancePS"]->GetBufferPointer()),
+		mShaders["shader_InstancePS"]->GetBufferSize()
+	};
+
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&InstancePso, IID_PPV_ARGS(&mPSOs["pso_instance"])));
+
 	//***********************************
 	//UI
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC UserInterface = opaquePsoDesc;
 
-	opaquePsoDesc.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::UserInterface).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::UserInterface).size() };
+	UserInterface.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::UserInterface).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::UserInterface).size() };
 
 	UserInterface.PS =
 	{
@@ -920,7 +955,7 @@ void CubeGame::BuildPSOs()
 	// fail the depth test if the depth buffer was cleared to 1.
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.pRootSignature = mRootSignature.Get();
-	opaquePsoDesc.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::Sky).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::Sky).size() };
+	skyPsoDesc.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::Sky).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::Sky).size() };
 	skyPsoDesc.VS =
 	{
 	reinterpret_cast<BYTE*>(mShaders["shader_SkyVS"] -> GetBufferPointer()), mShaders["shader_SkyVS"]->GetBufferSize()
@@ -936,17 +971,19 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
-	UINT totalExtraRI = mWorldMgr.GetChunkSize() * 4; // + maxEntityCount + maxUICount;		//Render items which have not yet been created
+	UINT totalExtraRI = 5; // maxEntityCount + maxUICount;		//Render items which have not yet been created
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
 		+ totalExtraRI
 		);
 
+	UINT totalBlocks = mWorldMgr.GetTotalAmountOfBlocks();
+
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-            1, totalRI, (UINT)mMaterials->size()));
+            1, totalRI, (UINT)mMaterials->size(), totalBlocks));
     }
 
 	for (UINT i = totalExtraRI; i > 0; i--) {
@@ -1040,16 +1077,26 @@ void CubeGame::BuildGameObjects()
 	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnZ);
 }
 
+void CubeGame::GenerateListOfActiveItems() {
+	//#pragma omp parallel for
+	for (int i = 0; i < (int)mRitemLayer[(int)GameData::RenderLayer::Main]->size(); ++i)
+	{
+		if (mRitemLayer[(int)GameData::RenderLayer::Main]->at((size_t)i)->active) {
+			mActiveRItems->push_back(mRitemLayer[(int)GameData::RenderLayer::Main]->at((size_t)i));
+		}
+	}
+}
+
 void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems)
 {
 	auto objectCB = mCurrFrameResource->ObjectCB->Resource();
 	auto matCB = mCurrFrameResource->MaterialCB->Resource();
 
     // For each render item...
-    for(size_t i = 0; i < ritems->size(); ++i)
+    for(int i = 0; i < (int)ritems->size(); ++i)
     {
-		if(ritems->at(i)->active){
-			auto ri = ritems->at(i);
+		if(ritems->at((size_t)i)->active){
+			auto ri = ritems->at((size_t)i);
 
 			cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
 			cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
@@ -1067,6 +1114,24 @@ void CubeGame::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_p
 
 			cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 		}
+	}
+}
+
+void CubeGame::DrawInstanceItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems) {
+	for (size_t i = 0; i < ritems->size(); ++i)
+	{
+		auto ri = ritems->at(i);
+
+		cmdList->IASetVertexBuffers(0, 1, &ri->Geo->VertexBufferView());
+		cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
+		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
+
+		// Set the instance buffer to use for this render-item.  For structured buffers, we can bypass 
+		// the heap and set as a root descriptor.
+		auto instanceBuffer = mCurrFrameResource->InstanceCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(0, instanceBuffer->GetGPUVirtualAddress());
+
+		cmdList->DrawIndexedInstanced(ri->IndexCount, ri->InstanceCount, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
 }
 
