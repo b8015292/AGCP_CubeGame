@@ -9,6 +9,8 @@
 #include "Text.h"
 #include "WorldManager.h"
 #include "Inventory.h"
+#include "Player.h"
+#include "LivingEntity.h"
 
 #include "omp.h"
 

@@ -75,7 +75,10 @@
     <ClCompile Include="Crafting.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerStats.cpp">
+    <ClCompile Include="Player.cpp">
+      <Filter>GameData\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LivingEntity.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="WorldManager.cpp">
@@ -167,7 +170,10 @@
     <ClInclude Include="Inventory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerStats.h">
+    <ClInclude Include="Player.h">
+      <Filter>GameData\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LivingEntity.h">
       <Filter>GameData\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Inventory.h">
