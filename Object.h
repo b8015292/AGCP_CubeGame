@@ -159,8 +159,6 @@ public:
     static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight);
 
     void Init();
-    void createBlock(blockType newType);
-    void destroyBlock();
 
     float GetDurability() { return mDurability; };
     
@@ -169,7 +167,6 @@ public:
     float *getWorldCoords();
 private:
     const float blockDimension = 1.0f;
-    blockType type;
     float worldCoord[3];
 
     float mDurability = 1.f;

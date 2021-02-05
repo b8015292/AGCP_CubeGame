@@ -626,16 +626,16 @@ GeometryGenerator::MeshData Block::CreateCubeGeometry(float width, float height,
 void Block::Init() {
 	mID = GameObject::mID;
 }
-
-void Block::createBlock(blockType newType)
-{
-	SetActive(true);
-	type = newType;
-	//SetTexture(type);
-}
-
-void Block::destroyBlock()
-{
-	SetActive(false);
-	type = blockType::type_Default;
-}
+//
+//void Block::createBlock(blockType newType)
+//{
+//	SetActive(true);
+//	type = newType;
+//	//SetTexture(type);
+//}
+//
+//void Block::destroyBlock()
+//{
+//	SetActive(false);
+//	type = blockType::type_Default;
+//}
