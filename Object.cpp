@@ -442,6 +442,7 @@ void LivingEntity::Update(const float dTime) {
 			SetDirtyFlag();
 		}
 	}
+	Walk(5.0f, dTime);
 }
 void LivingEntity::Jump() {
 	if (!mJumped) {
@@ -461,6 +462,14 @@ void LivingEntity::Walk(float d, float dTime) {
 	mBoundingBox.Transform(nextBoxZ, translateZ);
 
 	if (!(CheckIfCollidingAtBox(nextBoxX) && CheckIfCollidingAtBox(nextBoxZ))) {
+
+		d = d * dTime;
+		XMVECTOR s = XMVectorReplicate(d);
+		XMVECTOR l = { direction.m128_f32[0], 0.0f, direction.m128_f32[2] }; //dont move up along the y
+		XMVECTOR p = XMLoadFloat3(&mBoundingBox.Center);
+		XMFLOAT3 newpos;
+		XMStoreFloat3(&newpos, XMVectorMultiplyAdd(s, l, p));
+
 		DirectX::XMMATRIX oldWorldMatrix;
 		GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
 		DirectX::XMMATRIX cameraMatrix = DirectX::XMMatrixTranslation(mBoundingBox.Center.x, mBoundingBox.Center.y, mBoundingBox.Center.z);
@@ -498,9 +507,10 @@ void LivingEntity::WalkToBlock(XMFLOAT3 blockLocation) {
 	destination.y = blockLocation.y;
 	destination.z = blockLocation.z;
 
-	//for (Node node : Pathfinding::aStar(player, destination)) {
-		
-	//}
+	Node node = Pathfinding::aStar(player, destination).at(0);
+	walkTo = XMFLOAT3{ (float)node.x, (float)node.y, (float)node.z };
+	direction = XMVECTOR{ walkTo.x - mBoundingBox.Center.x, walkTo.y - mBoundingBox.Center.y, walkTo.z - mBoundingBox.Center.z };
+
 }
 
 

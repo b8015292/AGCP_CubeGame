@@ -1013,6 +1013,13 @@ void CubeGame::BuildGameObjects()
 	Entity::sAllEntities->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mPlayer->GetRI());			//Add the players render item to the main list
 
+	//Make Enemy
+	auto enemyRI = std::make_shared<RenderItem>(geo, "mesh_player", mMaterials->at("mat_player").get(), XMMatrixTranslation(2.0f, 200.0f, 1.0f));	//Make a render item
+	auto enemy = std::make_shared<LivingEntity>(std::make_shared<GameObject>(enemyRI));						//Make the Player
+	GameObject::sAllGObjs->push_back(enemy);
+	Entity::sAllEntities->push_back(enemy);												//Add the player to the enities list
+	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(enemy->GetRI());			//Add the players render item to the main list
+
 	//Sky----------------------------
 	auto skyRI = std::make_shared<RenderItem>(geo, "mesh_sky", mMaterials->at("mat_sky").get(), XMMatrixScaling(5000.0f, 5000.0f, 5000.0f));
 	mRitemLayer[(int)GameData::RenderLayer::Sky]->push_back(skyRI);
