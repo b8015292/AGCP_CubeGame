@@ -130,6 +130,8 @@ public:
 
 private:
     bool mJumped = true;
+    XMVECTOR direction;
+    XMFLOAT3 walkTo;
 
     const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
 

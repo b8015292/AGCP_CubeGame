@@ -1,10 +1,11 @@
 #pragma once
 
 #include <math.h>
-#include <set>
+#include <vector>
 #include <array>
 #include <stack>
-#include <set>
+#include <vector>
+#include "WorldManager.h"
 
 #define MAX_X 12
 #define MAX_Y 12
@@ -31,8 +32,17 @@ inline bool operator < (const Node& lhs, const Node& rhs)
 class Pathfinding
 {
 public:
+
+	static std::shared_ptr<WorldManager> worldManager;
+
 	static bool isValid(int x, int y, int z) { //If our Node is an obstacle it is not valid
-		
+		if (!worldManager->GetBlock(XMFLOAT3{(float)x, (float)y, (float)z})->GetActive()) {
+			if (!worldManager->GetBlock(XMFLOAT3{ (float)x, (float)y + 1, (float)z })->GetActive()) {
+				if (worldManager->GetBlock(XMFLOAT3{ (float)x, (float)y - 2, (float)z })->GetActive()) {
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 
@@ -50,13 +60,13 @@ public:
         return H;
     }
 
-    static std::set<Node> makePath(std::array<std::array<std::array<Node, MAX_Z>, MAX_Y>, MAX_X> map, Node destination)
+    static std::vector<Node> makePath(std::array<std::array<std::array<Node, MAX_Z>, MAX_Y>, MAX_X> map, Node destination)
     {
 		int x = destination.x;
 		int y = destination.y;
 		int z = destination.z;
 		std::stack<Node> path;
-		std::set<Node> usablePath;
+		std::vector<Node> usablePath;
 
 		while (!(map[x][y][z].parentX == x && map[x][y][z].parentY == y && map[x][y][z].parentZ  == z)
 			&& map[x][y][z].x != -1 && map[x][y][z].y != -1 && map[x][y][z].z != -1)
@@ -75,13 +85,13 @@ public:
 		while (!path.empty()) {
 			Node top = path.top();
 			path.pop();
-			usablePath.emplace(top);
+			usablePath.emplace_back(top);
 		}
 		return usablePath;
 	}
 
-	static std::set<Node> aStar(Node start, Node destination) {
-		std::set<Node> empty;
+	static std::vector<Node> aStar(Node start, Node destination) {
+		std::vector<Node> empty;
 
 		//TODO: Check if the destination is not air		
 
@@ -119,17 +129,17 @@ public:
 		allMap[x][y][z].parentY = y;
 		allMap[x][y][z].parentZ = z;
 
-		std::set<Node> openList;
+		std::vector<Node> openList;
 
-		openList.emplace(allMap[x][y][z]);
+		openList.emplace_back(allMap[x][y][z]);
 		bool destinationFound = false;
 
 		while (!openList.empty() && openList.size() < MAX_X * MAX_Y * MAX_Z) {
 			Node node;
 			do {
 				float temp = FLT_MAX;
-				std::set<Node>::iterator itNode;
-				for (std::set<Node>::iterator it = openList.begin();
+				std::vector<Node>::iterator itNode;
+				for (std::vector<Node>::iterator it = openList.begin();
 					it != openList.end(); it = next(it)) {
 					Node n = *it;
 					if (n.fCost < temp) {
@@ -175,7 +185,7 @@ public:
 									allMap[x + newX][y + newY][z + newZ].hCost = hNew;
 									allMap[x + newX][y + newY][z + newZ].parentX = x;
 									allMap[x + newX][y + newY][z + newZ].parentY = y; 
-									openList.emplace(allMap[x + newX][y + newY][z + newZ]);
+									openList.emplace_back(allMap[x + newX][y + newY][z + newZ]);
 								}
 							}
 						}
