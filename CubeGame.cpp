@@ -60,8 +60,8 @@ bool CubeGame::Initialize()
 
 	mWorldMgr.Init(mGeometries, mMaterials, mRitemLayer);
 
-	std::srand(std::time(nullptr));
-	noise = PerlinNoise(std::rand());
+	//std::srand(std::time(nullptr));
+	//noise = PerlinNoise(std::rand());
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));

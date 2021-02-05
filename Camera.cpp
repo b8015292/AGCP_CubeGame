@@ -204,6 +204,8 @@ void Camera::Walk(float d, float dTime)
 	d = d * dTime;
 	XMVECTOR s = XMVectorReplicate(d);
 	XMVECTOR l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
+	//XMVECTOR l = { mPosition.x, 0.0f, mLook.z }; //dont move along x
+	//XMVECTOR l = { mLook.x, 0.0f, mPosition.z }; //dont move along x
 	XMVECTOR p = XMLoadFloat3(&mPosition);
 	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
 

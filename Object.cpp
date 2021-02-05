@@ -223,14 +223,17 @@ void Player::Update(const float dTime) {
 	if (mApplyGravity)
 	{
 		//Create a bounding box in the next location in the Y axis (X and Z are handled within the Walk and Strafe functions)
-		BoundingBox nextBox;
-		mBoundingBox.Transform(nextBox, DirectX::XMMatrixTranslation(0, mVel.y * dTime, 0));
-		if (CheckIfCollidingAtBox(nextBox)) {
-			mVel.y = 0.0f;
-			mJumped = false;
+		BoundingBox nextBox1;
+		BoundingBox nextBox2;
+		mBoundingBox.Transform(nextBox1, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
+		mBoundingBox.Transform(nextBox2, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
+		if (!(CheckIfCollidingAtBox(nextBox1)|| CheckIfCollidingAtBox(nextBox1))) {
+
+			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
 		}
 		else {
-			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
+			mVel.y = 0.0f;
+			mJumped = false;
 		}
 
 		if (mVel.y != 0) {
