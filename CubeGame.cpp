@@ -1131,7 +1131,7 @@ void CubeGame::DrawInstanceItems(ID3D12GraphicsCommandList* cmdList, std::shared
 		auto instanceBuffer = mCurrFrameResource->InstanceCB->Resource();
 		mCommandList->SetGraphicsRootShaderResourceView(0, instanceBuffer->GetGPUVirtualAddress());
 
-		cmdList->DrawIndexedInstanced(ri->IndexCount, ri->InstanceCount, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
+		//cmdList->DrawIndexedInstanced(ri->IndexCount, ri->InstanceCount, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
 }
 

@@ -143,7 +143,7 @@ public:
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // DrawIndexedInstanced parameters.
-    UINT IndexCount = 0;        //Only used in Instances
+    UINT InstanceIndex = 0;        //Only used in Instances
     UINT IndexCount = 0;
     UINT StartIndexLocation = 0;
     int BaseVertexLocation = 0;
