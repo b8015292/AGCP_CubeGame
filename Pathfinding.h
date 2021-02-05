@@ -5,7 +5,7 @@
 #include <array>
 #include <stack>
 #include <vector>
-#include "WorldManager.h"
+//#include "WorldManager.h"
 
 #define MAX_X 12
 #define MAX_Y 12
@@ -33,16 +33,16 @@ class Pathfinding
 {
 public:
 
-	static std::shared_ptr<WorldManager> worldManager;
+	//static std::shared_ptr<WorldManager> worldManager;
 
 	static bool isValid(int x, int y, int z) { //If our Node is an obstacle it is not valid
-		if (!worldManager->GetBlock(XMFLOAT3{(float)x, (float)y, (float)z})->GetActive()) {
+		/*if (!worldManager->GetBlock(XMFLOAT3{(float)x, (float)y, (float)z})->GetActive()) {
 			if (!worldManager->GetBlock(XMFLOAT3{ (float)x, (float)y + 1, (float)z })->GetActive()) {
 				if (worldManager->GetBlock(XMFLOAT3{ (float)x, (float)y - 2, (float)z })->GetActive()) {
 					return true;
 				}
 			}
-		}
+		}*/
 		return false;
 	}
 
