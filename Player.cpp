@@ -1,6 +1,6 @@
 #include "Player.h"
 
-Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
+Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj), mPlayerHealth(100), mPlayerDamage(1) {
 
 }
 
@@ -196,5 +196,16 @@ bool Player::MovementCollisionCheck(float d, float dTime) {
 	mBoundingBox.Transform(nextBoxZ, translateZ);
 
 	return (!(CheckIfCollidingAtBox(nextBoxX) || CheckIfCollidingAtBox(nextBoxZ)));
+}
 
+void Player::increasePlayerHealth(int amount)
+{
+	if (amount >= (mMaxHealth - mPlayerHealth)) mPlayerHealth = mMaxHealth;
+	else mPlayerHealth += amount;
+}
+
+void Player::decreasePlayerHealth(int amount)
+{
+	if (amount > mPlayerHealth) mPlayerHealth = 0;
+	else mPlayerHealth -= amount;
 }

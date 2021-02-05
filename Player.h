@@ -17,6 +17,14 @@ public:
 
     Camera* GetCam() { return &mCamera; };
 
+    int getPlayerHealth() { return mPlayerHealth; }
+    int getPlayerDamage() { return mPlayerDamage; }
+
+    void increasePlayerHealth(int amount);
+    void decreasePlayerHealth(int amount);
+    void increasePlayerDamage(int weaponBonus) { mPlayerDamage += weaponBonus; }
+    void decreasePlayerDamage(int weaponBonus) { mPlayerDamage -= weaponBonus; }
+
 private:
     Camera mCamera;
     bool mJumped = true;
@@ -26,4 +34,8 @@ private:
     const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
     const float mCameraOffsetZ = 2.0f;   //For 3rd person
     const float mCameraOffsetY = 0.6f;  //Height
+
+    int mPlayerHealth;
+    const int mMaxHealth = 100;
+    int mPlayerDamage;
 };
