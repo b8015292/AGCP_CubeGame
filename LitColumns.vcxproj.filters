@@ -78,9 +78,6 @@
     <ClCompile Include="Crafting.cpp">
       <Filter>GameData\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerStats.cpp">
-      <Filter>GameData\Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FrameResource.h">
@@ -166,12 +163,6 @@
     </ClInclude>
     <ClInclude Include="Misc.h">
       <Filter>GameData\Header Files\Items</Filter>
-    </ClInclude>
-    <ClInclude Include="Inventory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PlayerStats.h">
-      <Filter>GameData\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
