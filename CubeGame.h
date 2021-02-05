@@ -9,8 +9,6 @@
 #include "Text.h"
 #include "WorldManager.h"
 #include "Inventory.h"
-#include "Player.h"
-#include "LivingEntities.h"
 
 using Microsoft::WRL::ComPtr;
 //using namespace DirectX;

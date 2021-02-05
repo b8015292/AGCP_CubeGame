@@ -154,11 +154,10 @@
     <ClCompile Include="GameData.cpp" />
     <ClCompile Include="CubeGame.cpp" />
     <ClCompile Include="Inventory.cpp" />
-    <ClCompile Include="LivingEntities.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PerlinNoise.cpp" />
     <ClCompile Include="Raycast.cpp" />
-    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="PlayerStats.cpp" />
     <ClCompile Include="Text.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="WorldManager.cpp" />
@@ -180,12 +179,11 @@
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="Item.h" />
-    <ClInclude Include="LivingEntities.h" />
     <ClInclude Include="Misc.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Pathfinding.h" />
     <ClInclude Include="PerlinNoise.h" />
-    <ClInclude Include="Player.h" />
+    <ClInclude Include="PlayerStats.h" />
     <ClInclude Include="Raycast.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="Tool.h" />
