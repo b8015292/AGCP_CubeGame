@@ -3,14 +3,18 @@
 int RenderItem::sCBIndex = -1;
 std::vector<UINT> GameData::sAvailableObjCBIndexes;
 
-RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world) {
-	ObjCBIndex = ++sCBIndex;
+RenderItemParent::RenderItemParent(MeshGeometry* meshGeo, std::string meshName, Material* mat) {
 	Mat = mat;
 	Geo = meshGeo;
 	MeshName = meshName;
 	IndexCount = Geo->DrawArgs[MeshName].IndexCount;
 	StartIndexLocation = Geo->DrawArgs[MeshName].StartIndexLocation;
 	BaseVertexLocation = Geo->DrawArgs[MeshName].BaseVertexLocation;
+}
+
+RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world)
+	: RenderItemParent(meshGeo, meshName, mat){
+	ObjCBIndex = ++sCBIndex;
 	XMStoreFloat4x4(&World, world);
 }
 

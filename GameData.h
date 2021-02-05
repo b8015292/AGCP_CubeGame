@@ -1,13 +1,10 @@
 #pragma once
 
-#include "Common/MathHelper.h"
 #include <string>
 #include <unordered_map>
 
-//#include "Common/GeometryGenerator.h"
 #include "Common/d3dUtil.h"
-
-#include "Inventory.h"
+#include "Common/MathHelper.h"
 
 enum items
 {
@@ -41,6 +38,7 @@ public:
         Main = 0,
         UserInterface,
         Sky,
+        Instance,
         Transparent,
         Count
     };
@@ -118,23 +116,15 @@ private:
 
 };
 
-
-class RenderItem
+class RenderItemParent
 {
 public:
     static int sCBIndex;
 
-    RenderItem() = default;
-    RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
+    RenderItemParent() = default;
+    RenderItemParent(MeshGeometry* meshGeo, std::string meshName, Material* mat);
 
     bool active = true;
-
-    // World matrix of the shape that describes the object's local space
-    // relative to the world space, which defines the position, orientation,
-    // and scale of the object in the world.
-    DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
-
-    DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 
     // Dirty flag indicating the object data has changed and we need to update the constant buffer.
     // Because we have an object cbuffer for each FrameResource, we have to apply the
@@ -153,10 +143,41 @@ public:
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // DrawIndexedInstanced parameters.
+    UINT IndexCount = 0;        //Only used in Instances
     UINT IndexCount = 0;
     UINT StartIndexLocation = 0;
     int BaseVertexLocation = 0;
 };
+
+class RenderItem : public RenderItemParent {
+public:
+    RenderItem() = default;
+    RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
+
+    // World matrix of the shape that describes the object's local space
+    // relative to the world space, which defines the position, orientation,
+    // and scale of the object in the world.
+    DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
+
+    DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+};
+
+class InstanceData {
+    DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
+    DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+    UINT MaterialIndex;
+    UINT InstancePad0;
+    UINT InstancePad1;
+    UINT InstancePad2;
+};
+
+class RenderItemInstance : public RenderItemParent {
+public:
+    RenderItemInstance(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
+
+    std::vector<InstanceData> Instances;
+};
+
 
 class Font {
 public:

@@ -22,8 +22,6 @@
 
 // Constant data that varies per frame.
 
-Texture2D    textureMap : register(t0);
-
 SamplerState gsamPointWrap        : register(s0);
 SamplerState gsamPointClamp       : register(s1);
 SamplerState gsamLinearWrap       : register(s2);
@@ -31,13 +29,13 @@ SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
 
-cbuffer cbPerObject : register(b0)
+cbuffer cbPerObject : register(b0)  //slot 0
 {
     float4x4 gWorld;
     float4x4 gTexTransform;
 };
 
-cbuffer cbMaterial : register(b1)
+cbuffer cbMaterial : register(b1)   //slot 1
 {
 	float4 gDiffuseAlbedo;
     float3 gFresnelR0;
@@ -48,7 +46,7 @@ cbuffer cbMaterial : register(b1)
 };
 
 // Constant data that varies per material.
-cbuffer cbPass : register(b2)
+cbuffer cbPass : register(b2)       //Slot2
 {
     float4x4 gView;
     float4x4 gInvView;
@@ -72,6 +70,8 @@ cbuffer cbPass : register(b2)
     // are spot lights for a maximum of MaxLights per object.
     Light gLights[MaxLights];
 };
+
+Texture2D textureMap : register(t0); //slot 3
  
 struct VertexIn
 {
@@ -197,7 +197,7 @@ float4 TwoDPS(TwoDInput input) : SV_TARGET
 //  Sky
 //*************************************************************************
 
-TextureCube gCubeMap : register(t0);
+TextureCube gCubeMap : register(t0);    //Slot 3
 
 struct SkyVertexOut {
     float4 PosH : SV_POSITION;
@@ -227,3 +227,135 @@ float4 SkyPS(SkyVertexOut pin) : SV_Target
 {
     return gCubeMap.Sample(gsamLinearWrap, pin.PosL);
 }
+
+
+//*************************************************************************
+//  Instanced
+//*************************************************************************
+
+struct InstanceData
+{
+    float4x4 World;
+    float4x4 TexTransform;
+    uint MaterialIndex;
+    uint InstPad0;
+    uint InstPad1;
+    uint InstPad2;
+};
+
+struct MaterialData
+{
+    float4 gDiffuseAlbedo;
+    float3 gFresnelR0;
+    float gRoughness;
+    float4x4 gMatTransform;
+    float4x4 gMatTransformTop;
+    float4x4 gMatTransformBottom;
+    float4x4 MatPad0;
+    uint DiffuseMapIndex;
+    uint mapPad0;
+    uint mapPad1;
+    uint mapPad2;
+};
+
+Texture2D gTextureList[7] : register(t0);    //Occupies registers t0 to t6
+StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
+StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
+
+struct VertexOutInstance
+{
+    float4 PosH : SV_POSITION;
+    float3 PosW : POSITION;
+    float3 NormalW : NORMAL;
+    float2 TexC : TEXCOORD;
+    int Side : SIDE;
+    nointerpolation uint MatIndex : MATINDEX;
+};
+
+VertexOutInstance InstanceVS(VertexIn vin, uint instanceID : SV_InstanceID)
+{
+    VertexOutInstance vout = (VertexOutInstance) 0.0f;
+    
+    //Get the instance data
+    InstanceData instData = gInstanceData[instanceID];
+    float4x4 world = instData.World;
+    float4x4 texTransform = instData.TexTransform;
+    //
+    //
+    //uint matIndex = instData.MaterialIndex;
+    vout.MatIndex = instData.MaterialIndex;
+    
+    //Get the material data
+    //MaterialData mataData = gMaterialData[matIndex];
+    
+    // Transform to world space.
+    float4 posW = mul(float4(vin.PosL, 1.0f), world);
+    vout.PosW = posW.xyz;
+
+    // Assumes nonuniform scaling; otherwise, need to use inverse-transpose of world matrix.
+    vout.NormalW = mul(vin.NormalL, (float3x3) world);
+
+    // Transform to homogeneous clip space.
+    vout.PosH = mul(posW, gViewProj);
+
+    vout.TexC = vin.TexC;
+
+    //Determine the side of the current face. 1 - top, -1 - bottom, 0 - other
+    if (vin.NormalL.y == 1)
+    {
+        vout.Side = 1;
+    }
+    else if (vin.NormalL.y == -1)
+    {
+        vout.Side = -1;
+    }
+    else
+    {
+        vout.Side = 0;
+    }
+    
+    return vout;
+}
+
+float4 InstancePS(VertexOutInstance pin) : SV_Target
+{
+    //Get the material data
+    MaterialData matData = gMaterialData[pin.MatIndex];
+    
+    //Uses different texture positions for different faces
+    float2 mulPos;
+    if(pin.Side == 1)
+        mulPos = mul(float4(pin.TexC, 1, 1), matData.gMatTransformTop);
+    else if (pin.Side == -1)
+        mulPos = mul(float4(pin.TexC, 1, 1), matData.gMatTransformBottom);
+    else 
+        mulPos = mul(float4(pin.TexC, 1, 1), matData.gMatTransform);
+
+    float4 col = gTextureList[matData.DiffuseMapIndex].Sample(gsamPointClamp, mulPos);
+
+    // Interpolating normal can unnormalize it, so renormalize it.
+    pin.NormalW = normalize(pin.NormalW);
+
+    // Vector from point being lit to eye. 
+    float3 toEyeW = normalize(gEyePosW - pin.PosW);
+
+	// Indirect lighting.
+    float4 ambient = gAmbientLight*col;
+
+    //const float shininess = 1.0f - gRoughness;ee
+    const float shininess = 0.0f;
+    Material mat = { col, gFresnelR0, shininess };
+    float3 shadowFactor = 1.0f;
+    float4 directLight = ComputeLighting(gLights, mat, pin.PosW, 
+        pin.NormalW, toEyeW, shadowFactor);
+
+    float4 litColor = ambient + directLight;
+
+    // Common convention to take alpha from diffuse material.
+    //litColor.a = gDiffuseAlbedo.a;
+    //litColor.a = 0.0f;
+
+    return litColor;
+    
+}
+
