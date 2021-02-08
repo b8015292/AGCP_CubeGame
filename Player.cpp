@@ -51,6 +51,8 @@ void Player::Walk(float d, float dTime) {
 
 	if (!(CheckIfCollidingAtBox(nextBoxX) && CheckIfCollidingAtBox(nextBoxZ))) {
 
+		if (mDiagonal) d = d / 2;
+
 		mCamera.Walk(d, dTime);
 
 		DirectX::XMMATRIX oldWorldMatrix;
@@ -117,6 +119,8 @@ void Player::Strafe(float d, float dTime) {
 	mBoundingBox.Transform(nextBoxX, translate);
 
 	if (!CheckIfCollidingAtBox(nextBoxX)) {
+
+		if (mDiagonal) d = d / 2;
 
 		mCamera.Strafe(d, dTime);
 
