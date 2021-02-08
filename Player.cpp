@@ -11,8 +11,10 @@ void Player::Update(const float dTime) {
 		//Create a bounding box in the next location in the Y axis to check ceiling collision
 		BoundingBox positiveOffset;
 		BoundingBox negativeOffset;
+		//Create an added offset to each side of the cube so player can jump while against an edge
 		mBoundingBox.Transform(negativeOffset, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
 		mBoundingBox.Transform(positiveOffset, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
+
 		if (!(CheckIfCollidingAtBox(negativeOffset) && CheckIfCollidingAtBox(positiveOffset))) {
 
 			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
