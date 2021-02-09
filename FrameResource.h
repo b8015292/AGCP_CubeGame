@@ -12,6 +12,18 @@ struct ObjectConstants
 	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
 };
 
+struct InstanceConstants
+{
+    DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
+    DirectX::XMFLOAT4X4 padding1 = MathHelper::Identity4x4();
+    DirectX::XMFLOAT4X4 padding2 = MathHelper::Identity4x4();
+    DirectX::XMFLOAT4X3 padding3;
+    UINT MaterialIndex = 0;
+    UINT Padding0 = 0;
+    UINT Padding1 = 0;
+    UINT Padding2 = 0;
+};
+
 struct PassConstants
 {
     DirectX::XMFLOAT4X4 View = MathHelper::Identity4x4();
@@ -58,7 +70,7 @@ public:
     std::unique_ptr<UploadBuffer<PassConstants>> PassCB = nullptr;
     std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
     std::unique_ptr<UploadBuffer<ObjectConstants>> ObjectCB = nullptr;
-    std::unique_ptr<UploadBuffer<InstanceData>> InstanceCB = nullptr;
+    std::unique_ptr<UploadBuffer<InstanceConstants>> InstanceCB = nullptr;
 
 
     // Fence value to mark commands up to this fence point.  This lets us

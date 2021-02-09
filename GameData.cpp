@@ -18,6 +18,12 @@ RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* ma
 	XMStoreFloat4x4(&World, world);
 }
 
+RenderItemInstance::RenderItemInstance(MeshGeometry* meshGeo, std::string meshName, Material* mat) 
+	: RenderItemParent(meshGeo, meshName, mat)
+{
+
+}
+
 UINT GameData::GetObjectCBIndex() {
 	UINT ret = sAvailableObjCBIndexes.at(sAvailableObjCBIndexes.size() - 1);
 	sAvailableObjCBIndexes.pop_back();
@@ -34,6 +40,20 @@ void GameData::StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMF
 		source._41, source._42, source._43, source._44);
 
 	dest = newMatrix;
+}
+
+RenderItemInstance& RenderItemInstance::operator=(const RenderItemInstance& rii) {
+	InstanceCount = rii.InstanceCount;
+	Instances = rii.Instances;
+
+	Mat = rii.Mat;
+	Geo = rii.Geo;
+	MeshName = rii.MeshName;
+	IndexCount = rii.IndexCount;
+	StartIndexLocation = rii.StartIndexLocation;
+	BaseVertexLocation = rii.BaseVertexLocation;
+
+	return (*this);
 }
 
 std::wstring GameData::StringToWString(std::string s) {
