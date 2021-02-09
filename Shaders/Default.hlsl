@@ -236,26 +236,29 @@ float4 SkyPS(SkyVertexOut pin) : SV_Target
 struct InstanceData
 {
     float4x4 World;
-    float4x4 TexTransform;
+    float4x4 pad1;
+    float4x4 pad2;
+    float4x3 pad3;
     uint MaterialIndex;
-    uint InstPad0;
-    uint InstPad1;
-    uint InstPad2;
+    uint pad4;
+    uint pad5;
+    uint pad6;
 };
 
 struct MaterialData
 {
+
     float4 gDiffuseAlbedo;
     float3 gFresnelR0;
     float gRoughness;
     float4x4 gMatTransform;
     float4x4 gMatTransformTop;
     float4x4 gMatTransformBottom;
-    float4x4 MatPad0;
+    float4 pad1;
     uint DiffuseMapIndex;
-    uint mapPad0;
-    uint mapPad1;
-    uint mapPad2;
+    uint pad2;
+    uint pad3;
+    uint pad4;
 };
 
 Texture2D gTextureList[7] : register(t0);    //Occupies registers t0 to t6
@@ -279,15 +282,8 @@ VertexOutInstance InstanceVS(VertexIn vin, uint instanceID : SV_InstanceID)
     //Get the instance data
     InstanceData instData = gInstanceData[instanceID];
     float4x4 world = instData.World;
-    float4x4 texTransform = instData.TexTransform;
-    //
-    //
-    //uint matIndex = instData.MaterialIndex;
     vout.MatIndex = instData.MaterialIndex;
-    
-    //Get the material data
-    //MaterialData mataData = gMaterialData[matIndex];
-    
+
     // Transform to world space.
     float4 posW = mul(float4(vin.PosL, 1.0f), world);
     vout.PosW = posW.xyz;
@@ -331,7 +327,7 @@ float4 InstancePS(VertexOutInstance pin) : SV_Target
     else 
         mulPos = mul(float4(pin.TexC, 1, 1), matData.gMatTransform);
 
-    float4 col = gTextureList[matData.DiffuseMapIndex].Sample(gsamPointClamp, mulPos);
+    float4 col = gTextureList[matData.DiffuseMapIndex].Sample(gsamPointClamp, mulPos);    
 
     // Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
@@ -353,7 +349,6 @@ float4 InstancePS(VertexOutInstance pin) : SV_Target
 
     // Common convention to take alpha from diffuse material.
     //litColor.a = gDiffuseAlbedo.a;
-    //litColor.a = 0.0f;
 
     return litColor;
     

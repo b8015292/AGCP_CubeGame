@@ -62,7 +62,7 @@ private:
     virtual void Draw(const GameTimer& gt)override;
     void GenerateListOfActiveItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems);
-    void DrawInstanceItems(ID3D12GraphicsCommandList* cmdList, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ritems);
+    void DrawInstanceItems(ID3D12GraphicsCommandList* cmdList);
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();   //Creates the static samples - different ways to interperate textures
 
 
@@ -82,7 +82,7 @@ private:
     //Makes a material with a different top and bottom texture
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
     //Makes a cube
-    void CreateCube(std::string materialName, XMFLOAT3 pos);
+    //void CreateCube(std::string materialName, XMFLOAT3 pos);
 
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
@@ -118,6 +118,7 @@ private:
 
     // Render items divided by PSO.
     std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[(int)GameData::RenderLayer::Count];
+    std::shared_ptr<std::vector<std::shared_ptr<RenderItemInstance>>> mRitemIntances;
 
     PassConstants mMainPassCB;
 
@@ -147,6 +148,9 @@ private:
     bool mRightMouseDown = false;
     float mRightMouseDownTimer = 0.f;
     float mRightMouseDownTimerMax = 0.3f;
+
+    std::unordered_map<std::string, int> mTextureSRVPositions;
+    int mTextureSRVMax = 0;
 
     //Block textures
     const int mBlockTexSize = 32;

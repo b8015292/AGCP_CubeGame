@@ -234,6 +234,11 @@ struct MaterialConstants
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 MatTransformTop = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 MatTransformBottom = MathHelper::Identity4x4();
+    DirectX::XMFLOAT4 pad0;
+    UINT DiffuseMapIndex = 0;
+    UINT pad1 = 0;
+    UINT pad2 = 0;
+    UINT pad3 = 0;
 };
 
 // Simple struct to represent a material for our demos.  A production 3D engine

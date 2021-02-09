@@ -48,46 +48,46 @@ public:
 
 	class Chunk {
 	public:
+		//Initializers
 		Chunk(Pos pos);
-		//~Chunk() = default;
 		void Init(Pos pos);
-
 		Chunk& operator=(Chunk& c);
 
+		//Getters
 		bool GetAcitve() { return mActive; };
 		Pos GetPos() { return mPosition; };
-		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetBlocks() { return mBlocks; };
-		std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> GetRItems() { return mRItems; };
-		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetActiveBlocks() { return mActiveBlocks; };
 		int GetID() { return mID; };
+		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetBlocks() { return mBlocks; };
+		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> GetInstanceDatas() { return mInstanceDatas; };
+		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetActiveBlocks() { return mActiveBlocks; };
 
-		//Iterators
-		size_t GetBlockStartIndex() { return mBlockStartIndex; };
-		size_t GetGObjStartIndex() { return mGObjStartIndex; };
-		size_t GetRIStartIndex() { return mRIStartIndex; };
-
-		void SetStartIndexes(size_t block, size_t obj, size_t ri) {
-			mBlockStartIndex = block; mGObjStartIndex = obj; mRIStartIndex = ri; }
-		void SetBlockStartIndex(size_t b) { mBlockStartIndex = b; };
-		void SetObjStartIndex(size_t b) { mGObjStartIndex = b; };
-		void SetRIStartIndex(size_t b) { mRIStartIndex = b; };
-
-
+		//Setters
 		void SetAcitve(bool active) { mActive = active; };
 
+		//Iterators
+		//Get
+		size_t GetBlockStartIndex() { return mBlockStartIndex; };
+		size_t GetGObjStartIndex() { return mGObjStartIndex; };
+		size_t GetInstanceStartIndex() { return mInstanceStartIndex; };
+		//Setters
+		void SetStartIndexes(size_t block, size_t obj, size_t inst) {
+			mBlockStartIndex = block; mGObjStartIndex = obj; mInstanceStartIndex = inst; }
+		void SetBlockStartIndex(size_t b) { mBlockStartIndex = b; };
+		void SetObjStartIndex(size_t b) { mGObjStartIndex = b; };
+		void SetInstanceStartIndex(size_t b) { mInstanceStartIndex = b; };
 
 	private:
 		bool mActive = false;
 		Pos mPosition; //Bottom left front corner. (-x, -y, -z)
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> mBlocks;
-		std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRItems;
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> mActiveBlocks;
+		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> mInstanceDatas;
 
 		int mID = -1;
 
 		size_t mBlockStartIndex = -1;
 		size_t mGObjStartIndex = -1;
-		size_t mRIStartIndex = -1;
+		size_t mInstanceStartIndex = -1;
 	};
 
 	WorldManager();
@@ -95,6 +95,7 @@ public:
 
 	void Init(std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> geos,
 		std::shared_ptr < std::unordered_map<std::string, std::shared_ptr<Material>>> mats,
+		std::shared_ptr<RenderItemInstance> blockRI,
 		std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[]);
 	void CreateWorld();
 
@@ -122,7 +123,7 @@ public:
 	void PrintChunkOrder();
 
 private:
-	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> ris);
+	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
 	//IsChunkCoordValid should be called before this.
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
 	UINT GetRenderItemCount();
@@ -131,6 +132,7 @@ private:
 	static std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> sGeometries;
 	static std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> sMaterials;
 	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[(int)GameData::RenderLayer::Count];
+	std::shared_ptr<RenderItemInstance> mCubeRI;
 
 	static PerlinNoise sNoise;
 	std::vector<std::shared_ptr<Chunk>> mChunks;
@@ -145,8 +147,6 @@ private:
 	const int mMaxHeight = 3;
 	//The length and depth of the world (in chunks)
 	const int mMaxLength = 6;
-
-	const int mRenderLayer = (int)GameData::RenderLayer::Instance;
 
 	int mLoadedChunksAroundCurrentChunk = 1; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
 	int mChunksToLoad;

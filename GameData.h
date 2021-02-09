@@ -38,8 +38,6 @@ public:
         Main = 0,
         UserInterface,
         Sky,
-        Instance,
-        Transparent,
         Count
     };
 
@@ -119,18 +117,10 @@ private:
 class RenderItemParent
 {
 public:
-    static int sCBIndex;
-
     RenderItemParent() = default;
     RenderItemParent(MeshGeometry* meshGeo, std::string meshName, Material* mat);
 
     bool active = true;
-
-    // Dirty flag indicating the object data has changed and we need to update the constant buffer.
-    // Because we have an object cbuffer for each FrameResource, we have to apply the
-    // update to each FrameResource.  Thus, when we modify obect data we should set 
-    // NumFramesDirty = GameData.sNumFrameResources so that each frame resource gets the update.
-    int NumFramesDirty = gNumFrameResources;
 
     // Index into GPU constant buffer corresponding to the ObjectCB for this render item.
     UINT ObjCBIndex = -1;
@@ -143,7 +133,6 @@ public:
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // DrawIndexedInstanced parameters.
-    UINT InstanceIndex = 0;        //Only used in Instances
     UINT IndexCount = 0;
     UINT StartIndexLocation = 0;
     int BaseVertexLocation = 0;
@@ -151,6 +140,8 @@ public:
 
 class RenderItem : public RenderItemParent {
 public:
+    static int sCBIndex;
+
     RenderItem() = default;
     RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
 
@@ -160,22 +151,44 @@ public:
     DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
 
     DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+
+    int NumFramesDirty = gNumFrameResources;
 };
 
 class InstanceData {
+public:
+    InstanceData() = default;
+    InstanceData(DirectX::XMMATRIX world,UINT materialIndex) {
+        XMStoreFloat4x4(&World, world);
+        MaterialIndex = materialIndex;
+    };
+    InstanceData& operator=(const InstanceData& id) {
+        World = id.World;
+        TexTransform = id.TexTransform;
+        MaterialIndex = id.MaterialIndex;
+        NumFramesDirty = id.NumFramesDirty;
+        return (*this);
+    }
+
     DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
     DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
-    UINT MaterialIndex;
-    UINT InstancePad0;
-    UINT InstancePad1;
-    UINT InstancePad2;
+    UINT MaterialIndex = 0;
+    UINT NumFramesDirty = gNumFrameResources;
+    UINT InstancePad1 = 0;
+    bool Active = true;
+    bool Pad2 = false;
+    bool Pad3 = false;
+    bool Pad4 = false;
 };
 
 class RenderItemInstance : public RenderItemParent {
 public:
-    RenderItemInstance(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
+    RenderItemInstance() = default;
+    RenderItemInstance(MeshGeometry* meshGeo, std::string meshName, Material* mat);
+    RenderItemInstance& operator=(const RenderItemInstance& rii);
 
-    std::vector<InstanceData> Instances;
+    UINT InstanceCount = 0;
+    std::vector<std::shared_ptr<InstanceData>> Instances;
 };
 
 
