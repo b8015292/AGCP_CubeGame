@@ -54,7 +54,7 @@ public:
 	DirectX::XMFLOAT4X4 GetView4x4f()const;
 	DirectX::XMFLOAT4X4 GetProj4x4f()const;
 
-	//jump
+	// jump
 	void Jump(float dTime, float x, float y, float z);
 
 	// Strafe/Walk the camera a distance d.
@@ -68,7 +68,7 @@ public:
 	// After modifying camera position/orientation, call to rebuild the view matrix.
 	void UpdateViewMatrix();
 
-	//
+	//does the matrix need updating?
 	bool GetDirtyView() { return mViewDirty; };
 
 private:

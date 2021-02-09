@@ -8,12 +8,12 @@ void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 	if (mApplyGravity)
 	{
-		//Create a bounding box in the next location in the Y axis (X and Z are handled within the Walk and Strafe functions)
-		BoundingBox nextBox1;
-		BoundingBox nextBox2;
-		mBoundingBox.Transform(nextBox1, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
-		mBoundingBox.Transform(nextBox2, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
-		if (!(CheckIfCollidingAtBox(nextBox1) || CheckIfCollidingAtBox(nextBox1))) {
+		//Create a bounding box in the next location in the Y axis to check ceiling collision
+		BoundingBox positiveOffset;
+		BoundingBox negativeOffset;
+		mBoundingBox.Transform(negativeOffset, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
+		mBoundingBox.Transform(positiveOffset, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
+		if (!(CheckIfCollidingAtBox(negativeOffset) && CheckIfCollidingAtBox(positiveOffset))) {
 
 			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
 		}
@@ -50,6 +50,8 @@ void Player::Walk(float d, float dTime) {
 	mBoundingBox.Transform(nextBoxZ, translateZ);
 
 	if (!(CheckIfCollidingAtBox(nextBoxX) && CheckIfCollidingAtBox(nextBoxZ))) {
+
+		if (mDiagonal) d = d / 2;
 
 		mCamera.Walk(d, dTime);
 
@@ -118,6 +120,8 @@ void Player::Strafe(float d, float dTime) {
 
 	if (!CheckIfCollidingAtBox(nextBoxX)) {
 
+		if (mDiagonal) d = d / 2;
+
 		mCamera.Strafe(d, dTime);
 
 
@@ -185,7 +189,7 @@ void Player::RotateY(float dx) {
 bool Player::MovementCollisionCheck(float d, float dTime) {
 
 	//add 20% extra distance to next box collision calculation to make sure player doesnt travel into box next move
-	float addedCollisionOffset = (d * 1.25) * dTime;
+	float addedCollisionOffset = (d * 1.25f) * dTime;
 
 	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
 	BoundingBox nextBoxX;
