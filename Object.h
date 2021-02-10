@@ -28,28 +28,26 @@ public:
 
     //Getters and Setters
     bool GetActive() { return mActive; };
-    void SetActive(bool val);
+    virtual void SetActive(bool val);
     int GetID() { return mID; };
     bool GetApplyGravity() { return mApplyGravity; };
-    std::array<XMFLOAT3, 8> GetCoords();
-    BoundingBox GetBoundingBox() { return mBoundingBox; };
+    virtual std::array<XMFLOAT3, 8> GetCoords();
+    virtual BoundingBox GetBoundingBox() { return mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };
-    void SetPosition(XMFLOAT3 pos);
+    virtual void SetPosition(XMFLOAT3 pos);
 
 
     bool GetDirty() { return mDirty; };
     //If the object has been changed call this.
     void SetDirtyFlag() { mDirty = true; };
     //At the end of each update, if the object is dirty the render item is made dirty
-    void SetRIDirty() { mRI->NumFramesDirty++; mDirty = false; };
+    virtual void SetRIDirty() { mRI->NumFramesDirty++; mDirty = false; };
 
     //Mutators
-    void Translate(const float dTime, float x, float y, float z);
-
-private:
-    bool mActive = true;        //This can only be affected by the SetActive function because it's value needs to match the render item's value
+    virtual void Translate(const float dTime, float x, float y, float z);
 
 protected:
+    bool mActive = true;
     int mID = 0;
     bool mApplyGravity = true;
     bool mDirty = false;
@@ -91,29 +89,39 @@ protected:
     bool mMoved = false;
 };
 
-class Block : public GameObject {
+class Block : public GameObject{
 public:
+    //Static variables
     static std::shared_ptr<std::vector<std::shared_ptr<Block>>> sAllBlocks;
+    static std::shared_ptr<RenderItemInstance> sBlockInstance;
 
-    Block();
-    Block(std::shared_ptr<GameObject> GObj);
-    Block(std::shared_ptr<RenderItem> rI);
-
+    //Static functions
     static GeometryGenerator::MeshData CreateCubeGeometry(float width, float height, float depth, float texWidth, float texHeight);
 
-    void Init();
+    //Constructor
+    Block(std::shared_ptr<InstanceData> idata);
 
+    //Getters
     float GetDurability() { return mDurability; };
-    
-    //static void SetTexturePositions(const int mBlockTexSize, const int mBlockTexRows,const int mBlockTexCols, const std::string mBlockTexNames[]);
+    int GetInstanceIndex() { return mInstanceIndex; };
+    std::shared_ptr<InstanceData> GetInstanceData() { return mInstanceData; };
 
-    float *getWorldCoords();
+    void SetActive(bool val)override;
+    void SetRIDirty() override { mInstanceData->NumFramesDirty++; mDirty = false; };
+
+    std::array<XMFLOAT3, 8> GetCoords() override;
+    void SetPosition(XMFLOAT3 pos) override;
+    void Translate(const float dTime, float x, float y, float z) override;
+
+
+    
 private:
+    std::shared_ptr<InstanceData> mInstanceData;
+    int mInstanceIndex = -1;
+
     const float blockDimension = 1.0f;
     float worldCoord[3];
 
     float mDurability = 1.f;
-    //static std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
-    //void SetTexture(blockType type);
 
 };
