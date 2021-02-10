@@ -57,6 +57,7 @@ bool CubeGame::Initialize()
 	mAllUIs = std::make_shared<std::unordered_map<std::string, std::shared_ptr<UI>>>();
 	mGeometries = std::make_shared<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>>();
 	mMaterials = std::make_shared<std::unordered_map<std::string, std::shared_ptr<Material>>>();
+	mMaterialIndexes = std::make_shared<std::unordered_map<std::string, int>>();
 	for(int i = 0; i < (int)GameData::RenderLayer::Count; i++)
 		mRitemLayer[i] = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 
@@ -256,7 +257,7 @@ void CubeGame::Update(const GameTimer& gt)
 		}
 
 		if (mPlayerMoved) {
-			//mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
+			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
 			mPlayerMoved = false;
 		}
 
@@ -323,6 +324,13 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
+	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+	mUI_Text->UpdateBuffer();
+	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
 	//Instance*************
 	mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
 	//Set the material buffer
@@ -333,17 +341,6 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	DrawInstanceItems(mCommandList.Get());
 	//**********************
-
-
-	//mCommandList->SetPipelineState(mPSOs["pso_main"].Get());
-	//DrawRenderItems(mCommandList.Get(), mActiveRItems);
-
-	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
-
-	mUI_Text->UpdateBuffer();
-	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -774,8 +771,6 @@ void CubeGame::CreateTextureSRV(std::string textureName, CD3DX12_CPU_DESCRIPTOR_
 
 	//Creates the SRV
 	md3dDevice->CreateShaderResourceView(fontTex.Get(), &srvDesc, handle);
-
-	mTextureSRVPositions[textureName] = mTextureSRVMax++;
 }
 
 void CubeGame::BuildDescriptorHeaps() {
@@ -1079,8 +1074,11 @@ void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVEC
 	DirectX::XMStoreFloat4x4(&mat->MatTransformTop, trans);
 	DirectX::XMStoreFloat4x4(&mat->MatTransformBottom, trans);
 
-	std::pair<std::string, std::shared_ptr<Material>> pair(name, mat);
-	mMaterials->insert(pair);
+	std::pair<std::string, std::shared_ptr<Material>> materialPair(name, mat);
+	std::pair<std::string, int> indexPair(name, (int)mMaterials->size());
+
+	mMaterials->insert(materialPair);
+	mMaterialIndexes->insert(indexPair);
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom) {
@@ -1121,7 +1119,7 @@ void CubeGame::BuildGameObjects()
 	mRitemIntances->push_back(blockRI);
 	Block::sBlockInstance = blockRI;
 
-	mWorldMgr.Init(mGeometries, mMaterials, mRitemIntances->at(0), mRitemLayer);
+	mWorldMgr.Init(mMaterialIndexes);
 	mWorldMgr.CreateWorld();
 	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnZ);
 }

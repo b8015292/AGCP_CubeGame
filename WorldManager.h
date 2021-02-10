@@ -93,10 +93,7 @@ public:
 	WorldManager();
 	~WorldManager();
 
-	void Init(std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> geos,
-		std::shared_ptr < std::unordered_map<std::string, std::shared_ptr<Material>>> mats,
-		std::shared_ptr<RenderItemInstance> blockRI,
-		std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[]);
+	void Init(std::shared_ptr<std::unordered_map<std::string, int>> materialIndexes);
 	void CreateWorld();
 
 	void UpdatePlayerPosition(DirectX::XMFLOAT3 pos);
@@ -125,14 +122,12 @@ public:
 private:
 	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
 	//IsChunkCoordValid should be called before this.
+
+	//Get the chunk from its chunk-coordiantes
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
-	UINT GetRenderItemCount();
 
 private:
-	static std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> sGeometries;
-	static std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> sMaterials;
-	std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> mRitemLayer[(int)GameData::RenderLayer::Count];
-	std::shared_ptr<RenderItemInstance> mCubeRI;
+	static std::shared_ptr<std::unordered_map<std::string, int>> sMaterialIndexes;
 
 	static PerlinNoise sNoise;
 	std::vector<std::shared_ptr<Chunk>> mChunks;

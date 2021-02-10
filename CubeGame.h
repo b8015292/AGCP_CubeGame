@@ -104,6 +104,7 @@ private:
 
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> mGeometries;
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> mMaterials;
+    std::shared_ptr<std::unordered_map<std::string, int>> mMaterialIndexes;
     std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
     std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
     std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
@@ -148,9 +149,6 @@ private:
     bool mRightMouseDown = false;
     float mRightMouseDownTimer = 0.f;
     float mRightMouseDownTimerMax = 0.3f;
-
-    std::unordered_map<std::string, int> mTextureSRVPositions;
-    int mTextureSRVMax = 0;
 
     //Block textures
     const int mBlockTexSize = 32;

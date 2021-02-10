@@ -1,8 +1,7 @@
 #include "WorldManager.h"
 
 PerlinNoise WorldManager::sNoise = PerlinNoise();
-std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> WorldManager::sGeometries = nullptr;
-std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> WorldManager::sMaterials = nullptr;
+std::shared_ptr<std::unordered_map<std::string, int>> WorldManager::sMaterialIndexes = nullptr;
 int WorldManager::sChunkMaxID = 0;
 
 //************************************************************************
@@ -81,25 +80,12 @@ WorldManager::WorldManager(){
 }
 
 WorldManager::~WorldManager() {
-	sMaterials.reset();
-	sGeometries.reset();
+	sMaterialIndexes.reset();
 	mChunks.clear();
-
-	for (int i = 0; i < (int)GameData::RenderLayer::Count; i++){
-		mRitemLayer[i].reset();
-	}
 }
 
-void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>> geos,
-						std::shared_ptr < std::unordered_map<std::string, std::shared_ptr<Material>>> mats,
-						std::shared_ptr<RenderItemInstance> blockRI,
-						std::shared_ptr<std::vector<std::shared_ptr<RenderItem>>> riLayers[]) {
-	WorldManager::sGeometries = geos;
-	WorldManager::sMaterials = mats;
-	mCubeRI = blockRI;
-
-	for (int i = 0; i < (int)GameData::RenderLayer::Count; i++)
-		mRitemLayer[i] = riLayers[i];
+void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, int>> mats) {
+	WorldManager::sMaterialIndexes = mats;
 
 	mChangeInPlayerPos = Pos();
 	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
@@ -114,21 +100,11 @@ void WorldManager::CreateWorld() {
 			}
 		}
 	}
-	//DB
-	//for (int z = 0; z < mMaxLength; z++) {
-	//	for (int y = 0; y < mMaxHeight; y++) {
-	//		for (int x = 0; x < mMaxLength; x++) {
-	//			std::shared_ptr<Chunk> c = GetChunk(x, y, z);
-	//			Pos p = c->GetPos();
-	//			GameData::Print(std::to_string(c->GetID()) + ": x" + std::to_string(p.x) + ". y" + std::to_string(p.y) + ". z" + std::to_string(p.z) + '\n');
-	//		}
-	//	}
-	//}
 }
 
 void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances) {
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
-	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), 2);
+	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName));
 	blockInstances->push_back(idata);
 
 	//Create the block directly inside the block list
@@ -204,18 +180,19 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 	if (!IsChunkCoordValid(old.x, old.y, old.z) || !IsChunkCoordValid(neew.x, neew.y, neew.z))
 		return;
 
+	//Get the chunks
 	std::shared_ptr<Chunk> oldChunk = GetChunk(old.x, old.y, old.z);
 	std::shared_ptr<Chunk> newChunk = GetChunk(neew.x, neew.y, neew.z);
 
-	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> oldRIs = oldChunk->GetInstanceDatas();
-	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> newRIs = newChunk->GetInstanceDatas();
-
-
+	//Check they are/aren't active. Then set their new active state
 	if (!oldChunk->GetAcitve() || newChunk->GetAcitve())
 		return;
-
 	oldChunk->SetAcitve(false);
 	newChunk->SetAcitve(true);
+
+	//Get the block instance datas to swap
+	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> oldRIs = oldChunk->GetInstanceDatas();
+	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> newRIs = newChunk->GetInstanceDatas();
 
 	//Copy the chunk into the main lists, replacing the old chunk
 	std::copy(newChunk->GetBlocks()->begin(), newChunk->GetBlocks()->end(), Block::sAllBlocks->begin() + oldChunk->GetBlockStartIndex());
@@ -230,14 +207,6 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 	//Set the new iterators
 	newChunk->SetStartIndexes(oldChunk->GetBlockStartIndex(), oldChunk->GetGObjStartIndex(), oldChunk->GetInstanceStartIndex());
 	oldChunk->SetStartIndexes(-1, -1, -1);
-}
-
-UINT WorldManager::GetRenderItemCount() {
-	size_t r = 0;
-	for (size_t i = 0; i < (size_t)GameData::RenderLayer::Count; i++) {
-		r += mRitemLayer[i]->size();
-	}
-	return (UINT)r;
 }
 
 std::shared_ptr<Block> WorldManager::GetBlock(DirectX::XMFLOAT3 pos) {
