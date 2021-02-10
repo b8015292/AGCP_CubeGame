@@ -94,7 +94,9 @@ void LivingEntity::WalkToBlock(XMFLOAT3 blockLocation) {
 	destination.y = blockLocation.y;
 	destination.z = blockLocation.z;
 
-	Node node = Pathfinding::aStar(player, destination).at(0);
+	Pathfinding pf = Pathfinding();
+
+	Node node = pf.aStar(player, destination).at(0);
 	walkTo = XMFLOAT3{ (float)node.x, (float)node.y, (float)node.z };
 	direction = XMVECTOR{ walkTo.x - mBoundingBox.Center.x, walkTo.y - mBoundingBox.Center.y, walkTo.z - mBoundingBox.Center.z };
 

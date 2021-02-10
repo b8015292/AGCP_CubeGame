@@ -5,7 +5,7 @@
 #include <array>
 #include <stack>
 #include <vector>
-//#include "WorldManager.h"
+#include "WorldManager.h"
 
 #define MAX_X 12
 #define MAX_Y 12
@@ -33,20 +33,20 @@ class Pathfinding
 {
 public:
 
-	//static std::shared_ptr<WorldManager> worldManager;
+	std::shared_ptr<WorldManager> worldManager;
 
-	static bool isValid(int x, int y, int z) { //If our Node is an obstacle it is not valid
-		/*if (!worldManager->GetBlock(XMFLOAT3{(float)x, (float)y, (float)z})->GetActive()) {
+	bool isValid(int x, int y, int z) { //If our Node is an obstacle it is not valid
+		if (!worldManager->GetBlock(XMFLOAT3{(float)x, (float)y, (float)z})->GetActive()) {
 			if (!worldManager->GetBlock(XMFLOAT3{ (float)x, (float)y + 1, (float)z })->GetActive()) {
 				if (worldManager->GetBlock(XMFLOAT3{ (float)x, (float)y - 2, (float)z })->GetActive()) {
 					return true;
 				}
 			}
-		}*/
+		}
 		return false;
 	}
 
-    static bool isDestination(int x, int y, int z, Node destination)
+    bool isDestination(int x, int y, int z, Node destination)
     {
         if (x == destination.x && y == destination.y && z == destination.z) {
             return true;
@@ -54,13 +54,13 @@ public:
         return false;
     }
 
-    static double calculateH(int x, int y, int z, Node destination) 
+    double calculateH(int x, int y, int z, Node destination) 
     {
         double H = sqrt((x - destination.x) * (x - destination.x) + (y - destination.y) * (y - destination.y) + (z - destination.z) * (z - destination.z));
         return H;
     }
 
-    static std::vector<Node> makePath(std::array<std::array<std::array<Node, MAX_Z>, MAX_Y>, MAX_X> map, Node destination)
+    std::vector<Node> makePath(std::array<std::array<std::array<Node, MAX_Z>, MAX_Y>, MAX_X> map, Node destination)
     {
 		int x = destination.x;
 		int y = destination.y;
@@ -90,7 +90,7 @@ public:
 		return usablePath;
 	}
 
-	static std::vector<Node> aStar(Node start, Node destination) {
+	std::vector<Node> aStar(Node start, Node destination) {
 		std::vector<Node> empty;
 
 		//TODO: Check if the destination is not air		

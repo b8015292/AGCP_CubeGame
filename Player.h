@@ -32,7 +32,7 @@ private:
     bool mJumped = true;
     bool mDiagonal = false;
 
-    DirectX::XMMATRIX mnewWorldMatrix;
+    //DirectX::XMMATRIX mnewWorldMatrix;
 
     const float mJumpOffset = 0.2f;      //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
     const float mCameraOffsetZ = 2.0f;   //For 3rd person
