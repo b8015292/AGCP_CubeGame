@@ -174,9 +174,9 @@ public:
     DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
     UINT MaterialIndex = 0;
     UINT NumFramesDirty = gNumFrameResources;
-    UINT InstancePad1 = 0;
+    UINT BufferIndex = -1;
     bool Active = true;
-    bool Pad2 = false;
+    bool Visible = false;
     bool Pad3 = false;
     bool Pad4 = false;
 };

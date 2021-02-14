@@ -85,7 +85,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->GetCam()->SetPosition(mPlayerSpawnX, 50.0f, mPlayerSpawnZ);
+	mPlayer->GetCam()->SetPosition(mPlayerSpawnX, 26.0f, mPlayerSpawnZ);
 	mPlayer->Walk(0, 0);
 
     // Execute the initialization commands.
@@ -413,14 +413,18 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 
 void CubeGame::UpdateBlockSelector() {
 	std::shared_ptr<Block> block = Raycast::GetFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+	//If the block is active
 	if (block != nullptr && block->GetActive()) {
+		//If the previous block ins't the same as the new block
 		if (mPreviousSelectedBlock == nullptr || block->GetID() != mPreviousSelectedBlock->GetID()) {
 			mPreviousSelectedBlock = block;
 
+			//Activate and set the position and material of the block selector
 			mBlockSelector->SetActive(true);
 			mBlockSelector->SetPosition(block->GetBoundingBox().Center);
 			mBlockSelector->GetRI()->Mat = mMaterials->at("mat_blockSelect").get();
 
+			//Set the block breaker visual timers
 			mBlockSelectorTimer = 0.f;
 			mBlockSelectorTextureCount = 0;
 			mCurrentBlockDurability = block->GetDurability();
@@ -805,6 +809,9 @@ void CubeGame::BuildDescriptorHeaps() {
 	srvDesc.Texture2D.MipLevels = skyTex->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	md3dDevice->CreateShaderResourceView(skyTex.Get(), &srvDesc, hDescriptor);
+
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_blockSelect", hDescriptor);
 }
 
 void CubeGame::BuildShapeGeometry()
@@ -1115,6 +1122,7 @@ void CubeGame::BuildGameObjects()
 	//Block selector---------------
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", mMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(selectorRI);
+	GameObject::sAllGObjs->push_back(mBlockSelector);
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
 
 	//World-------------------------
