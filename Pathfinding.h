@@ -65,13 +65,13 @@ public:
 		int x = destination.x;
 		int y = destination.y;
 		int z = destination.z;
-		std::stack<Node> path;
+		std::stack<Node>* path = new std::stack<Node>();
 		std::vector<Node> usablePath;
 
 		while (!(map[x][y][z].parentX == x && map[x][y][z].parentY == y && map[x][y][z].parentZ  == z)
 			&& map[x][y][z].x != -1 && map[x][y][z].y != -1 && map[x][y][z].z != -1)
 		{
-			path.push(map[x][y][z]);
+			path->push(map[x][y][z]);
 			int tempX = map[x][y][z].parentX;
 			int tempY = map[x][y][z].parentY;
 			int tempZ = map[x][y][z].parentZ;
@@ -80,13 +80,14 @@ public:
 			z = tempZ;
 
 		}
-		path.push(map[x][y][z]);
+		path->push(map[x][y][z]);
 
-		while (!path.empty()) {
-			Node top = path.top();
-			path.pop();
+		while (!path->empty()) {
+			Node top = path->top();
+			path->pop();
 			usablePath.emplace_back(top);
 		}
+		delete path;
 		return usablePath;
 	}
 
@@ -164,9 +165,9 @@ public:
 							if (isDestination(x + newX, y + newY, z + newZ, destination))
 							{
 								//Destination found - make path
-								allMap[x + newX][y + newY][z + newZ].parentX = x;
-								allMap[x + newX][y + newY][z + newZ].parentY = y;
-								allMap[x + newX][y + newY][z + newZ].parentZ = z;
+								allMap[(double)x + newX][(double)y + newY][(double)z + newZ].parentX = x;
+								allMap[(double)x + newX][(double)y + newY][(double)z + newZ].parentY = y;
+								allMap[(double)x + newX][(double)y + newY][(double)z + newZ].parentZ = z;
 								destinationFound = true;
 								return makePath(allMap, destination);
 							}
@@ -176,16 +177,16 @@ public:
 								hNew = calculateH(x + newX, y + newY, z + newZ, destination);
 								fNew = gNew + hNew;
 								// Check if this path is better than the one already present
-								if (allMap[x + newX][y + newY][z + newZ].fCost == FLT_MAX ||
-									allMap[x + newX][y + newY][z + newZ].fCost > fNew)
+								if (allMap[(double)x + newX][(double)y + newY][(double)z + newZ].fCost == FLT_MAX ||
+									allMap[(double)x + newX][(double)y + newY][(double)z + newZ].fCost > fNew)
 								{
 									// Update the details of this neighbour node
-									allMap[x + newX][y + newY][z + newZ].fCost = fNew;
-									allMap[x + newX][y + newY][z + newZ].gCost = gNew;
-									allMap[x + newX][y + newY][z + newZ].hCost = hNew;
-									allMap[x + newX][y + newY][z + newZ].parentX = x;
-									allMap[x + newX][y + newY][z + newZ].parentY = y; 
-									openList.emplace_back(allMap[x + newX][y + newY][z + newZ]);
+									allMap[(double)x + newX][(double)y + newY][(double)z + newZ].fCost = fNew;
+									allMap[(double)x + newX][(double)y + newY][(double)z + newZ].gCost = gNew;
+									allMap[(double)x + newX][(double)y + newY][(double)z + newZ].hCost = hNew;
+									allMap[(double)x + newX][(double)y + newY][(double)z + newZ].parentX = x;
+									allMap[(double)x + newX][(double)y + newY][(double)z + newZ].parentY = y; 
+									openList.emplace_back(allMap[(double)x + newX][(double)y + newY][(double)z + newZ]);
 								}
 							}
 						}
