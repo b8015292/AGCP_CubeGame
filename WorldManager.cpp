@@ -27,14 +27,41 @@ void WorldManager::Chunk::Init(Pos pos) {
 
 			//float noise = roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension),
 			//		(double)worldZ / ((double)WorldManager::sChunkDimension), 0.8));
-			float noise = roundf(40.0f * (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (float)WorldManager::sChunkDimension)) * 0.1f, (double)(worldZ + (pos.z * (float)WorldManager::sChunkDimension)) * 0.1f, 0.8, 6, 10));
+			int minTerrainHeight = 0;
+			float noise = minTerrainHeight + roundf(10.0f * (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 0.8, 6, 20));
+
 
 			for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
+				float oreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
+				float ironoreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
+
 				if (worldY < noise) {
-					CreateCube("mat_dirt",
-						{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-						pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-						pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+					if (worldY < noise - 3) {
+						if (oreNoise > 0.69 && oreNoise < 0.75) {
+							CreateCube("mat_coal_ore",
+								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
+								pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
+								pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+						}
+						else if (ironoreNoise < 0.25) {
+							CreateCube("mat_iron_ore",
+								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
+								pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
+								pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+						}
+						else {
+							CreateCube("mat_stone",
+								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
+								pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
+								pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+						}
+					}
+					else {
+						CreateCube("mat_dirt",
+							{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
+							pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
+							pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+					}
 				}
 				else if(worldY == noise){
 					CreateCube("mat_grass",

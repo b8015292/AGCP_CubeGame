@@ -20,9 +20,9 @@ private:
 
     const float mJumpOffset = 0.2f;     //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
 
-    float walkSpeed;
-    float maxHealth;
-    float health;
+    float walkSpeed = 1;
+    float maxHealth = 10;
+    float health = 10;
 };
 
 class Enemy : public LivingEntity {
