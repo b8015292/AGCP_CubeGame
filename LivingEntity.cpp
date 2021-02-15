@@ -29,7 +29,10 @@ void LivingEntity::Update(const float dTime) {
 			SetDirtyFlag();
 		}
 	}
-	Walk(5.0f, dTime);
+	XMFLOAT3 distance = XMFLOAT3{ walkTo.x - mBoundingBox.Center.x, walkTo.y - mBoundingBox.Center.y, walkTo.z - mBoundingBox.Center.z };
+	if ((distance.x <= 1.5 && distance.x >= -1.5) && (distance.y <= 1.5 && distance.y >= -1.5) && (distance.z <= 1.5 && distance.z >= -1.5)) {
+		Walk(5.0f, dTime);
+	}
 }
 void LivingEntity::Jump() {
 	if (!mJumped) {

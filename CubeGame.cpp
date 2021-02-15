@@ -324,12 +324,14 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
-	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
-
 	mUI_Text->UpdateBuffer();
 	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+
 
 	//Instance*************
 	mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
@@ -1062,6 +1064,9 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_player", 1, DirectX::Colors::Black, { 0,0 });
 	CreateMaterial("mat_dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
 	CreateMaterial("mat_grass", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 2.f,0 }, { x * 3.f,0 }, { x,0 });
+	CreateMaterial("mat_stone", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 4.f,0 });
+	CreateMaterial("mat_coal_ore", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 5.f,0 });
+	CreateMaterial("mat_iron_ore", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 6.f,0 });
 
 	CreateMaterial("mat_sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
 
@@ -1118,7 +1123,8 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Sky]->push_back(skyRI);
 
 	//UI----------------------------
-	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", mMaterials->at("mat_font").get(), XMMatrixIdentity());
+	//auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", mMaterials->at("mat_font").get(), XMMatrixIdentity());
+	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_cube", mMaterials->at("mat_grass").get(), XMMatrixIdentity());
 	mUI_Text->Init(gui1, mCommandList);
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Text->GetRI());
 
