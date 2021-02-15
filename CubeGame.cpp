@@ -450,29 +450,35 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	}
 	else { *mPlayer->getDiagonal() = false; }
 
+	float walkDist = 0.f;
 	if (GetAsyncKeyState('W') & 0x8000) {
-		mPlayer->Walk(5.0f, dt);
+		walkDist += 5.0f;
 		mPlayerChangedView = true;
 		mPlayerMoved = true;
 	}
-
 	if (GetAsyncKeyState('S') & 0x8000) {
-		mPlayer->Walk(-5.0f, dt);
+		walkDist += -5.0f;
 		mPlayerChangedView = true;
 		mPlayerMoved = true;
 	}
+	if(walkDist != 0)
+		mPlayer->Walk(walkDist, dt);
 
+
+	float strafeDist = 0.f;
 	if (GetAsyncKeyState('A') & 0x8000) {
-		mPlayer->Strafe(-5.0f, dt);
+		strafeDist += -5.0f;
 		mPlayerChangedView = true;
 		mPlayerMoved = true;
 	}
-
 	if (GetAsyncKeyState('D') & 0x8000) {
-		mPlayer->Strafe(5.0f, dt);
+		strafeDist += 5.0f;
 		mPlayerChangedView = true;
 		mPlayerMoved = true;
 	}
+	if (strafeDist != 0)
+		mPlayer->Strafe(strafeDist, dt);
+
 
 	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
 		mPlayer->Jump();

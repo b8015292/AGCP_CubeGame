@@ -43,11 +43,14 @@ void Player::Jump() {
 }
 void Player::Walk(float d, float dTime) {
 
-	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(d * dTime, 0.2f, 0);
+	//add 10% extra distance to next box collision calculation to make sure player doesnt travel into box next move
+	float addedCollisionOffset = (d * 1.1f) * dTime;
+
+	DirectX::XMMATRIX translateX = DirectX::XMMatrixTranslation(addedCollisionOffset, 0.2f, 0);
 	BoundingBox nextBoxX;
 	mBoundingBox.Transform(nextBoxX, translateX);
 
-	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, d * dTime);
+	DirectX::FXMMATRIX translateZ = DirectX::XMMatrixTranslation(0, 0.2f, addedCollisionOffset);
 	BoundingBox nextBoxZ;
 	mBoundingBox.Transform(nextBoxZ, translateZ);
 
@@ -69,7 +72,7 @@ void Player::Walk(float d, float dTime) {
 	}
 	else if (CheckIfCollidingAtBox(nextBoxX) && !CheckIfCollidingAtBox(nextBoxZ)) {
 		
-		//if colliding along 
+		//if colliding on x
 
 		if (mDiagonal) d = d / 2;
 
@@ -87,6 +90,8 @@ void Player::Walk(float d, float dTime) {
 	}
 	else if (CheckIfCollidingAtBox(nextBoxZ) && !CheckIfCollidingAtBox(nextBoxX)) {
 		
+		//if colliding on z
+
 		if (mDiagonal) d = d / 2;
 
 		mCamera.Walk(2, d, dTime);
@@ -101,6 +106,8 @@ void Player::Walk(float d, float dTime) {
 
 		SetDirtyFlag();
 	}
+
+
 
 
 

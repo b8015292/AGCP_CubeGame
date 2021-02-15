@@ -200,7 +200,7 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 		std::shared_ptr<GameObject> go = sAllGObjs->at(i);
 		if (mID != go->GetID())
 			if(go->GetActive())
-				if(nextPos.Contains(go->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT)
+				if(nextPos.Contains(go->GetBoundingBox()) != DirectX::ContainmentType::DISJOINT) //check it does not contain the next box
 					return true;
 	}
 	return false;

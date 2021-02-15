@@ -203,7 +203,7 @@ void Camera::Walk(float axisBlock, float d, float dTime)
 	// mPosition += d*mLook
 	d = d * dTime;
 	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR l;
+	XMVECTOR l = { mLook.x, 0.0f, mLook.z };
 	if (axisBlock == 3){
 		l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
 	}
