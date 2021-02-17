@@ -198,14 +198,21 @@ void Camera::Strafe(float d, float dTime)
 	mViewDirty = true;
 }
 
-void Camera::Walk(float d, float dTime)
+void Camera::Walk(float axisBlock, float d, float dTime)
 {
 	// mPosition += d*mLook
 	d = d * dTime;
 	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
-	//XMVECTOR l = { mPosition.x, 0.0f, mLook.z }; //dont move along x 
-	//XMVECTOR l = { mLook.x, 0.0f, mPosition.z }; //dont move along z
+	XMVECTOR l = { mLook.x, 0.0f, mLook.z };
+	if (axisBlock == 3){
+		l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
+	}
+	else if (axisBlock == 2) {
+		l = { mLook.x, 0.0f, mPosition.z }; //dont move along z
+	}
+	else if (axisBlock == 1){
+		l = { mPosition.x, 0.0f, mLook.z }; //dont move along x 
+	}
 	XMVECTOR p = XMLoadFloat3(&mPosition);
 	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
 

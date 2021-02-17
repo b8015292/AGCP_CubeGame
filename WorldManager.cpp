@@ -279,7 +279,7 @@ WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
 void WorldManager::LoadFirstChunks(float playerX, float playerZ) {
 
 	mPlayerPos = GetPlayerChunk({ playerX, 0, playerZ})->GetPos();
-	mPlayerPos.y = 2;
+	mPlayerPos.y = 3;
 	//Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
