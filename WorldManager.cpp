@@ -35,8 +35,8 @@ void WorldManager::Chunk::Init(Pos pos) {
 				float oreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
 				float ironoreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
 
-				if (worldY < noise) {
-					if (worldY < noise - 3) {
+				if (worldY + pos.y * WorldManager::sChunkDimension < noise) {
+					if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
 						if (oreNoise > 0.69 && oreNoise < 0.75) {
 							CreateCube("mat_coal_ore",
 								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
@@ -63,7 +63,7 @@ void WorldManager::Chunk::Init(Pos pos) {
 							pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
 					}
 				}
-				else if(worldY == noise){
+				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
 					CreateCube("mat_grass",
 						{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
 						pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
