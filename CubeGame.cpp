@@ -85,8 +85,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->GetCam()->SetPosition(mPlayerSpawnX, 26.0f, mPlayerSpawnZ);
-	mPlayer->Walk(0, 0);
+	mPlayer->SetPosition({ mPlayerSpawnX, mPlayerSpawnY, mPlayerSpawnZ });
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -209,9 +208,6 @@ void CubeGame::Update(const GameTimer& gt)
 		//Update entities and set dirty flag
 		for (int i = 0; i < Entity::sAllEntities->size(); i++) {
 			Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
-
-			if (Entity::sAllEntities->at(i)->GetDirty())
-				Entity::sAllEntities->at(i)->SetRIDirty();
 		}
 
 		//Hanlde mouse input - Place and destroy blocks
@@ -237,7 +233,6 @@ void CubeGame::Update(const GameTimer& gt)
 		if (mPlayerChangedView) {
 			UpdateBlockSelector();
 			mPlayerChangedView = false;
-
 			//DEBUG
 			XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
 			SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
@@ -403,9 +398,7 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
         float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
-		mPlayer->Pitch(dy);
-		mPlayer->RotateY(dx);
-
+		mPlayer->SetRotation(dx, dy);
 		mPlayerChangedView = true;
 
 		mLastMousePos.x = x;
@@ -441,47 +434,43 @@ void CubeGame::UpdateBlockSelector() {
  
 void CubeGame::OnKeyboardInput(const GameTimer& gt)
 {
-	const float dt = gt.DeltaTime();
+	float playerX = 0.f;
+	float playerZ = 0.f;
+	bool playerJump = false;
 
-	//if diagonal movement
-	if (((GetAsyncKeyState('W') & 0x8000) && (GetAsyncKeyState('D') & 0x8000)) ||
-		((GetAsyncKeyState('W') & 0x8000) && (GetAsyncKeyState('A') & 0x8000)) ||
-		((GetAsyncKeyState('S') & 0x8000) && (GetAsyncKeyState('D') & 0x8000)) ||
-		((GetAsyncKeyState('S') & 0x8000) && (GetAsyncKeyState('A') & 0x8000))) {
-		*mPlayer->getDiagonal() = true;
-	}
-	else { *mPlayer->getDiagonal() = false; }
+	bool keyW = GetAsyncKeyState('W') & 0x8000;
+	bool keyS = GetAsyncKeyState('S') & 0x8000;
+	bool keyA = GetAsyncKeyState('A') & 0x8000;
+	bool keyD = GetAsyncKeyState('D') & 0x8000;
+	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
 
-	if (GetAsyncKeyState('W') & 0x8000) {
-		mPlayer->Walk(5.0f, dt);
+	if (keyW || keyS || keyA || keyD || keySpace) {
+		if (keyW) {
+			playerZ = 1.f;
+		}
+
+		if (keyS) {
+			playerZ = -1.f;
+		}
+
+		if (keyA) {
+			playerX = -1.f;
+		}
+
+		if (keyD) {
+			playerX = 1.f;
+		}
+
+		if (keySpace) {
+			playerJump = true;
+		}
+
 		mPlayerChangedView = true;
 		mPlayerMoved = true;
+		mPlayer->SetMovement(playerX, playerZ, playerJump);
 	}
 
-	if (GetAsyncKeyState('S') & 0x8000) {
-		mPlayer->Walk(-5.0f, dt);
-		mPlayerChangedView = true;
-		mPlayerMoved = true;
-	}
-
-	if (GetAsyncKeyState('A') & 0x8000) {
-		mPlayer->Strafe(-5.0f, dt);
-		mPlayerChangedView = true;
-		mPlayerMoved = true;
-	}
-
-	if (GetAsyncKeyState('D') & 0x8000) {
-		mPlayer->Strafe(5.0f, dt);
-		mPlayerChangedView = true;
-		mPlayerMoved = true;
-	}
-
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000) {
-		mPlayer->Jump();
-		mPlayerChangedView = true;
-		mPlayerMoved = true;
-	}
-
+	//DEBUG
 	if (GetAsyncKeyState('1') & 0x8000) {
 		mCursorInUse = false;
 	}
@@ -489,12 +478,6 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('2') & 0x8000) {
 		mWorldMgr.PrintChunkOrder();
 	}
-
-	if (GetAsyncKeyState('X') & 0x8000) {
-		mWorldMgr.LoadChunk(1, 1, 1);
-	}
-
-	mPlayer->GetCam()->UpdateViewMatrix();
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {
@@ -1135,7 +1118,7 @@ void CubeGame::BuildGameObjects()
 
 	mWorldMgr.Init(mMaterialIndexes);
 	mWorldMgr.CreateWorld();
-	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnZ);
+	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnY, mPlayerSpawnZ);
 }
 
 void CubeGame::GenerateListOfActiveItems() {

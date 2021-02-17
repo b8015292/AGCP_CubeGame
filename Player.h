@@ -8,20 +8,35 @@ public:
 
     void Update(const float dTime) override; //overides entities update
     void TranslateCamera(float dTime, float x, float y, float z);
+    void SetPosition(XMFLOAT3 newPos);
+
+    //Move
+    void SetMovement(float x, float z, bool jumping);
+    bool Walk(float d, float dTime);
+    bool Strafe(float d, float dTime);
+    void MoveInRawDirection(float x, float z, float dTime);
     void Jump();
-    void Walk(float d, float dTime);
-    void Strafe(float d, float dTime);
+
+
+    //Rotate view
+    void SetRotation(float x, float y);
     void Pitch(float d);
     void RotateY(float d);
-    bool MovementCollisionCheck(float d, float dTime);
 
+    //bool MovementCollisionCheck(float d, float dTime);
+
+    //Getters
     Camera* GetCam() { return &mCamera; };
-
     bool* getDiagonal() { return &mDiagonal; };
 
+    //Setters
+    void SetRIDirty() override;
+
+    //Get stats
     int getPlayerHealth() { return mPlayerHealth; }
     int getPlayerDamage() { return mPlayerDamage; }
 
+    //Change stats
     void increasePlayerHealth(int amount);
     void decreasePlayerHealth(int amount);
     void increasePlayerDamage(int weaponBonus) { mPlayerDamage += weaponBonus; }
@@ -41,4 +56,12 @@ private:
     int mPlayerHealth;
     const int mMaxHealth = 100;
     int mPlayerDamage;
+
+    const float mMoveSpeed = 5.0f;
+    float mMoveX = 0;
+    float mMoveZ = 0;
+    bool mSetJump = false;
+
+    float mPitch = 0; //y
+    float mYaw = 0;   //X
 };

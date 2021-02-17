@@ -111,7 +111,7 @@ public:
 	int GetPlayerChunkIndex(DirectX::XMFLOAT3 pos);
 	Pos GetPlayerChunkCoords(DirectX::XMFLOAT3 pos);
 	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
-	void LoadFirstChunks(float playerX, float playerZ);
+	void LoadFirstChunks(float playerX, float playerY, float playerZ);
 
 	//Returns an index (in Block::sAllBlocks) used by a given block 
 	std::shared_ptr<Block> GetBlock(DirectX::XMFLOAT3 pos);

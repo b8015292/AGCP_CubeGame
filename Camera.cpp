@@ -182,8 +182,6 @@ void Camera::Jump(float dTime, float x, float y, float z)
 	XMStoreFloat3(&mPosition, p + s);
 
 	mViewDirty = true;
-
-	UpdateViewMatrix();
 }
 
 void Camera::Strafe(float d, float dTime)

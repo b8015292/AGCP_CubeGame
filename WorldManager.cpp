@@ -276,19 +276,21 @@ WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
 	return Pos((int)floorf(pos.x / sChunkDimension), (int)floorf(pos.y / sChunkDimension), (int)floorf(pos.z / sChunkDimension));
 }
 
-void WorldManager::LoadFirstChunks(float playerX, float playerZ) {
+void WorldManager::LoadFirstChunks(float playerX, float playerY, float playerZ) {
 
-	mPlayerPos = GetPlayerChunk({ playerX, 0, playerZ})->GetPos();
-	mPlayerPos.y = 3;
-	//Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
+	mPlayerPos = GetPlayerChunk({ playerX, playerY, playerZ})->GetPos();
+	std::string s = "";
 	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
 		for (int j = 0; j < mChunkRowsToLoad; j++) {
 			for (int k = 0; k < mChunkRowsToLoad; k++) {
-				LoadChunk(k, j, i);
+				LoadChunk(start.x + k, start.y + j, start.z + i);
+				s += std::to_string(k) + " " + std::to_string(j) + " " + std::to_string(i) + " " + "\n";
 			}
 		}
 	}
+
+	s += "end";
 
 	mCreatedWorld = true;
 }
