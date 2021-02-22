@@ -258,11 +258,11 @@ void Player::MoveInAxis(float dTime) {
 			translate = mMoveVectors[Dir::axisSide];
 		}
 	}
-	else if (mStrafing) {
-		if (mCanMove[Dir::axisStrafe]) {
-			translate = mMoveVectors[Dir::axisStrafe];
-		}
-	}
+	//else if (mStrafing) {
+	//	if (mCanMove[Dir::axisStrafe]) {
+	//		translate = mMoveVectors[Dir::axisStrafe];
+	//	}
+	//}
 
 	//Move the camera and the player
 	Translate(1, translate.m128_f32[0], 0.f, translate.m128_f32[2]);

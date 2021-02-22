@@ -160,6 +160,9 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, int>> ma
 	mChangeInPlayerPos = Pos();
 	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
 	mChunksToLoad = mChunkRowsToLoad * mChunkRowsToLoad * mChunkRowsToLoad;
+	mWorldSizes.x = mMaxLength;
+	mWorldSizes.y = mMaxHeight;
+	mWorldSizes.z = mMaxLength;
 }
 
 void WorldManager::CreateWorld() {
@@ -197,10 +200,11 @@ bool WorldManager::IsChunkCoordValid(int x, int y, int z) {
 
 void WorldManager::LoadChunk(int x, int y, int z) {
 	//Check the coord is valid, if so get the chunk and check it isn't already active (loaded)
-	if (!IsChunkCoordValid(x, y, z)) return;
+	if (!IsChunkCoordValid(x, y, z))return;
+
 	std::shared_ptr<Chunk> chunk = GetChunk(x, y, z);
-	if (chunk->GetAcitve()) return;
-		
+	if (chunk->GetAcitve())return;
+
 	//Set the chunk to active and set its starting indexes
 	chunk->SetAcitve(true);
 	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
@@ -256,9 +260,16 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 	std::shared_ptr<Chunk> oldChunk = GetChunk(old.x, old.y, old.z);
 	std::shared_ptr<Chunk> newChunk = GetChunk(neew.x, neew.y, neew.z);
 
-	//Check they are/aren't active. Then set their new active state
-	if (!oldChunk->GetAcitve() || newChunk->GetAcitve())
+	//If the new chunk is already active, exit
+	if (newChunk->GetAcitve())
 		return;
+
+	//If the previous chunk wasnt loaded, then load it instead of swapping
+	if (!oldChunk->GetAcitve()) {
+		LoadChunk(neew.x, neew.y, neew.z);
+		return;
+	}
+
 	oldChunk->SetAcitve(false);
 	newChunk->SetAcitve(true);
 
@@ -291,7 +302,7 @@ std::shared_ptr<Block> WorldManager::GetBlock(DirectX::XMFLOAT3 pos) {
 
 	//Find the block coords in terms of its chunk
 	int bx = (int)floorf(pos.x) - cx * sChunkDimension;
-	int by = (int)floorf(pos.y)	- cy * sChunkDimension;	//There is only one Y chunk!
+	int by = (int)floorf(pos.y)	- cy * sChunkDimension;
 	int bz = (int)floorf(pos.z) - cz * sChunkDimension;
 
 	return c->GetBlocks()->at((size_t)(by + (bx * sChunkDimension) + (bz * sChunkDimension * sChunkDimension) - 1));
@@ -322,109 +333,199 @@ WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
 void WorldManager::LoadFirstChunks(float playerX, float playerY, float playerZ) {
 
 	mPlayerPos = GetPlayerChunk({ playerX, playerY, playerZ})->GetPos();
-	std::string s = "";
+
 	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
 		for (int j = 0; j < mChunkRowsToLoad; j++) {
 			for (int k = 0; k < mChunkRowsToLoad; k++) {
 				LoadChunk(start.x + k, start.y + j, start.z + i);
-				s += std::to_string(k) + " " + std::to_string(j) + " " + std::to_string(i) + " " + "\n";
 			}
 		}
 	}
-
-	s += "end";
 
 	mCreatedWorld = true;
 }
 
 void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
-
+	//Check if the playeys current chunk is valid
 	Pos playerChunkPos = GetPlayerChunkCoords(worldPos);
 	if (!IsChunkCoordValid(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z))
 		return;
 
+	//Check the new chunk isn't the same as the previous chunk
 	Pos newPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
 	if (mPlayerPos != newPos) {
+
+		bool run = true;		//Use to check if an update needs to occure. E.g. if the player is at the edge of the map
+		int changeAxis = -1;
 
 		//Calculate the change
 		mChangeInPlayerPos.x = newPos.x - mPlayerPos.x;
 		mChangeInPlayerPos.y = newPos.y - mPlayerPos.y;
 		mChangeInPlayerPos.z = newPos.z - mPlayerPos.z;
 
-		//Loop through each axis to check if it needs updating
-		for (int axis = 0; axis < 3; axis++) {				
-			if (mChangeInPlayerPos[axis] != 0 && axis != 1) {
+		if (mChangeInPlayerPos.x != 0) changeAxis = 0;
+		else if (mChangeInPlayerPos.y != 0) changeAxis = 1;
+		else changeAxis = 2;
 
 
-				//DEBUG
-				mChunkOrder += std::to_string(GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetID()) + ", ";
+
+		//Get the position the player has just left
+		int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[changeAxis]) + mPlayerPos[changeAxis];
+		//Get the position the player is about to enter
+		int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[changeAxis]) + newPos[changeAxis];
+
+		//Used as start and end iterators of the for loop
+		int startSubAxis1 = -mLoadedChunksAroundCurrentChunk;
+		int endSubAxis1 = mLoadedChunksAroundCurrentChunk;
+		int startSubAxis2 = -mLoadedChunksAroundCurrentChunk;
+		int endSubAxis2 = mLoadedChunksAroundCurrentChunk;
 
 
-				bool run = true;
+		//If the new position is outside of the world, dont swap any chunks
+		if (newAxis < 0) {
+			mPlayerAtEdge[changeAxis] = 1;
+			run = false;
+		}
+		else if (((newAxis == 0 || newAxis == 2) && newAxis >= mMaxLength) || (newAxis == 1 && newAxis >= mMaxHeight)) {
+			mPlayerAtEdge[changeAxis] = -1;
+			run = false;
+		}
+		else {
+			mPlayerAtEdge[changeAxis] = 0;
+		}
 
-				//Get the position the player has just left
-				int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[axis]) + mPlayerPos[axis];
-				//Get the position the player is about to enter
-				int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[axis]) + newPos[axis];
+		//Adjust the iterators if other axis are next to the edge. If confused, check Pos[] operator
+		if (mPlayerAtEdge[changeAxis + 1] != 0) {
+			startSubAxis1 += mPlayerAtEdge[changeAxis + 1];
+			endSubAxis1 += mPlayerAtEdge[changeAxis + 1];
+		}
+		if (mPlayerAtEdge[changeAxis + 2] != 0) {
+			startSubAxis2 += mPlayerAtEdge[changeAxis + 2];
+			endSubAxis2 += mPlayerAtEdge[changeAxis + 2];
+		}
 
-				int startSubAxis = -mLoadedChunksAroundCurrentChunk;
-				int endSubAxis = mLoadedChunksAroundCurrentChunk;
 
-				//Check the new value isn't out of range.
-				if (newAxis < 0) {
-					mPlayerAtEdge[axis] = 1;
-					run = false;
-				}
-				else if (newAxis >= mMaxLength) {
-					mPlayerAtEdge[axis] = -1;
-					run = false;
-				}
+		if (run) {
+			//Swaps the old and new Chunks with a constant X and iteratres through each Z. If confused, check Pos[] operator
+			for (int i = startSubAxis1; i <= endSubAxis1; i++) {
+				for (int j = startSubAxis2; j <= endSubAxis2; j++) {
+					Pos old;
+					Pos neew;
 
-				//Check if the player is at the edge of any other axies
-				for (int subAxis = 1; subAxis < 3; subAxis++) {
-					//If the player is at the edge
-					if (mPlayerAtEdge[axis + subAxis] != 0 && !((axis + subAxis == 1) || (axis + subAxis == 4))) {
-						//If the player has changed thair position along that axis, set mPlayerAtEdge[Axis] to zero
-						if (mChangeInPlayerPos[axis + subAxis] != 0) {
-							mPlayerAtEdge[axis + subAxis] = 0;
-						}
-						//Otherwise set the start iterator to take the edge into account
-						else {
-							startSubAxis += mPlayerAtEdge[axis + subAxis];
-							endSubAxis += mPlayerAtEdge[axis + subAxis];
-						}
-					}
-				}
-				//Temp while Y is not implemented
-				int a;
-				if (axis == 0) a = 2;
-				else if (axis == 2) a = 0;
+					old[changeAxis] = oldAxis;
+					old[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
+					old[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
 
-				if (run) {
-					//Swaps the old and new Chunks with a constant X and iteratres through each Z
-					for (int iterator = startSubAxis; iterator <= endSubAxis; iterator++) {
-						int currZ = mPlayerPos[a] + iterator;
-						//Another FOR for the y axis
-						Pos old;
-						Pos neew;
+					neew[changeAxis] = newAxis;
+					neew[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
+					neew[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
 
-						old[axis] = oldAxis;
-						old.y = 0;
-						old[a] = currZ;
-
-						neew[axis] = newAxis;
-						neew.y = 0;
-						neew[a] = currZ;
-
-						SwapChunk(old, neew);
-					}
+					SwapChunk(old, neew);
 				}
 			}
+
 		}
 
 		mPlayerPos = newPos;
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	////Check the new chunk isn't the same as the previous chunk
+	//Pos newPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
+	//if (mPlayerPos != newPos) {
+
+	//	//Calculate the change
+	//	mChangeInPlayerPos.x = newPos.x - mPlayerPos.x;
+	//	mChangeInPlayerPos.y = newPos.y - mPlayerPos.y;
+	//	mChangeInPlayerPos.z = newPos.z - mPlayerPos.z;
+
+	//	//Loop through each axis
+	//	for (int axis = 0; axis < 3; axis++) {		
+	//		//If there has been a change in that axis, update it
+	//		if (mChangeInPlayerPos[axis] != 0) {
+
+	//			//Used to check if an update needs to occure. E.g. if the player is at the edge of the map
+	//			bool run = true;
+
+	//			//Get the position the player has just left
+	//			int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[axis]) + mPlayerPos[axis];
+	//			//Get the position the player is about to enter
+	//			int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[axis]) + newPos[axis];
+
+	//			//Used as start and end iterators of the for loop
+	//			int startSubAxis = -mLoadedChunksAroundCurrentChunk;
+	//			int endSubAxis = mLoadedChunksAroundCurrentChunk;
+
+	//			//Check the new value isn't out of range.
+	//			if (newAxis < 0) {
+	//				mPlayerAtEdge[axis] = 1;
+	//				run = false;
+	//			}
+	//			else if (((newAxis == 0 || newAxis == 2) && newAxis >= mMaxLength) || (newAxis == 1 && newAxis >= mMaxHeight)) {
+	//				mPlayerAtEdge[axis] = -1;
+	//				run = false;
+	//			}
+
+	//			//Check if the player is at the edge of any other axies. Check [] operator for the Pos class if youre confused.
+	//			for (int subAxis = 1; subAxis < 3; subAxis++) {
+	//				int bothAxis = axis + subAxis;
+	//				//If the player is at the edge
+	//				if (mPlayerAtEdge[bothAxis] != 0) {
+	//					//If the player has changed thair position along that axis, set mPlayerAtEdge[Axis] to zero
+	//					//if (mChangeInPlayerPos[bothAxis] != 0) {
+	//					if (mChangeInPlayerPos[bothAxis] == -mPlayerAtEdge[bothAxis]) {
+	//						mPlayerAtEdge[bothAxis] = 0;
+	//					}
+	//					//Otherwise set the start iterator to take the edge into account
+	//					else {
+	//						startSubAxis += mPlayerAtEdge[bothAxis];
+	//						endSubAxis += mPlayerAtEdge[bothAxis];
+	//					}
+	//				}
+	//			}
+	//			//Temp while Y is not implemented
+	//			int a;
+	//			if (axis == 0) a = 2;
+	//			else if (axis == 2) a = 0;
+
+	//			if (run) {
+	//				//Swaps the old and new Chunks with a constant X and iteratres through each Z
+	//				for (int iterator = startSubAxis; iterator <= endSubAxis; iterator++) {
+	//					int currZ = mPlayerPos[a] + iterator;
+	//					//Another FOR for the y axis
+	//					Pos old;
+	//					Pos neew;
+
+	//					old[axis] = oldAxis;
+	//					old.y = 0;
+	//					old[a] = currZ;
+
+	//					neew[axis] = newAxis;
+	//					neew.y = 0;
+	//					neew[a] = currZ;
+
+	//					SwapChunk(old, neew);
+	//				}
+	//			}
+	//		}
+	//	}
+
+	//	mPlayerPos = newPos;
+	//}
 }
 
 void WorldManager::PrintChunkOrder() {

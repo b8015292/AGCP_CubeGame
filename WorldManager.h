@@ -139,18 +139,18 @@ private:
 	//The unqiue ID for chunks
 	static int sChunkMaxID;
 	//The height of the world (in chunks)
-	const int mMaxHeight = 3;
+	const int mMaxHeight = 5;
 	//The length and depth of the world (in chunks)
 	const int mMaxLength = 6;
 
 	int mLoadedChunksAroundCurrentChunk = 1; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
-	int mChunksToLoad;
-	int mChunkRowsToLoad;
+	int mChunksToLoad = -1;
+	int mChunkRowsToLoad = -1;
 
 	bool mCreatedWorld = false;
 	//If a variable is +/- 1 then player is at the +/- edge of the map by that axis
 	Pos mPlayerAtEdge; 
-
+	Pos mWorldSizes;
 	//Player variables
 
 	Pos mPlayerPos;

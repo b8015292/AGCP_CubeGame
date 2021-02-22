@@ -127,7 +127,7 @@ private:
 
     std::shared_ptr<Player> mPlayer;
     float mPlayerSpawnX = 12;
-    float mPlayerSpawnY = 31;
+    float mPlayerSpawnY = 10;
     float mPlayerSpawnZ = 12;
     bool mPlayerChangedView = false;
     bool mPlayerMoved = false;
