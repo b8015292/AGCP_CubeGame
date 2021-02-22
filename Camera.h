@@ -54,12 +54,16 @@ public:
 	DirectX::XMFLOAT4X4 GetView4x4f()const;
 	DirectX::XMFLOAT4X4 GetProj4x4f()const;
 
+	//Move
+	void Translate(float x, float y, float z);
+
 	// jump
 	void Jump(float dTime, float x, float y, float z);
 
 	// Strafe/Walk the camera a distance d.
 	void Strafe(float d, float dTime);
-	void Walk(float axisBlock, float d, float dTime);
+	//void Walk(float axisBlock, float d, float dTime);
+	void Walk(float d, float dTime);
 
 	// Rotate the camera.
 	void Pitch(float angle);

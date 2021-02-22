@@ -196,25 +196,43 @@ void Camera::Strafe(float d, float dTime)
 	mViewDirty = true;
 }
 
-void Camera::Walk(float axisBlock, float d, float dTime)
-{
-	// mPosition += d*mLook
-	d = d * dTime;
-	XMVECTOR s = XMVectorReplicate(d);
-	XMVECTOR l = { mLook.x, 0.0f, mLook.z };
-	if (axisBlock == 3){
-		l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
-	}
-	else if (axisBlock == 2) {
-		l = { mLook.x, 0.0f, mPosition.z }; //dont move along z
-	}
-	else if (axisBlock == 1){
-		l = { mPosition.x, 0.0f, mLook.z }; //dont move along x 
-	}
-	XMVECTOR p = XMLoadFloat3(&mPosition);
-	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
+void Camera::Translate(float x, float y, float z) {
+	mPosition.x += x;
+	mPosition.y += y;
+	mPosition.z += z;
 
 	mViewDirty = true;
+}
+
+//void Camera::Walk(float axisBlock, float d, float dTime)
+void Camera::Walk(float d, float dTime)
+{
+	//Callums
+	XMVECTOR s = XMVectorReplicate(d * dTime);
+	XMVECTOR l = { mLook.x, 0.0f, mLook.z };
+	XMVECTOR p = XMLoadFloat3(&mPosition);
+	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
+	mViewDirty = true;
+
+
+	////Robins
+	//// mPosition += d*mLook
+	//d = d * dTime;
+	//XMVECTOR s = XMVectorReplicate(d);
+	//XMVECTOR l = { mLook.x, 0.0f, mLook.z };
+	////if (axisBlock == 3){
+	////	l = { mLook.x, 0.0f, mLook.z }; //dont move up along the y
+	////}
+	////else if (axisBlock == 2) {
+	////	l = { mLook.x, 0.0f, mPosition.z }; //dont move along z
+	////}
+	////else if (axisBlock == 1){
+	////	l = { mPosition.x, 0.0f, mLook.z }; //dont move along x 
+	////}
+	//XMVECTOR p = XMLoadFloat3(&mPosition);
+	//XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, l, p));
+
+	//mViewDirty = true;
 }
 
 void Camera::Pitch(float angle)

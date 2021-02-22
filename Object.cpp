@@ -89,7 +89,7 @@ std::array<XMFLOAT3, 8> GameObject::GetCoords() {
 }
 
 void GameObject::Translate(const float dTime, float x, float y, float z) {
-	//Gets the translation matrix (scaled by delta time
+	//Gets the translation matrix (scaled by delta time)
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(x * dTime, y * dTime, z * dTime);
 
 	//Gets the world matrix in XMMATRIX form
@@ -101,7 +101,6 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
-	mRI->NumFramesDirty++;
 
 	//Translate the bounding box
 	mBoundingBox.Transform(mBoundingBox, translateMatrix);

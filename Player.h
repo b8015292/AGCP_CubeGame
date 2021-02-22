@@ -10,20 +10,22 @@ public:
     void TranslateCamera(float dTime, float x, float y, float z);
     void SetPosition(XMFLOAT3 newPos);
 
-    //Move
+    //Input
     void SetMovement(float x, float z, bool jumping);
-    bool Walk(float d, float dTime);
-    bool Strafe(float d, float dTime);
-    void MoveInRawDirection(float x, float z, float dTime);
-    void Jump();
+    void SetRotation(float x, float y);
 
+    //Move
+    void Jump();
+    void CheckCollisions(float dTime);
+    void MoveInLook(float dTime);
+    void MoveInAxis(float dTime);
+
+    bool Walk(float d, float dTime);
 
     //Rotate view
-    void SetRotation(float x, float y);
+
     void Pitch(float d);
     void RotateY(float d);
-
-    //bool MovementCollisionCheck(float d, float dTime);
 
     //Getters
     Camera* GetCam() { return &mCamera; };
@@ -43,25 +45,65 @@ public:
     void decreasePlayerDamage(int weaponBonus) { mPlayerDamage -= weaponBonus; }
 
 private:
+    //Camera
     Camera mCamera;
-    bool mJumped = true;
-    bool mDiagonal = false;
-
-    DirectX::XMMATRIX mNewWorldMatrix;
-
     const float mJumpOffset = 0.2f;      //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
     const float mCameraOffsetZ = 0.0f;   //For 3rd person
     const float mCameraOffsetY = 0.6f;   //Height
+    DirectX::XMMATRIX mNewWorldMatrix;
 
+    //Health & damange stats
     int mPlayerHealth;
     const int mMaxHealth = 100;
     int mPlayerDamage;
 
-    const float mMoveSpeed = 5.0f;
-    float mMoveX = 0;
-    float mMoveZ = 0;
-    bool mSetJump = false;
-
+    //Mouse look 
     float mPitch = 0; //y
     float mYaw = 0;   //X
+
+    //Keyboard input
+    bool mSetJump = false;
+    float mStrafing = 0;
+    float mWalking = 0; 
+
+    //Jump
+    bool mJumped = true;
+    const float mJumpHeight = 15.f;
+
+    //Movement
+    class Dir {
+    public:
+        const static int look = 0;
+        const static int lookStrafe = 1;
+        const static int lookBoth = 2;
+
+        const static int axisForward = 3;
+        const static int axisSide = 4;
+        //const static int axisStrafe = 5;
+
+        const static int count = 5;
+    };
+    class Axis {
+    public:
+        const static int posZ = 0;
+        const static int posX = 1;
+        const static int negZ = 2;
+        const static int negX = 3;
+
+        const static int count = 4;
+    };
+
+    bool mDiagonal = false;
+    const float mMoveSpeed = 5.f;
+    XMMATRIX mRotate90;
+
+    bool mCanMove[Dir::count];
+    BoundingBox mNextBoxes[Dir::count];
+    XMVECTOR mMoveVectors[Dir::count];
+    const XMVECTOR mAxisVectors[Axis::count] = {
+        { 0,   0,  1.f, 0},
+        { 1.f, 0,  0,   0},
+        { 0,   0, -1.f, 0},
+        {-1.f, 0,  0,   0},
+    };
 };
