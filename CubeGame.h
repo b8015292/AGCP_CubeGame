@@ -154,8 +154,8 @@ private:
     //Block textures
     const int mBlockTexSize = 32;
     const int mBlockTexRows = 1;
-    const int mBlockTexCols = 7;
-    const std::string mBlockTexNames[7] = { "null", "dirt", "grassSide", "grass", "stone", "null", "null"};
+    const int mBlockTexCols = 9;
+    const std::string mBlockTexNames[9] = { "null", "dirt", "grassSide", "grass", "stone", "coal_ore", "iron_ore", "oak_log", "oak_leaf"};
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
 
     //Block Break

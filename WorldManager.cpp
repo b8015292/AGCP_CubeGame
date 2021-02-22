@@ -20,13 +20,13 @@ WorldManager::Chunk::Chunk(Pos pos) {
 void WorldManager::Chunk::Init(Pos pos) {
 	mPosition = pos;
 
+	std::vector<Pos> trunkLocations;
+	std::vector<Pos> leafLocations;
+
 	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
 	{
 		for (float worldX = 0; worldX < (float)WorldManager::sChunkDimension; ++worldX)
 		{
-
-			//float noise = roundf(10.0f * (float)WorldManager::sNoise.noise((double)worldX / ((double)WorldManager::sChunkDimension),
-			//		(double)worldZ / ((double)WorldManager::sChunkDimension), 0.8));
 			int minTerrainHeight = 0;
 			float noise = minTerrainHeight + roundf(10.0f * (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 0.8, 6, 20));
 
@@ -35,49 +35,92 @@ void WorldManager::Chunk::Init(Pos pos) {
 				float oreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
 				float ironoreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
 
+				float x = pos.x * (float)WorldManager::sChunkDimension + (float)worldX;
+				float y = pos.y * (float)WorldManager::sChunkDimension + (float)worldY;
+				float z = pos.z * (float)WorldManager::sChunkDimension + (float)worldZ;
+
 				if (worldY + pos.y * WorldManager::sChunkDimension < noise) {
 					if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
 						if (oreNoise > 0.69 && oreNoise < 0.75) {
-							CreateCube("mat_coal_ore",
-								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-								pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-								pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+							CreateCube("mat_coal_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
 						}
 						else if (ironoreNoise < 0.25) {
-							CreateCube("mat_iron_ore",
-								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-								pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-								pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+							CreateCube("mat_iron_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
 						}
 						else {
-							CreateCube("mat_stone",
-								{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-								pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-								pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+							CreateCube("mat_stone", { x, y, z }, true, mBlocks, mInstanceDatas);
 						}
 					}
 					else {
-						CreateCube("mat_dirt",
-							{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-							pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-							pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+						CreateCube("mat_dirt", { x, y, z }, true, mBlocks, mInstanceDatas);
 					}
 				}
 				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
-					CreateCube("mat_grass",
-						{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-						pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-						pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, true, mBlocks, mInstanceDatas);
+					CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
+
+					//Create Tree
+					float treeNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 40);
+					if (treeNoise > 0.81) {
+						for (int i = 1; i <= 5; i++) {
+							trunkLocations.push_back({ (int)x, (int)y + i, (int)z });
+						}
+						for (int leafX = x - 2; leafX <= x + 2; leafX++) {
+							for (int leafZ = z - 2; leafZ <= z + 2; leafZ++) {
+								//if (leafX != x && leafZ != z) {
+									leafLocations.push_back({ leafX, (int)y + 4, leafZ });
+									leafLocations.push_back({ leafX, (int)y + 5, leafZ });
+								//}
+							}
+						}
+						for (int leafX = x - 1; leafX <= x + 1; leafX++) {
+							for (int leafZ = z - 1; leafZ <= z + 1; leafZ++) {
+								leafLocations.push_back({ leafX, (int)y + 6, leafZ });
+							}
+						}
+						leafLocations.push_back({ (int)x + 1, (int)y + 7, (int)z });
+						leafLocations.push_back({ (int)x, (int)y + 7, (int) z + 1 });
+						leafLocations.push_back({ (int)x - 1, (int)y + 7, (int)z });
+						leafLocations.push_back({ (int)x, (int)y + 7, (int)z - 1 });
+						leafLocations.push_back({ (int)x, (int)y + 7, (int)z });
+					}
+
 				}
 				else {	//Blocks above the noise wave are not active upon creation
-					CreateCube("mat_grass",
-						{ pos.x * (float)WorldManager::sChunkDimension + (float)worldX,
-						pos.y * (float)WorldManager::sChunkDimension + (float)worldY,
-						pos.z * (float)WorldManager::sChunkDimension + 1.0f * (float)worldZ }, false, mBlocks, mInstanceDatas);
+					bool containsTrunkOrLeaves = false;
+					for (Pos pos : trunkLocations) {
+						if (x == pos.z && y == pos.y && z == pos.z) {
+							containsTrunkOrLeaves = true;
+							break;
+						}
+					}
+					if (!containsTrunkOrLeaves) {
+						for (Pos pos : leafLocations) {
+							if (x == pos.z && y == pos.y && z == pos.z) {
+								containsTrunkOrLeaves = true;
+								break;
+							}
+						}
+					}
+					if (!containsTrunkOrLeaves) {
+						CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
+					}
 				}
 			}
 		}
 	}
+	
+	//Create trees
+	for (Pos pos : trunkLocations) {
+		CreateCube("mat_oak_log", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
+	}
+	for (Pos pos : leafLocations) {
+		CreateCube("mat_oak_leaf", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
+	}
+							/*std::wostringstream woss;
+						woss << treeNoise;
+						OutputDebugString(woss.str().c_str());
+	
+	*/
 }
 
 WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
