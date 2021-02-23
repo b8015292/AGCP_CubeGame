@@ -104,6 +104,40 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 
 	//Translate the bounding box
 	mBoundingBox.Transform(mBoundingBox, translateMatrix);
+
+
+	SetDirtyFlag();
+}
+
+void GameObject::Rotate(const float dTime, XMVECTOR axis, float angle) {
+	float x = GetBoundingBox().Center.x;
+	float y = GetBoundingBox().Center.y;
+	float z = GetBoundingBox().Center.z;
+
+	//Gets the translation matrix (scaled by delta time)
+	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixRotationAxis(axis, angle * dTime);
+	DirectX::XMMATRIX translateToOriginMatrix = DirectX::XMMatrixTranslation(-x, -y, -z);
+	DirectX::XMMATRIX translateBackMatrix = DirectX::XMMatrixTranslation(x, y, z);
+
+	DirectX::XMMATRIX finalMatrix = XMMatrixMultiply(translateToOriginMatrix, translateMatrix);
+	finalMatrix = XMMatrixMultiply(finalMatrix, translateBackMatrix);
+
+	//Gets the world matrix in XMMATRIX form
+	DirectX::XMMATRIX oldWorldMatrix;
+	GameData::StoreFloat4x4InMatrix(oldWorldMatrix, mRI->World);
+
+	//Multiplies the two matricies together
+	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, finalMatrix);
+	//newWorldMatrix = XMMatrixMultiply(newWorldMatrix, translateMatrix);
+	//newWorldMatrix = XMMatrixMultiply(newWorldMatrix, translateBackMatrix);
+
+	//Stores the new matrix, and marks the object as dirty
+	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
+
+	//Translate the bounding box
+	//mBoundingBox.Transform(mBoundingBox, finalMatrix);
+
+	SetDirtyFlag();
 }
 
 void GameObject::SetPosition(XMFLOAT3 pos) {
@@ -162,6 +196,8 @@ void Entity::Update(const float dTime) {
 	if (mVel.x != 0 || mVel.y != 0 || mVel.z != 0) {
 		Translate(dTime, mVel.x, mVel.y, mVel.z);
 	}
+	
+	if(mDirty) SetRIDirty();
 }
 
 void Entity::AddVelocity(float x, float y, float z) {
@@ -204,6 +240,32 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 	}
 	return false;
 }
+
+
+
+//************************************************************************************************************
+// ItemEntity
+//************************************************************************************************************
+
+
+
+ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
+	//sBlockInstance->Instances.push_back(idata);
+
+	CreateBoundingBox();
+	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
+}
+
+void ItemEntity::Update(const float dTime) {
+	Entity::Update(dTime);
+
+	Rotate(dTime, XMVECTOR{ 0, 1, 0 }, 1.f);
+}
+
+void ItemEntity::Pickup() {
+
+}
+
 
 //************************************************************************************************************
 // Block
