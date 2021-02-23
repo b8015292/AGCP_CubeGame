@@ -95,6 +95,8 @@ bool CubeGame::Initialize()
     // Wait until initialization is complete.
     FlushCommandQueue();
 
+	//SetUIString("A", 0, 0);
+
     return true;
 }
 
@@ -239,16 +241,16 @@ void CubeGame::Update(const GameTimer& gt)
 			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
 			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
 
-			//std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
-			//WorldManager::Pos cPos = c->GetPos();
-			//SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
-			//SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
-			//SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
-			//int i = c->GetID();
-			//if(i < 10)
-			//	SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
-			//else
-			//	SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
+			std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
+			WorldManager::Pos cPos = c->GetPos();
+			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
+			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
+			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
+			int i = c->GetID();
+			if(i < 10)
+				SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
+			else
+				SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
 		}
 
 		if (mPlayerMoved) {
@@ -319,14 +321,12 @@ void CubeGame::Draw(const GameTimer& gt)
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
-	mUI_Text->UpdateBuffer();
 	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+	mUI_Text->UpdateBuffer();
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
 	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
-
-
 
 	//Instance*************
 	mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
@@ -473,10 +473,6 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	//DEBUG
 	if (GetAsyncKeyState('1') & 0x8000) {
 		mCursorInUse = false;
-	}
-
-	if (GetAsyncKeyState('2') & 0x8000) {
-		mWorldMgr.PrintChunkOrder();
 	}
 }
 
@@ -965,7 +961,7 @@ void CubeGame::BuildPSOs()
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC UserInterface = opaquePsoDesc;
 
-	UserInterface.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::UserInterface).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::UserInterface).size() };
+	//UserInterface.InputLayout = { mInputLayout->at((int)GameData::RenderLayer::UserInterface).data(), (UINT)mInputLayout->at((int)GameData::RenderLayer::UserInterface).size() };
 
 	UserInterface.PS =
 	{
@@ -1036,7 +1032,7 @@ void CubeGame::BuildMaterials()
 	float x = mBlockTexturePositions["dirt"].x;
 	float x2 = mBlockBreakTexturePositions["b0"].x;
 
-	CreateMaterial("mat_font", 0, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
+	CreateMaterial("mat_font", 0, { 1.0f, 1.0f, 1.0f , 0.5f}, { 0.f, 0.f });
 
 	CreateMaterial("mat_player", 1, DirectX::Colors::Black, { 0,0 });
 	CreateMaterial("mat_dirt", 1, {0.4311f, 0.1955f, 0.1288f, 1.f }, { x,0 });
@@ -1102,8 +1098,7 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Sky]->push_back(skyRI);
 
 	//UI----------------------------
-	//auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", mMaterials->at("mat_font").get(), XMMatrixIdentity());
-	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_cube", mMaterials->at("mat_grass").get(), XMMatrixIdentity());
+	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", mMaterials->at("mat_font").get(), XMMatrixIdentity());
 	mUI_Text->Init(gui1, mCommandList);
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Text->GetRI());
 

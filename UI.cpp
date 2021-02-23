@@ -10,7 +10,6 @@ void UI::Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12Graph
 	mCmdList = cmdList;
 
 	//Move the data from the vertex buffer onto a vector we can view/manipulate. This moves it from a 'blob' format into the Vertex vector format
-
 	CopyMemory(mVertices.data(), mRI->Geo->VertexBufferCPU->GetBufferPointer(), mVbByteSize);
 	mStartVertices = mVertices;
 
