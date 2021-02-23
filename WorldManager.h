@@ -123,7 +123,7 @@ public:
 
 private:
 	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
-	//IsChunkCoordValid should be called before this.
+
 
 	//Get the chunk from its chunk-coordiantes
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);

@@ -443,3 +443,7 @@ void Block::Translate(const float dTime, float x, float y, float z) {
 	//Translate the bounding box
 	mBoundingBox.Transform(mBoundingBox, translateMatrix);
 }
+
+void Block::ChangeMaterial(std::string newMaterial) {
+	mInstanceData->MaterialIndex = GameData::sMaterials->at(newMaterial)->MatCBIndex;
+}

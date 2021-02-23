@@ -111,6 +111,7 @@ void WorldManager::Chunk::Init(Pos pos) {
 	
 	//Create trees
 	for (Pos pos : trunkLocations) {
+		
 		CreateCube("mat_oak_log", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
 	}
 	for (Pos pos : leafLocations) {
@@ -179,7 +180,7 @@ void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool activ
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
 	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName));
 	blockInstances->push_back(idata);
-
+	
 	//Create the block directly inside the block list
 	blocks->push_back(std::make_shared<Block>(idata));
 	blocks->at(blocks->size()- 1)->SetActive(active);

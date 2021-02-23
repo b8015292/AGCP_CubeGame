@@ -4,6 +4,7 @@
 #include "FrameResource.h"  //For vertex struct
 
 #include "GameData.h"
+#include "RenderItem.h"
 #include "Camera.h"
 #include "Item.h"
 
@@ -126,6 +127,9 @@ public:
     std::array<XMFLOAT3, 8> GetCoords() override;
     void SetPosition(XMFLOAT3 pos) override;
     void Translate(const float dTime, float x, float y, float z) override;
+
+    void ChangeMaterial(std::string newMaterial);
+
 
 
     
