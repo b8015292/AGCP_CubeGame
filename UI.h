@@ -2,6 +2,7 @@
 
 #include "GameData.h"
 #include "Common/d3dUtil.h"
+#include "RenderItem.h"
 
 using Microsoft::WRL::ComPtr;
 
