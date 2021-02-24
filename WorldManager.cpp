@@ -178,7 +178,7 @@ void WorldManager::CreateWorld() {
 
 void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances) {
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
-	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName));
+	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName), materialName);
 	blockInstances->push_back(idata);
 	
 	//Create the block directly inside the block list
@@ -191,6 +191,29 @@ std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunk(int x, int y, int z)
 	//return mChunks.at((size_t)x + (z * mMaxHeight * mMaxLength));
 }
 
+void WorldManager::SetChunkActive(std::shared_ptr<Chunk> chunk, bool active) {
+	if (active) {
+		//If there are no available indexes, add it to the end.
+		if (mAvailableActiveChunkIndexes.size() == 0) {
+			chunk->SetActiveIndex(mActiveChunks.size());
+			mActiveChunks.push_back(chunk);
+		}
+		else {
+			//If there are available indexes, swap the deactivated chunk with this one.
+			size_t newIndex = mAvailableActiveChunkIndexes.at(mAvailableActiveChunkIndexes.size() - 1);
+			mAvailableActiveChunkIndexes.pop_back();
+			chunk->SetActiveIndex(newIndex);
+			mActiveChunks.at(newIndex) = chunk;
+			
+		}
+	}
+	else {
+		//Deactivate the chunk and add its indexs to the available list
+		mAvailableActiveChunkIndexes.push_back(chunk->GetActiveIndex());
+	}
+
+	chunk->SetAcitve(active);
+}
 bool WorldManager::IsChunkCoordValid(int x, int y, int z) {
 	if (x >= mMaxLength || y >= mMaxHeight || z >= mMaxLength
 		|| x < 0 || y < 0 || z < 0)
@@ -207,19 +230,49 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 	if (chunk->GetAcitve())return;
 
 	//Set the chunk to active and set its starting indexes
-	chunk->SetAcitve(true);
+	SetChunkActive(chunk, true);
 	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
-	
+
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
 	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> instances = chunk->GetInstanceDatas();
-	const size_t instanceStart = chunk->GetInstanceStartIndex();
-	UINT count = (UINT)Block::sBlockInstance->Instances.size();
 
-	//Insert the chunk into the lists
-	Block::sAllBlocks->insert(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
-	GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
-	Block::sBlockInstance->Instances.insert(Block::sBlockInstance->Instances.begin() + instanceStart, instances->begin(), instances->end());
+	//Get the start indexes
+	size_t blockStart;
+	size_t instanceStart;
+	size_t gObjStart;
+
+	if (mCreatedWorld) {
+		//If the world exists, replace deactivated elements
+		blockStart = mAvailableBlockStartIndexes.at(mAvailableBlockStartIndexes.size() - 1);
+		instanceStart = mAvailableBlockInstanceStartIndexes.at(mAvailableBlockInstanceStartIndexes.size() - 1);
+		gObjStart = mAvailableGObjStartIndexes.at(mAvailableGObjStartIndexes.size() - 1);
+
+		mAvailableBlockStartIndexes.pop_back();
+		mAvailableBlockInstanceStartIndexes.pop_back();
+		mAvailableGObjStartIndexes.pop_back();
+
+		//Delete the old values
+		Block::sAllBlocks->erase(Block::sAllBlocks->begin() + blockStart, Block::sAllBlocks->begin() + blockStart + sChunkSize);
+		GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + gObjStart, GameObject::sAllGObjs->begin() + gObjStart + sChunkSize);
+		Block::sBlockInstance->Instances.erase(Block::sBlockInstance->Instances.begin() + instanceStart, Block::sBlockInstance->Instances.begin() + instanceStart + sChunkSize);
+
+		//Insert the new values
+		Block::sAllBlocks->insert(Block::sAllBlocks->begin() + blockStart, blocksToInsert->begin(), blocksToInsert->end());
+		GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + gObjStart, blocksToInsert->begin(), blocksToInsert->end());
+		Block::sBlockInstance->Instances.insert(Block::sBlockInstance->Instances.begin() + instanceStart, instances->begin(), instances->end());
+	}
+	else {
+		//If the world doesn't exist, insert them
+		blockStart = chunk->GetBlockStartIndex();
+		instanceStart = chunk->GetInstanceStartIndex();
+		gObjStart = chunk->GetGObjStartIndex();
+
+		//Insert the chunk into the lists
+		Block::sAllBlocks->insert(Block::sAllBlocks->begin() + blockStart, blocksToInsert->begin(), blocksToInsert->end());
+		GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + gObjStart, blocksToInsert->begin(), blocksToInsert->end());
+		Block::sBlockInstance->Instances.insert(Block::sBlockInstance->Instances.begin() + instanceStart, instances->begin(), instances->end());
+	}
 
 	//Set the render items object CB index so it can be found and updated by the GPU
 	if (mCreatedWorld) {
@@ -243,7 +296,7 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 	if(!chunk->GetAcitve()) return;
 		
 	//Deactivate the chunk
-	chunk->SetAcitve(false);
+	SetChunkActive(chunk, false);
 
 	Block::sAllBlocks->erase(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), Block::sAllBlocks->begin() + chunk->GetBlockStartIndex() + sChunkSize );
 	GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex() + sChunkSize);
@@ -251,6 +304,7 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 		Block::sBlockInstance->Instances.begin() + chunk->GetInstanceStartIndex() + sChunkSize);
 
 	chunk->SetStartIndexes(-1, -1, -1);
+	
 }
 
 void WorldManager::SwapChunk(Pos old, Pos neew) {
@@ -271,8 +325,8 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 		return;
 	}
 
-	oldChunk->SetAcitve(false);
-	newChunk->SetAcitve(true);
+	SetChunkActive(oldChunk, false);
+	SetChunkActive(newChunk, true);
 
 	//Get the block instance datas to swap
 	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> oldInstances = oldChunk->GetInstanceDatas();
@@ -292,6 +346,19 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 	//Set the new iterators
 	newChunk->SetStartIndexes(oldChunk->GetBlockStartIndex(), oldChunk->GetGObjStartIndex(), oldChunk->GetInstanceStartIndex());
 	oldChunk->SetStartIndexes(-1, -1, -1);
+}
+
+void WorldManager::UnloadAllChunks() {
+	//for each (std::shared_ptr<Chunk> chunk in mActiveChunks) {
+	for (int i = mActiveChunks.size() - 1; i >= 0; i--) {
+		std::shared_ptr<Chunk> chunk = mActiveChunks.at(i);
+
+		mAvailableBlockStartIndexes.push_back(chunk->GetBlockStartIndex());
+		mAvailableBlockInstanceStartIndexes.push_back(chunk->GetInstanceStartIndex());
+		mAvailableGObjStartIndexes.push_back(chunk->GetGObjStartIndex());
+
+		SetChunkActive(chunk, false);
+	}
 }
 
 std::shared_ptr<Block> WorldManager::GetBlock(DirectX::XMFLOAT3 pos) {
@@ -331,9 +398,9 @@ WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
 	return Pos((int)floorf(pos.x / sChunkDimension), (int)floorf(pos.y / sChunkDimension), (int)floorf(pos.z / sChunkDimension));
 }
 
-void WorldManager::LoadFirstChunks(float playerX, float playerY, float playerZ) {
+void WorldManager::LoadFirstChunks(DirectX::XMFLOAT3 pos) {
 
-	mPlayerPos = GetPlayerChunk({ playerX, playerY, playerZ})->GetPos();
+	mPlayerPos = GetPlayerChunk(pos)->GetPos();
 
 	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
@@ -345,6 +412,11 @@ void WorldManager::LoadFirstChunks(float playerX, float playerY, float playerZ) 
 	}
 
 	mCreatedWorld = true;
+}
+
+void WorldManager::RelocatePlayer(DirectX::XMFLOAT3 newPos) {
+	UnloadAllChunks();
+	LoadFirstChunks(newPos);
 }
 
 void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
@@ -384,11 +456,11 @@ void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
 
 
 		//If the new position is outside of the world, dont swap any chunks
-		if (newAxis < 0) {
+		if (newAxis < mLoadedChunksAroundCurrentChunk) {
 			mPlayerAtEdge[changeAxis] = 1;
 			run = false;
 		}
-		else if (((newAxis == 0 || newAxis == 2) && newAxis >= mMaxLength) || (newAxis == 1 && newAxis >= mMaxHeight)) {
+		else if (((newAxis == 0 || newAxis == 2) && newAxis >= (mMaxLength - mLoadedChunksAroundCurrentChunk)) || (newAxis == 1 && newAxis >= (mMaxHeight - mLoadedChunksAroundCurrentChunk))) {
 			mPlayerAtEdge[changeAxis] = -1;
 			run = false;
 		}

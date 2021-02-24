@@ -112,9 +112,10 @@ public:
 class InstanceData {
 public:
     InstanceData() = default;
-    InstanceData(DirectX::XMMATRIX world, UINT materialIndex) {
+    InstanceData(DirectX::XMMATRIX world, UINT materialIndex, std::string materialName) {
         XMStoreFloat4x4(&World, world);
         MaterialIndex = materialIndex;
+        MaterialName = materialName;
     };
     InstanceData& operator=(const InstanceData& id) {
         World = id.World;
@@ -128,9 +129,12 @@ public:
     DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
     UINT MaterialIndex = 0;
     UINT NumFramesDirty = gNumFrameResources;
-    UINT BufferIndex = -1;
+    //UINT BufferIndex = -1;
     bool Active = true;
     bool Visible = false;
+
+    std::string MaterialName;
+
     bool Pad3 = false;
     bool Pad4 = false;
 };

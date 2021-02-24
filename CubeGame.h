@@ -92,6 +92,8 @@ private:
     void MineSelectedBlock(const float dTime);
     void DestroySelectedBlock();
 
+    void RespawnPlayer();
+
 private:
     //Each frame resource has its own copy of the pass constant, materials and objects
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
@@ -126,9 +128,7 @@ private:
     WorldManager mWorldMgr;
 
     std::shared_ptr<Player> mPlayer;
-    float mPlayerSpawnX = 12;
-    float mPlayerSpawnY = 10;
-    float mPlayerSpawnZ = 12;
+    DirectX::XMFLOAT3 mSpawnPoint{ 12, 12, 12 };
     bool mPlayerChangedView = false;
     bool mPlayerMoved = false;
 

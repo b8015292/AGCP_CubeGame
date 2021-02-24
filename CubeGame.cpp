@@ -85,7 +85,7 @@ bool CubeGame::Initialize()
 
 	//Initialise the camera
 	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->SetPosition({ mPlayerSpawnX, mPlayerSpawnY, mPlayerSpawnZ });
+	mPlayer->SetPosition(mSpawnPoint);
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -94,8 +94,6 @@ bool CubeGame::Initialize()
 
     // Wait until initialization is complete.
     FlushCommandQueue();
-
-	//SetUIString("A", 0, 0);
 
     return true;
 }
@@ -474,6 +472,13 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('1') & 0x8000) {
 		mCursorInUse = false;
 	}
+
+	if (GetAsyncKeyState('2') & 0x8000) {
+		RespawnPlayer();
+	}
+	if (GetAsyncKeyState('3') & 0x8000) {
+		mPlayer->SetPosition(mSpawnPoint);
+	}
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {
@@ -512,14 +517,24 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 		DestroySelectedBlock();
 }
 void CubeGame::DestroySelectedBlock() {
+			
+	std::shared_ptr<Material> mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName);
+
+
 	mPreviousSelectedBlock->SetActive(false);
 	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
 	
+
+
 	mPlayerChangedView = true;
 }
 
+void CubeGame::RespawnPlayer() {
+	mWorldMgr.RelocatePlayer(mSpawnPoint);
+	mPlayer->SetPosition(mSpawnPoint);
+}
 
 void CubeGame::AnimateMaterials(const GameTimer& gt)
 {
@@ -552,12 +567,12 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 
 	//Loop through each render item
 	for (int i = 0; i < mRitemIntances->size(); i++) {
-		auto instData = mRitemIntances->at(i);
-		instData->InstanceCount = 0;
+		auto rItem = mRitemIntances->at(i);
+		rItem->InstanceCount = 0;
 
 		//Loop through each instance of the render item
-		for (int j = 0; j < (int)instData->Instances.size(); j++) {
-			std::shared_ptr<InstanceData> idata = instData->Instances.at(j);
+		for (int j = 0; j < (int)rItem->Instances.size(); j++) {
+			std::shared_ptr<InstanceData> idata = rItem->Instances.at(j);
 
 			if (idata->Active) {
 			//if (idata->NumFramesDirty > 0 && idata->Active) {
@@ -568,8 +583,8 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 				XMStoreFloat4x4(&newIData.World, XMMatrixTranspose(world));
 				newIData.MaterialIndex = idata->MaterialIndex;
 
-				currInstanceCB->CopyData(instData->InstanceCount, newIData);
-				instData->InstanceCount++;
+				currInstanceCB->CopyData(rItem->InstanceCount, newIData);
+				rItem->InstanceCount++;
 
 				idata->NumFramesDirty--;
 			}
@@ -582,7 +597,7 @@ void CubeGame::UpdateMaterialCBs(const GameTimer& gt)
 {
 	auto currMaterialCB = mCurrFrameResource->MaterialCB.get();
 
-	for(std::unordered_map<std::string, std::shared_ptr<Material>>::iterator it = GameData::sMaterials->begin(); it != GameData::sMaterials->end(); it++)
+	for(std::map<std::string, std::shared_ptr<Material>>::iterator it = GameData::sMaterials->begin(); it != GameData::sMaterials->end(); it++)
 	{
 		// Only update the cbuffer data if the constants have changed.  If the cbuffer
 		// data changes, it needs to be updated for each FrameResource.
@@ -1052,6 +1067,8 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_blockSelect4", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 4, 0.f });
 	CreateMaterial("mat_blockSelect5", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 5, 0.f });
 	CreateMaterial("mat_blockSelect6", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 6, 0.f });
+
+
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -1115,7 +1132,7 @@ void CubeGame::BuildGameObjects()
 
 	mWorldMgr.Init(mMaterialIndexes);
 	mWorldMgr.CreateWorld();
-	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnY, mPlayerSpawnZ);
+	mWorldMgr.LoadFirstChunks(mSpawnPoint);
 }
 
 void CubeGame::GenerateListOfActiveItems() {

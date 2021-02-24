@@ -1,7 +1,7 @@
 #include "GameData.h"
 
 std::vector<UINT> GameData::sAvailableObjCBIndexes;
-std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> GameData::sMaterials = std::make_shared<std::unordered_map<std::string, std::shared_ptr<Material>>>();
+std::shared_ptr<std::map<std::string, std::shared_ptr<Material>>> GameData::sMaterials = std::make_shared<std::map<std::string, std::shared_ptr<Material>>>();
 
 UINT GameData::GetObjectCBIndex() {
 	UINT ret = sAvailableObjCBIndexes.at(sAvailableObjCBIndexes.size() - 1);

@@ -320,6 +320,8 @@ void Player::RotateY(float dx) {
 
 void Player::SetPosition(XMFLOAT3 newPos) {
 	mCamera.SetPosition(newPos);
+	mCamera.UpdateViewMatrix();
+
 	mBoundingBox.Center = newPos;
 	mBoundingBox.Center.y -= mCameraOffsetY;
 }

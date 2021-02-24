@@ -57,12 +57,14 @@ public:
 		bool GetAcitve() { return mActive; };
 		Pos GetPos() { return mPosition; };
 		int GetID() { return mID; };
+		size_t GetActiveIndex() { return mActiveIndex; };
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetBlocks() { return mBlocks; };
 		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> GetInstanceDatas() { return mInstanceDatas; };
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetActiveBlocks() { return mActiveBlocks; };
 
 		//Setters
 		void SetAcitve(bool active) { mActive = active; };
+		void SetActiveIndex(size_t ind) { mActiveIndex = ind; };
 
 		//Iterators
 		//Get
@@ -84,6 +86,7 @@ public:
 		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> mInstanceDatas;
 
 		int mID = -1;
+		size_t mActiveIndex = -1;
 
 		size_t mBlockStartIndex = -1;
 		size_t mGObjStartIndex = -1;
@@ -101,8 +104,8 @@ public:
 	bool IsChunkCoordValid(int x, int y, int z);
 	void LoadChunk(int x, int y, int z);
 	void UnloadChunk(int x, int y, int z);
-	//Chunk 1 is currently active, to be swapped with chunk 2
 	void SwapChunk(Pos old, Pos neew);
+	void UnloadAllChunks();
 
 	int GetChunkSize() { return sChunkSize; };
 	int GetNumberOfChunksToLoad() { return mChunksToLoad; };
@@ -111,7 +114,9 @@ public:
 	int GetPlayerChunkIndex(DirectX::XMFLOAT3 pos);
 	Pos GetPlayerChunkCoords(DirectX::XMFLOAT3 pos);
 	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
-	void LoadFirstChunks(float playerX, float playerY, float playerZ);
+	void LoadFirstChunks(DirectX::XMFLOAT3 pos);
+
+	void RelocatePlayer(DirectX::XMFLOAT3 newPos);
 
 	//Returns an index (in Block::sAllBlocks) used by a given block 
 	std::shared_ptr<Block> GetBlock(DirectX::XMFLOAT3 pos);
@@ -125,12 +130,15 @@ private:
 
 	//Get the chunk from its chunk-coordiantes
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
+	void SetChunkActive(std::shared_ptr<Chunk> chunk, bool active);
 
 private:
 	static std::shared_ptr<std::unordered_map<std::string, int>> sMaterialIndexes;
 
 	static PerlinNoise sNoise;
 	std::vector<std::shared_ptr<Chunk>> mChunks;
+	std::vector<std::shared_ptr<Chunk>> mActiveChunks;
+
 
 	//The length, depth and height of a chunk
 	static const int sChunkDimension = 8;
@@ -155,6 +163,11 @@ private:
 
 	Pos mPlayerPos;
 	Pos mChangeInPlayerPos;
+
+	std::vector<size_t> mAvailableActiveChunkIndexes;
+	std::vector<size_t> mAvailableBlockStartIndexes;
+	std::vector<size_t> mAvailableGObjStartIndexes;
+	std::vector<size_t> mAvailableBlockInstanceStartIndexes;
 
 
 	//DEBUG

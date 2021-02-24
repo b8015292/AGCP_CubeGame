@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <map>
 
 #include "Common/d3dUtil.h"
 //#include "Common/MathHelper.h"
@@ -31,7 +32,7 @@ public:
     static const float sGrav;
     static bool sRunning;
     static std::vector<UINT> sAvailableObjCBIndexes;
-    static std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Material>>> sMaterials;
+    static std::shared_ptr<std::map<std::string, std::shared_ptr<Material>>> sMaterials;
 
     //Each render layer is rendered in a different way (using different PSOs)
     enum class RenderLayer : int
