@@ -86,6 +86,7 @@ private:
 
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
+    void ShowDebug();
 
     //Block stuff
     void UpdateBlockSelector();
@@ -169,5 +170,12 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+
+
+    const UINT mMaxNumberOfItemEntities = 10;
+
+
+    //Debug
+    int mShowDebugInfo = 2;
 
 };

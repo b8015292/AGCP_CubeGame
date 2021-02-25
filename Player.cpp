@@ -80,7 +80,10 @@ void Player::Update(const float dTime) {
 	mPitch = 0.f;
 	mYaw = 0.f;
 
-	if(mDirty) SetRIDirty();
+	if (mDirty) { 
+		SetRIDirty(); 
+		mUpdateWorldPos = true;
+	}
 }
 
 void Player::Jump() {
@@ -193,7 +196,6 @@ void Player::CheckCollisions(float dTime) {
 	mCanMove[Dir::lookBoth] = true;
 	mCanMove[Dir::axisForward] = true;
 	mCanMove[Dir::axisSide] = true;
-	//mCanMove[Dir::axisStrafe] = true;
 
 	int collisions = 0;
 	for (int i = 0; i < sAllGObjs->size(); i++) {

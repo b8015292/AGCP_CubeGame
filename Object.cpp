@@ -84,7 +84,7 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 
 	//Translate the bounding box
-	mBoundingBox.Transform(mBoundingBox, translateMatrix);
+	mRI->mBoundingBox.Transform(mRI->mBoundingBox, translateMatrix);
 
 
 	SetDirtyFlag();
@@ -233,7 +233,7 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 	//sBlockInstance->Instances.push_back(idata);
 
-	CreateBoundingBox();
+	//CreateBoundingBox();
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 

@@ -234,26 +234,11 @@ void CubeGame::Update(const GameTimer& gt)
 			UpdateBlockSelector();
 			mPlayerChangedView = false;
 			//DEBUG
-			XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
-			SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
-			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
-			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
-
-			std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
-			WorldManager::Pos cPos = c->GetPos();
-			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
-			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
-			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
-			int i = c->GetID();
-			if(i < 10)
-				SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
-			else
-				SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
+			ShowDebug();
 		}
 
-		if (mPlayerMoved) {
+		if (mPlayer->GetUpdateWorldPos()) {
 			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
-			mPlayerMoved = false;
 		}
 
 		//Update the UI
@@ -464,7 +449,6 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		}
 
 		mPlayerChangedView = true;
-		mPlayerMoved = true;
 		mPlayer->SetMovement(playerX, playerZ, playerJump);
 	}
 
@@ -477,7 +461,11 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		RespawnPlayer();
 	}
 	if (GetAsyncKeyState('3') & 0x8000) {
-		mPlayer->SetPosition(mSpawnPoint);
+		mShowDebugInfo++;
+		if (mShowDebugInfo > 2) mShowDebugInfo = 0;
+
+		mUI_Text->ResetVerticies();
+		mPlayerChangedView = true;
 	}
 }
 
@@ -518,12 +506,12 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 }
 void CubeGame::DestroySelectedBlock() {
 	auto geo = mGeometries->at("geo_shape").get();
-	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", mMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
 	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
 	GameObject::sAllGObjs->push_back(itemEntity);
 	ItemEntity::sAllEntities->push_back(itemEntity);
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
-
+	//std::shared_ptr<Material> mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName);
 	mPreviousSelectedBlock->SetActive(false);
 	mPreviousSelectedBlock = Block::sAllBlocks->at(0);	
 	mBlockSelectorTextureCount = 0;
@@ -537,6 +525,32 @@ void CubeGame::DestroySelectedBlock() {
 void CubeGame::RespawnPlayer() {
 	mWorldMgr.RelocatePlayer(mSpawnPoint);
 	mPlayer->SetPosition(mSpawnPoint);
+	mPlayerChangedView = true;
+}
+
+void CubeGame::ShowDebug() {
+	if (mShowDebugInfo == 1) {
+		XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
+		SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
+		SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
+		SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
+
+		std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
+		WorldManager::Pos cPos = c->GetPos();
+		SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
+		SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
+		SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
+		int i = c->GetID();
+		if (i < 10)
+			SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
+		else
+			SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
+	}
+	else if (mShowDebugInfo == 2) {
+		SetUIString("1 to unfocus mouse", 0, 0);
+		SetUIString("2 to respawn", 1, 0);
+		SetUIString("3 to toggle debug text", 2, 0);
+	}
 }
 
 void CubeGame::AnimateMaterials(const GameTimer& gt)
@@ -1024,7 +1038,7 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
-	UINT totalExtraRI = 5; // maxEntityCount + maxUICount;		//Render items which have not yet been created
+	UINT totalExtraRI = mMaxNumberOfItemEntities; // maxEntityCount + maxUICount;		//Render items which have not yet been created
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()

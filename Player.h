@@ -30,6 +30,8 @@ public:
     //Getters
     Camera* GetCam() { return &mCamera; };
     bool* getDiagonal() { return &mDiagonal; };
+    bool getJump() { return mJumped; };
+    bool GetUpdateWorldPos() { bool temp = mUpdateWorldPos; mUpdateWorldPos = false; return temp; };
 
     //Setters
     void SetRIDirty() override;
@@ -69,6 +71,8 @@ private:
     //Jump
     bool mJumped = true;
     const float mJumpHeight = 15.f;
+
+    bool mUpdateWorldPos = false;
 
     //Movement
     class Dir {

@@ -269,7 +269,8 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 
 	//Set the chunk to active and set its starting indexes
 	SetChunkActive(chunk, true);
-	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
+	if(!mCreatedWorld)
+		chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
 
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
@@ -294,6 +295,7 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 		Block::sAllBlocks->erase(Block::sAllBlocks->begin() + blockStart, Block::sAllBlocks->begin() + blockStart + sChunkSize);
 		GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + gObjStart, GameObject::sAllGObjs->begin() + gObjStart + sChunkSize);
 		Block::sBlockInstance->Instances.erase(Block::sBlockInstance->Instances.begin() + instanceStart, Block::sBlockInstance->Instances.begin() + instanceStart + sChunkSize);
+		chunk->SetStartIndexes(blockStart, gObjStart, instanceStart);
 
 		//Insert the new values
 		Block::sAllBlocks->insert(Block::sAllBlocks->begin() + blockStart, blocksToInsert->begin(), blocksToInsert->end());
@@ -359,7 +361,7 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 
 	//If the previous chunk wasnt loaded, then load it instead of swapping
 	if (!oldChunk->GetAcitve()) {
- 		LoadChunk(neew.x, neew.y, neew.z);
+   		LoadChunk(neew.x, neew.y, neew.z);
 		return;
 	}
 
@@ -455,6 +457,10 @@ void WorldManager::LoadFirstChunks(DirectX::XMFLOAT3 pos) {
 void WorldManager::RelocatePlayer(DirectX::XMFLOAT3 newPos) {
 	UnloadAllChunks();
 	LoadFirstChunks(newPos);
+
+	Pos playerChunkPos = GetPlayerChunkCoords(newPos);
+	mPlayerPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
+	mPlayerAtEdge = Pos();
 }
 
 void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
@@ -530,6 +536,8 @@ void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
 
 					}
 				}
+				
+				mPlayerPos[changeAxis] += mChangeInPlayerPos[changeAxis];
 			}
 		}
 		mPlayerPos = newPos;
