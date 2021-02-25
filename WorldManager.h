@@ -63,6 +63,7 @@ public:
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetBlocks() { return mBlocks; };
 		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> GetInstanceDatas() { return mInstanceDatas; };
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetActiveBlocks() { return mActiveBlocks; };
+		std::shared_ptr<Block> GetBlock(Pos pos);
 
 		//Setters
 		void SetAcitve(bool active) { mActive = active; };
@@ -81,8 +82,6 @@ public:
 		void SetInstanceStartIndex(size_t b) { mInstanceStartIndex = b; };
 
 	private:
-		std::shared_ptr<Block> GetBlock(Pos pos);
-
 		bool mActive = false;
 		Pos mPosition; //Bottom left front corner. (-x, -y, -z)
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> mBlocks;
@@ -113,7 +112,7 @@ public:
 	int GetTotalAmountOfBlocks();
 	int GetPlayerChunkIndex(DirectX::XMFLOAT3 pos);
 	Pos GetPlayerChunkCoords(DirectX::XMFLOAT3 pos);
-	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
+	std::shared_ptr<Chunk> GetChunkFromWorldCoords(DirectX::XMFLOAT3 pos);
 	void LoadFirstChunks(DirectX::XMFLOAT3 pos);
 
 	void RelocatePlayer(DirectX::XMFLOAT3 newPos);
@@ -138,6 +137,7 @@ private:
 	//Get the chunk from its chunk-coordiantes
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
 	void SetChunkActive(std::shared_ptr<Chunk> chunk, bool active);
+	WorldManager::Pos GetChunkCoordsFromWorldCoods(WorldManager::Pos);
 
 private:
 	static std::shared_ptr<std::unordered_map<std::string, int>> sMaterialIndexes;

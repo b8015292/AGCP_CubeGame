@@ -535,7 +535,7 @@ void CubeGame::ShowDebug() {
 		SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
 		SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
 
-		std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
+		std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetChunkFromWorldCoords(pos);
 		WorldManager::Pos cPos = c->GetPos();
 		SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
 		SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
