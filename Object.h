@@ -42,6 +42,7 @@ public:
 
     //Mutators
     virtual void Translate(const float dTime, float x, float y, float z);
+    virtual void Rotate(const float dTime, XMVECTOR axis, float angle);
 
 protected:
     bool mActive = true;
@@ -79,6 +80,19 @@ protected:
     XMFLOAT3 mMaxVel;
 
     bool mMoved = false;
+};
+
+class ItemEntity : public Entity {
+public:
+    //Static variables
+    static std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> sAllItemEntities;
+
+    //Constructor
+    ItemEntity(std::shared_ptr<GameObject> gobj);
+
+    void Update(const float dTime) override;
+
+    void Pickup();
 };
 
 class Block : public GameObject{

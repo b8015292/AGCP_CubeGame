@@ -517,12 +517,15 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 		DestroySelectedBlock();
 }
 void CubeGame::DestroySelectedBlock() {
-			
-	std::shared_ptr<Material> mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName);
-
+	auto geo = mGeometries->at("geo_shape").get();
+	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", mMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+	GameObject::sAllGObjs->push_back(itemEntity);
+	ItemEntity::sAllEntities->push_back(itemEntity);
+	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
 
 	mPreviousSelectedBlock->SetActive(false);
-	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
+	mPreviousSelectedBlock = Block::sAllBlocks->at(0);	
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
 	
@@ -823,6 +826,8 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[0].push_back("mesh_player");
 	meshDatas[0].push_back(Block::CreateCubeGeometry(1.0f, 1.0f, 1.0f, mBlockTexturePositions["dirt"].x, 1.0f));
 	meshNames[0].push_back("mesh_cube");
+	meshDatas[0].push_back(Block::CreateCubeGeometry(0.2f, 0.2f, 0.2f, mBlockTexturePositions["dirt"].x, 1.0f));
+	meshNames[0].push_back("mesh_itemEntity");
 	meshDatas[0].push_back(Block::CreateCubeGeometry(1.05f, 1.05f, 1.05f, mBlockBreakTexturePositions[mBlockBreakTexNames[1]].x, 1.0f));
 	meshNames[0].push_back("mesh_blockSelector");
 	meshDatas[0].push_back(geoGen.CreateSphere(0.5f, 20, 20));

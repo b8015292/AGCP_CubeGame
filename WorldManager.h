@@ -88,6 +88,7 @@ public:
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> mBlocks;
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> mActiveBlocks;
 		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> mInstanceDatas;
+		std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> mItemEntities;
 
 		int mID = -1;
 		size_t mActiveIndex = -1;
@@ -95,6 +96,7 @@ public:
 		size_t mBlockStartIndex = -1;
 		size_t mGObjStartIndex = -1;
 		size_t mInstanceStartIndex = -1;
+		size_t mIEntitiesStartIndex = -1;
 	};
 
 	WorldManager();
