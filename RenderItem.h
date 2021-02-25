@@ -3,6 +3,8 @@
 #include "Common/d3dUtil.h"
 #include "Common/MathHelper.h"
 
+#include "GameData.h"
+
 class GeometryGenerator {
 public:
     using uint16 = std::uint16_t;
@@ -74,6 +76,10 @@ public:
     RenderItemParent() = default;
     RenderItemParent(MeshGeometry* meshGeo, std::string meshName, Material* mat);
 
+    void CreateBoundingBox();
+    std::array<DirectX::XMFLOAT3, 8> GetCoords();
+
+
     bool active = true;
 
     // Index into GPU constant buffer corresponding to the ObjectCB for this render item.
@@ -82,6 +88,7 @@ public:
     Material* Mat = nullptr;
     MeshGeometry* Geo = nullptr;
     std::string MeshName = "";
+    DirectX::BoundingBox mBoundingBox;
 
     // Primitive topology.
     D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -99,6 +106,8 @@ public:
     RenderItem() = default;
     RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* mat, DirectX::XMMATRIX world);
 
+    void UpdateBoundingBox();
+
     // World matrix of the shape that describes the object's local space
     // relative to the world space, which defines the position, orientation,
     // and scale of the object in the world.
@@ -112,18 +121,23 @@ public:
 class InstanceData {
 public:
     InstanceData() = default;
-    InstanceData(DirectX::XMMATRIX world, UINT materialIndex, std::string materialName) {
+    InstanceData(DirectX::XMMATRIX world, UINT materialIndex, std::string materialName, DirectX::BoundingBox bb) {
         XMStoreFloat4x4(&World, world);
         MaterialIndex = materialIndex;
         MaterialName = materialName;
+        mBoundingBox = bb;
+        UpdateBoundingBox();
     };
     InstanceData& operator=(const InstanceData& id) {
         World = id.World;
         TexTransform = id.TexTransform;
         MaterialIndex = id.MaterialIndex;
         NumFramesDirty = id.NumFramesDirty;
+        mBoundingBox = id.mBoundingBox;
         return (*this);
     }
+
+    void UpdateBoundingBox();
 
     DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
     DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
@@ -134,6 +148,7 @@ public:
     bool Visible = false;
 
     std::string MaterialName;
+    DirectX::BoundingBox mBoundingBox;
 
     bool Pad3 = false;
     bool Pad4 = false;

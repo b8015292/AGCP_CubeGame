@@ -128,7 +128,7 @@ private:
     WorldManager mWorldMgr;
 
     std::shared_ptr<Player> mPlayer;
-    DirectX::XMFLOAT3 mSpawnPoint{ 12, 12, 12 };
+    DirectX::XMFLOAT3 mSpawnPoint{ 12, 10, 12 };
     bool mPlayerChangedView = false;
     bool mPlayerMoved = false;
 

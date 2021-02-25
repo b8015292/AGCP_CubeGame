@@ -20,8 +20,8 @@ void Player::Update(const float dTime) {
 		BoundingBox positiveOffset;
 		BoundingBox negativeOffset;
 		//Create an added offset to each side of the cube so player can jump while against an edge
-		mBoundingBox.Transform(negativeOffset, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
-		mBoundingBox.Transform(positiveOffset, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
+		mRI->mBoundingBox.Transform(negativeOffset, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
+		mRI->mBoundingBox.Transform(positiveOffset, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
 
 		if (!(CheckIfCollidingAtBox(negativeOffset) && CheckIfCollidingAtBox(positiveOffset))) {
 			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
@@ -180,11 +180,11 @@ void Player::CheckCollisions(float dTime) {
 
 	//Apply the next positions to bounding boxes
 	float yOffset = 0.2f;	//Used to ensure the player doesn't clip the floor
-	mBoundingBox.Transform(mNextBoxes[Dir::look], DirectX::XMMatrixTranslation(mMoveVectors[Dir::look].m128_f32[0], yOffset, mMoveVectors[Dir::look].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::lookStrafe], DirectX::XMMatrixTranslation(mMoveVectors[Dir::lookStrafe].m128_f32[0], yOffset, mMoveVectors[Dir::lookStrafe].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::lookBoth], DirectX::XMMatrixTranslation(mMoveVectors[Dir::lookBoth].m128_f32[0], yOffset, mMoveVectors[Dir::lookBoth].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::axisForward], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisForward].m128_f32[0], yOffset, mMoveVectors[Dir::axisForward].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::axisSide], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisSide].m128_f32[0], yOffset, mMoveVectors[Dir::axisSide].m128_f32[2]));
+	mRI->mBoundingBox.Transform(mNextBoxes[Dir::look], DirectX::XMMatrixTranslation(mMoveVectors[Dir::look].m128_f32[0], yOffset, mMoveVectors[Dir::look].m128_f32[2]));
+	mRI->mBoundingBox.Transform(mNextBoxes[Dir::lookStrafe], DirectX::XMMatrixTranslation(mMoveVectors[Dir::lookStrafe].m128_f32[0], yOffset, mMoveVectors[Dir::lookStrafe].m128_f32[2]));
+	mRI->mBoundingBox.Transform(mNextBoxes[Dir::lookBoth], DirectX::XMMatrixTranslation(mMoveVectors[Dir::lookBoth].m128_f32[0], yOffset, mMoveVectors[Dir::lookBoth].m128_f32[2]));
+	mRI->mBoundingBox.Transform(mNextBoxes[Dir::axisForward], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisForward].m128_f32[0], yOffset, mMoveVectors[Dir::axisForward].m128_f32[2]));
+	mRI->mBoundingBox.Transform(mNextBoxes[Dir::axisSide], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisSide].m128_f32[0], yOffset, mMoveVectors[Dir::axisSide].m128_f32[2]));
 	//mBoundingBox.Transform(mNextBoxes[Dir::axisStrafe], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisStrafe].m128_f32[0], yOffset, mMoveVectors[Dir::axisStrafe].m128_f32[2]));
 
 	//Rest the value
@@ -282,7 +282,7 @@ bool Player::Walk(float d, float dTime) {
 	//Create a bounding box in the position that the player is about to walk to. Increasing the Y slightly so it doesn't clip the floor
 	XMMATRIX translation = DirectX::XMMatrixTranslation(look.m128_f32[0], 0.2f, look.m128_f32[2]);
 	BoundingBox nextBoxX;
-	mBoundingBox.Transform(nextBoxX, translation);
+	mRI->mBoundingBox.Transform(nextBoxX, translation);
 
 	//If there is no collision, move the player and camera
 	if (!CheckIfCollidingAtBox(nextBoxX)) {
@@ -322,8 +322,8 @@ void Player::SetPosition(XMFLOAT3 newPos) {
 	mCamera.SetPosition(newPos);
 	mCamera.UpdateViewMatrix();
 
-	mBoundingBox.Center = newPos;
-	mBoundingBox.Center.y -= mCameraOffsetY;
+	mRI->mBoundingBox.Center = newPos;
+	mRI->mBoundingBox.Center.y -= mCameraOffsetY;
 }
 
 void Player::increasePlayerHealth(int amount)

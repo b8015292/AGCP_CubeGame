@@ -1,5 +1,7 @@
 #pragma once
 
+#include "omp.h"
+
 #include <algorithm>
 
 #include "Object.h"
@@ -79,6 +81,8 @@ public:
 		void SetInstanceStartIndex(size_t b) { mInstanceStartIndex = b; };
 
 	private:
+		std::shared_ptr<Block> GetBlock(Pos pos);
+
 		bool mActive = false;
 		Pos mPosition; //Bottom left front corner. (-x, -y, -z)
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> mBlocks;
@@ -101,12 +105,6 @@ public:
 
 	void UpdatePlayerPosition(DirectX::XMFLOAT3 pos);
 
-	bool IsChunkCoordValid(int x, int y, int z);
-	void LoadChunk(int x, int y, int z);
-	void UnloadChunk(int x, int y, int z);
-	void SwapChunk(Pos old, Pos neew);
-	void UnloadAllChunks();
-
 	int GetChunkSize() { return sChunkSize; };
 	int GetNumberOfChunksToLoad() { return mChunksToLoad; };
 
@@ -118,15 +116,22 @@ public:
 
 	void RelocatePlayer(DirectX::XMFLOAT3 newPos);
 
-	//Returns an index (in Block::sAllBlocks) used by a given block 
 	std::shared_ptr<Block> GetBlock(DirectX::XMFLOAT3 pos);
 
 	//DEBUG
 	void PrintChunkOrder();
 
 private:
-	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
+	bool IsChunkCoordValid(int x, int y, int z);
+	void LoadChunk(int x, int y, int z);
+	void UnloadChunk(int x, int y, int z);
+	void SwapChunk(Pos old, Pos neew);
+	void UnloadAllChunks();
 
+	void PopulateMapWithTrees();
+
+	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
+	static void SetBlockType(std::shared_ptr<Block> block, std::string materialName, bool active);
 
 	//Get the chunk from its chunk-coordiantes
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
@@ -169,6 +174,7 @@ private:
 	std::vector<size_t> mAvailableGObjStartIndexes;
 	std::vector<size_t> mAvailableBlockInstanceStartIndexes;
 
+	static std::vector<Pos> sTreeStartPositions;
 
 	//DEBUG
 	std::string mChunkOrder = "";

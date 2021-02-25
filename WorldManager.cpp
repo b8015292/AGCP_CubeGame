@@ -3,6 +3,7 @@
 PerlinNoise WorldManager::sNoise = PerlinNoise();
 std::shared_ptr<std::unordered_map<std::string, int>> WorldManager::sMaterialIndexes = nullptr;
 int WorldManager::sChunkMaxID = 0;
+std::vector<WorldManager::Pos> WorldManager::sTreeStartPositions;
 
 //************************************************************************
 //						Chunk
@@ -58,65 +59,74 @@ void WorldManager::Chunk::Init(Pos pos) {
 				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
 					CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
 
+
 					//Create Tree
 					float treeNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 40);
 					if (treeNoise > 0.81) {
-						for (int i = 1; i <= 5; i++) {
-							trunkLocations.push_back({ (int)x, (int)y + i, (int)z });
-						}
-						for (int leafX = x - 2; leafX <= x + 2; leafX++) {
-							for (int leafZ = z - 2; leafZ <= z + 2; leafZ++) {
-								//if (leafX != x && leafZ != z) {
-									leafLocations.push_back({ leafX, (int)y + 4, leafZ });
-									leafLocations.push_back({ leafX, (int)y + 5, leafZ });
-								//}
-							}
-						}
-						for (int leafX = x - 1; leafX <= x + 1; leafX++) {
-							for (int leafZ = z - 1; leafZ <= z + 1; leafZ++) {
-								leafLocations.push_back({ leafX, (int)y + 6, leafZ });
-							}
-						}
-						leafLocations.push_back({ (int)x + 1, (int)y + 7, (int)z });
-						leafLocations.push_back({ (int)x, (int)y + 7, (int) z + 1 });
-						leafLocations.push_back({ (int)x - 1, (int)y + 7, (int)z });
-						leafLocations.push_back({ (int)x, (int)y + 7, (int)z - 1 });
-						leafLocations.push_back({ (int)x, (int)y + 7, (int)z });
+
+						sTreeStartPositions.push_back({ (int)x, (int)y + 1, (int)z });
 					}
+					//	for (int i = 1; i <= 5; i++) {
+					//		trunkLocations.push_back({ (int)x, (int)y + i, (int)z });
+					//	}
+					//	for (int leafX = x - 2; leafX <= x + 2; leafX++) {
+					//		for (int leafZ = z - 2; leafZ <= z + 2; leafZ++) {
+					//			//if (leafX != x && leafZ != z) {
+					//				leafLocations.push_back({ leafX, (int)y + 4, leafZ });
+					//				leafLocations.push_back({ leafX, (int)y + 5, leafZ });
+					//			//}
+					//		}
+					//	}
+					//	for (int leafX = x - 1; leafX <= x + 1; leafX++) {
+					//		for (int leafZ = z - 1; leafZ <= z + 1; leafZ++) {
+					//			leafLocations.push_back({ leafX, (int)y + 6, leafZ });
+					//		}
+					//	}
+					//	leafLocations.push_back({ (int)x + 1, (int)y + 7, (int)z });
+					//	leafLocations.push_back({ (int)x, (int)y + 7, (int) z + 1 });
+					//	leafLocations.push_back({ (int)x - 1, (int)y + 7, (int)z });
+					//	leafLocations.push_back({ (int)x, (int)y + 7, (int)z - 1 });
+					//	leafLocations.push_back({ (int)x, (int)y + 7, (int)z });
+					//}
 
 				}
-				else {	//Blocks above the noise wave are not active upon creation
-					bool containsTrunkOrLeaves = false;
-					for (Pos pos : trunkLocations) {
-						if (x == pos.z && y == pos.y && z == pos.z) {
-							containsTrunkOrLeaves = true;
-							break;
-						}
-					}
-					if (!containsTrunkOrLeaves) {
-						for (Pos pos : leafLocations) {
-							if (x == pos.z && y == pos.y && z == pos.z) {
-								containsTrunkOrLeaves = true;
-								break;
-							}
-						}
-					}
-					if (!containsTrunkOrLeaves) {
-						CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
-					}
+				else {
+					CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
 				}
+				//else {	//Blocks above the noise wave are not active upon creation
+				//	bool containsTrunkOrLeaves = false;
+				//	for (Pos pos : trunkLocations) {
+				//		if (x == pos.z && y == pos.y && z == pos.z) {
+				//			containsTrunkOrLeaves = true;
+				//			break;
+				//		}
+				//	}
+				//	if (!containsTrunkOrLeaves) {
+				//		for (Pos pos : leafLocations) {
+				//			if (x == pos.z && y == pos.y && z == pos.z) {
+				//				containsTrunkOrLeaves = true;
+				//				break;
+				//			}
+				//		}
+				//	}
+				//	if (!containsTrunkOrLeaves) {
+				//		CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
+				//	}
+				//}
 			}
 		}
 	}
 	
-	//Create trees
-	for (Pos pos : trunkLocations) {
-		
-		CreateCube("mat_oak_log", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
-	}
-	for (Pos pos : leafLocations) {
-		CreateCube("mat_oak_leaf", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
-	}
+	
+
+	////Create trees
+	//for (Pos pos : trunkLocations) {
+	//	//SetBlockType(GetBlock(pos), "mat_oak_log", true);
+	//	CreateCube("mat_oak_log", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
+	//}
+	//for (Pos pos : leafLocations) {
+	//	CreateCube("mat_oak_leaf", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
+	//}
 							/*std::wostringstream woss;
 						woss << treeNoise;
 						OutputDebugString(woss.str().c_str());
@@ -132,6 +142,11 @@ WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
 	mPosition = c.mPosition;
 	mInstanceDatas = c.mInstanceDatas;
 	return (*this);
+}
+
+
+std::shared_ptr<Block> WorldManager::Chunk::GetBlock(Pos pos) {
+	return GetBlocks()->at((size_t)(pos.y + (pos.x * sChunkDimension) + (pos.z * sChunkDimension * sChunkDimension) - 1));
 }
 
 
@@ -167,23 +182,46 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, int>> ma
 }
 
 void WorldManager::CreateWorld() {
+	const size_t threads = 1;//6;
+	std::vector<std::shared_ptr<Chunk>> lists[threads];
+
+//#pragma omp parallel for num_threads(threads)
 	for (int z = 0; z < mMaxLength; z++) {
+		//int thread = omp_get_thread_num();
 		for (int y = 0; y < mMaxHeight; y++) {
 			for (int x = 0; x < mMaxLength; x++) {
-				mChunks.push_back(std::make_shared<Chunk>(Pos(x, y, z)));
+				//lists[thread].push_back(std::make_shared<Chunk>(Pos(x, y, z)));
+				lists[0].push_back(std::make_shared<Chunk>(Pos(x, y, z)));
 			}
 		}
+	}
+
+	for (size_t i = 0; i < threads; i++) {
+		mChunks.insert(mChunks.end(), lists[i].begin(), lists[i].end());
+	}
+}
+
+void WorldManager::PopulateMapWithTrees() {
+	for each (Pos p in sTreeStartPositions) {
+
 	}
 }
 
 void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances) {
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
-	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName), materialName);
+	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName), materialName, Block::sBlockInstance->mBoundingBox);
 	blockInstances->push_back(idata);
 	
 	//Create the block directly inside the block list
 	blocks->push_back(std::make_shared<Block>(idata));
 	blocks->at(blocks->size()- 1)->SetActive(active);
+}
+
+void WorldManager::SetBlockType(std::shared_ptr<Block> block, std::string materialName, bool active) {
+	std::shared_ptr<InstanceData> id = block->GetInstanceData();
+	id->MaterialName = materialName;
+	id->MaterialIndex = sMaterialIndexes->at(materialName);
+	block->SetActive(active);
 }
 
 std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunk(int x, int y, int z) {
@@ -321,7 +359,7 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 
 	//If the previous chunk wasnt loaded, then load it instead of swapping
 	if (!oldChunk->GetAcitve()) {
-		LoadChunk(neew.x, neew.y, neew.z);
+ 		LoadChunk(neew.x, neew.y, neew.z);
 		return;
 	}
 
@@ -429,78 +467,73 @@ void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
 	Pos newPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
 	if (mPlayerPos != newPos) {
 
-		bool run = true;		//Use to check if an update needs to occure. E.g. if the player is at the edge of the map
-		int changeAxis = -1;
-
 		//Calculate the change
 		mChangeInPlayerPos.x = newPos.x - mPlayerPos.x;
 		mChangeInPlayerPos.y = newPos.y - mPlayerPos.y;
 		mChangeInPlayerPos.z = newPos.z - mPlayerPos.z;
 
-		if (mChangeInPlayerPos.x != 0) changeAxis = 0;
-		else if (mChangeInPlayerPos.y != 0) changeAxis = 1;
-		else changeAxis = 2;
+		//Loop each axis, but only check it if it has changed
+		for (int changeAxis = 0; changeAxis < 3; changeAxis++) {
+			if (mChangeInPlayerPos[changeAxis] != 0) {
 
+				bool run = true;
 
+				//Get the position the player has just left
+				int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[changeAxis]) + mPlayerPos[changeAxis];
+				//Get the position the player is about to enter
+				int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[changeAxis]) + newPos[changeAxis];
 
-		//Get the position the player has just left
-		int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[changeAxis]) + mPlayerPos[changeAxis];
-		//Get the position the player is about to enter
-		int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[changeAxis]) + newPos[changeAxis];
+				//If the new position is outside of the world, dont swap any chunks
+				if (newAxis < mLoadedChunksAroundCurrentChunk) {
+					mPlayerAtEdge[changeAxis] = 1;
+					mPlayerPos = newPos;
+					run = false;
 
-		//Used as start and end iterators of the for loop
-		int startSubAxis1 = -mLoadedChunksAroundCurrentChunk;
-		int endSubAxis1 = mLoadedChunksAroundCurrentChunk;
-		int startSubAxis2 = -mLoadedChunksAroundCurrentChunk;
-		int endSubAxis2 = mLoadedChunksAroundCurrentChunk;
+				}
+				else if (newAxis >= mWorldSizes[changeAxis]) {
+					mPlayerAtEdge[changeAxis] = -1;
+					mPlayerPos = newPos;
+					run = false;
+				}
+				else {
+					//If the player was previously at the edge, dont swap chunks
+					if (mPlayerAtEdge[changeAxis]) {
+						run = false;
+					}
+					mPlayerAtEdge[changeAxis] = 0;
+				}
 
+				if (run) {
+					//Used as start and end iterators of the for loop
+					int startSubAxis1 = -mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 1];
+					int endSubAxis1 = mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 1];
+					int startSubAxis2 = -mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 2];
+					int endSubAxis2 = mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 2];
 
-		//If the new position is outside of the world, dont swap any chunks
-		if (newAxis < mLoadedChunksAroundCurrentChunk) {
-			mPlayerAtEdge[changeAxis] = 1;
-			run = false;
-		}
-		else if (((newAxis == 0 || newAxis == 2) && newAxis >= (mMaxLength - mLoadedChunksAroundCurrentChunk)) || (newAxis == 1 && newAxis >= (mMaxHeight - mLoadedChunksAroundCurrentChunk))) {
-			mPlayerAtEdge[changeAxis] = -1;
-			run = false;
-		}
-		else {
-			mPlayerAtEdge[changeAxis] = 0;
-		}
+					Pos oldChunk;
+					oldChunk[changeAxis] = oldAxis;
+					Pos newChunk;
+					newChunk[changeAxis] = newAxis;
 
-		//Adjust the iterators if other axis are next to the edge. If confused, check Pos[] operator
-		if (mPlayerAtEdge[changeAxis + 1] != 0) {
-			startSubAxis1 += mPlayerAtEdge[changeAxis + 1];
-			endSubAxis1 += mPlayerAtEdge[changeAxis + 1];
-		}
-		if (mPlayerAtEdge[changeAxis + 2] != 0) {
-			startSubAxis2 += mPlayerAtEdge[changeAxis + 2];
-			endSubAxis2 += mPlayerAtEdge[changeAxis + 2];
-		}
+					//Swaps the old and new Chunks with a constant X and iteratres through each Z. If confused, check Pos[] operator
+					for (int i = startSubAxis1; i <= endSubAxis1; i++) {
+						for (int j = startSubAxis2; j <= endSubAxis2; j++) {
 
+							oldChunk[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
+							oldChunk[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
 
-		if (run) {
-			//Swaps the old and new Chunks with a constant X and iteratres through each Z. If confused, check Pos[] operator
-			for (int i = startSubAxis1; i <= endSubAxis1; i++) {
-				for (int j = startSubAxis2; j <= endSubAxis2; j++) {
-					Pos old;
-					Pos neew;
+							newChunk[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
+							newChunk[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
 
-					old[changeAxis] = oldAxis;
-					old[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
-					old[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
+							SwapChunk(oldChunk, newChunk);
+						}
 
-					neew[changeAxis] = newAxis;
-					neew[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
-					neew[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
-
-					SwapChunk(old, neew);
+					}
 				}
 			}
-
 		}
-
 		mPlayerPos = newPos;
+		mChangeInPlayerPos = Pos();
 	}
 
 

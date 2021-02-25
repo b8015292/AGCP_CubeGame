@@ -569,7 +569,6 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 	for (int i = 0; i < mRitemIntances->size(); i++) {
 		auto rItem = mRitemIntances->at(i);
 		rItem->InstanceCount = 0;
-
 		//Loop through each instance of the render item
 		for (int j = 0; j < (int)rItem->Instances.size(); j++) {
 			std::shared_ptr<InstanceData> idata = rItem->Instances.at(j);
