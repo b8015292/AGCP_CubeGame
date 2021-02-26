@@ -36,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP)
 {
 }
 
@@ -206,59 +206,82 @@ void CubeGame::Update(const GameTimer& gt)
 			SetCapture(mhMainWnd);
 	}
 
-	if (GameData::sRunning) {
-		//Update entities and set dirty flag
-		for (int i = 0; i < Entity::sAllEntities->size(); i++) {
-			Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
-		}
+	//Deciding what to update depending on the current game state
 
-		//Hanlde mouse input - Place and destroy blocks
-		if (mLeftMouseDown) {
-			if (mPreviousSelectedBlock != nullptr) {
-				MineSelectedBlock(gt.DeltaTime());
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+
+		if (GameData::sRunning) {
+			//Update entities and set dirty flag
+			for (int i = 0; i < Entity::sAllEntities->size(); i++) {
+				Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
 			}
-		}
-		if (mRightMouseDown) {
-			mRightMouseDownTimer += gt.DeltaTime();
-			if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
-				mRightMouseDownTimer = 0.f;
 
-				std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-				if (block != nullptr) {
-					block->SetActive(true);
-					mPlayerChangedView = true;
+			//Hanlde mouse input - Place and destroy blocks
+			if (mLeftMouseDown) {
+				if (mPreviousSelectedBlock != nullptr) {
+					MineSelectedBlock(gt.DeltaTime());
 				}
 			}
-		}
+			if (mRightMouseDown) {
+				mRightMouseDownTimer += gt.DeltaTime();
+				if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
+					mRightMouseDownTimer = 0.f;
 
-		//If the player's moved update  the block selector
-		if (mPlayerChangedView) {
-			UpdateBlockSelector();
-			mPlayerChangedView = false;
-			//DEBUG
-			ShowDebug();
-		}
+					std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+					if (block != nullptr) {
+						block->SetActive(true);
+						mPlayerChangedView = true;
+					}
+				}
+			}
 
-		if (mPlayer->GetUpdateWorldPos()) {
-			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
-		}
+			//If the player's moved update  the block selector
+			if (mPlayerChangedView) {
+				UpdateBlockSelector();
+				mPlayerChangedView = false;
+				//DEBUG
+				ShowDebug();
+			}
 
+			if (mPlayer->GetUpdateWorldPos()) {
+				mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
+			}
+
+			//Update the UI
+			std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+			while (it != mAllUIs->end()) {
+				if (it->second->GetDirty()) {
+					it->second->SetRIDirty();
+				}
+				it++;
+			}
+
+			if (mBlockSelector->GetDirty()) {
+				mBlockSelector->SetRIDirty();	//Number of frame resources
+				mBlockSelector->SetRIDirty();
+				mBlockSelector->SetRIDirty();
+			}
+		}
+		break;
+	case GameStates::PAUSE:
+		break;
+	case GameStates::MAINMENU:
+		break;
+	case GameStates::STARTUP:
 		//Update the UI
+		SetUIString("START GAME", 10, 8);
+
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
-			if(it->second->GetDirty()){
+			if (it->second->GetDirty()) {
 				it->second->SetRIDirty();
 			}
 			it++;
 		}
-
-		if (mBlockSelector->GetDirty()) {
-			mBlockSelector->SetRIDirty();	//Number of frame resources
-			mBlockSelector->SetRIDirty();
-			mBlockSelector->SetRIDirty();
-		}
+		break;
 	}
-
 
 	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
@@ -304,25 +327,45 @@ void CubeGame::Draw(const GameTimer& gt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+	{
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
-	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
-	mUI_Text->UpdateBuffer();
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
-	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
 
-	//Instance*************
-	mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
-	//Set the material buffer
-	auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
-	mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
-	//Set the texture table
-	mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		//Instance*************
+		mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
+		//Set the material buffer
+		auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
+		//Set the texture table
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-	DrawInstanceItems(mCommandList.Get());
-	//**********************
+		DrawInstanceItems(mCommandList.Get());
+	}
+		break;
+	case GameStates::PAUSE:
+		break;
+	case GameStates::MAINMENU:
+		break;
+	case GameStates::STARTUP:
+
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		break;
+	}
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -427,47 +470,71 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	bool keyS = GetAsyncKeyState('S') & 0x8000;
 	bool keyA = GetAsyncKeyState('A') & 0x8000;
 	bool keyD = GetAsyncKeyState('D') & 0x8000;
+	bool keyP = GetAsyncKeyState('P') & 0x8000;
 	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+		if (keyW || keyS || keyA || keyD || keySpace) {
+			if (keyW) {
+				playerZ = 1.f;
+			}
 
-	if (keyW || keyS || keyA || keyD || keySpace) {
-		if (keyW) {
-			playerZ = 1.f;
+			if (keyS) {
+				playerZ = -1.f;
+			}
+
+			if (keyA) {
+				playerX = -1.f;
+			}
+
+			if (keyD) {
+				playerX = 1.f;
+			}
+
+			if (keySpace) {
+
+				playerJump = true;
+			}
+
+			if (keyP) {
+
+				changeState(GameStates::PAUSE);
+			}
+
+			mPlayerChangedView = true;
+			mPlayer->SetMovement(playerX, playerZ, playerJump);
+		}
+		//DEBUG
+		if (GetAsyncKeyState('1') & 0x8000) {
+			mCursorInUse = false;
 		}
 
-		if (keyS) {
-			playerZ = -1.f;
+		if (GetAsyncKeyState('2') & 0x8000) {
+			RespawnPlayer();
 		}
+		if (GetAsyncKeyState('3') & 0x8000) {
+			mShowDebugInfo++;
+			if (mShowDebugInfo > 2) mShowDebugInfo = 0;
 
-		if (keyA) {
-			playerX = -1.f;
+			mUI_Text->ResetVerticies();
+			mPlayerChangedView = true;
 		}
+		break;
+	case GameStates::PAUSE:
+		if (keyP) {
 
-		if (keyD) {
-			playerX = 1.f;
+			changeState(GameStates::PAUSE);
 		}
-
+		break;
+	case GameStates::STARTUP:
 		if (keySpace) {
-			playerJump = true;
+
+			changeState(GameStates::PLAYGAME);
 		}
-
-		mPlayerChangedView = true;
-		mPlayer->SetMovement(playerX, playerZ, playerJump);
-	}
-
-	//DEBUG
-	if (GetAsyncKeyState('1') & 0x8000) {
-		mCursorInUse = false;
-	}
-
-	if (GetAsyncKeyState('2') & 0x8000) {
-		RespawnPlayer();
-	}
-	if (GetAsyncKeyState('3') & 0x8000) {
-		mShowDebugInfo++;
-		if (mShowDebugInfo > 2) mShowDebugInfo = 0;
-
-		mUI_Text->ResetVerticies();
-		mPlayerChangedView = true;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -531,6 +598,7 @@ void CubeGame::RespawnPlayer() {
 }
 
 void CubeGame::ShowDebug() {
+	
 	if (mShowDebugInfo == 1) {
 		XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
 		SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
@@ -1287,4 +1355,11 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
 		pointWrap, pointClamp,
 		linearWrap, linearClamp,
 		anisotropicWrap, anisotropicClamp };
+}
+
+void CubeGame::changeState(GameStates newState)
+{
+	currentState = newState;
+	mUI_Text->ResetVerticies();
+	mUI_Text->SetDirtyFlag();
 }
