@@ -142,6 +142,8 @@ void CubeGame::LoadTextures() {
 	MakeTexture("tex_blocks", L"data/blockMap.dds");
 	MakeTexture("tex_skyTex", L"data/sky.dds");
 	MakeTexture("tex_blockSelect", L"data/blockBreakMap.dds");
+	MakeTexture("tex_gui_elements", L"data/guiElements.dds");
+	MakeTexture("tex_gui_menus", L"data/guiMenus.dds");
 
 	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
 	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
@@ -581,6 +583,9 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 	}
 
 	auto currInstanceCB = mCurrFrameResource->InstanceCB.get();
+	BoundingFrustum cameraFrust = mPlayer->GetCam()->GetFrustum();
+	
+
 
 	//Loop through each render item
 	for (int i = 0; i < mRitemIntances->size(); i++) {
@@ -591,20 +596,21 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 			std::shared_ptr<InstanceData> idata = rItem->Instances.at(j);
 
 			if (idata->Active) {
-			//if (idata->NumFramesDirty > 0 && idata->Active) {
 
-				XMMATRIX world = XMLoadFloat4x4(&idata->World);
+				if (cameraFrust.Contains(idata->mBoundingBox) == DirectX::DISJOINT) {
 
-				InstanceConstants newIData;
-				XMStoreFloat4x4(&newIData.World, XMMatrixTranspose(world));
-				newIData.MaterialIndex = idata->MaterialIndex;
+					XMMATRIX world = XMLoadFloat4x4(&idata->World);
 
-				currInstanceCB->CopyData(rItem->InstanceCount, newIData);
-				rItem->InstanceCount++;
+					InstanceConstants newIData;
+					XMStoreFloat4x4(&newIData.World, XMMatrixTranspose(world));
+					newIData.MaterialIndex = idata->MaterialIndex;
 
-				idata->NumFramesDirty--;
+					currInstanceCB->CopyData(rItem->InstanceCount, newIData);
+					rItem->InstanceCount++;
+
+					idata->NumFramesDirty--;
+				}
 			}
-			
 		}
 	}
 }
@@ -824,6 +830,9 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	hDescriptor.Offset(1, cbvSrvDescriptorSize);
 	CreateTextureSRV("tex_blockSelect", hDescriptor);
+
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_gui_elements", hDescriptor);
 }
 
 void CubeGame::BuildShapeGeometry()
@@ -849,7 +858,10 @@ void CubeGame::BuildShapeGeometry()
 
 	//UI Geos
 	meshDatas[1].push_back(mAllUIs->at("Text")->CreateUIPlane2D(1.95f, 1.95f, mUIRows, mUICols));
-	meshNames[1].push_back("mesh_mainGUI");
+	meshNames[1].push_back("mesh_gui_text");
+	//meshDatas[1].push_back(mAllUIs->at("Text")->CreateUIPlane2D(0.5f, 0.5f, 1, 1));
+	//meshNames[1].push_back("mesh_gui_crosshair");
+
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1086,7 +1098,8 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_blockSelect5", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 5, 0.f });
 	CreateMaterial("mat_blockSelect6", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 6, 0.f });
 
-
+	CreateMaterial("mat_gui_elements", 4, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
+	CreateMaterial("mat_gui_menus", 5, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -1133,9 +1146,13 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Sky]->push_back(skyRI);
 
 	//UI----------------------------
-	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
-	mUI_Text->Init(gui1, mCommandList);
+	auto text = std::make_shared<RenderItem>(ui, "mesh_gui_text", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
+	mUI_Text->Init(text, mCommandList);
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Text->GetRI());
+
+	//auto crosshair = std::make_shared<RenderItem>(ui, "mesh_gui_crosshair", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixIdentity());
+	//mUI_Crosshair->Init(crosshair, mCommandList);
+	//mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
 
 	//Block selector---------------
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", GameData::sMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
@@ -1148,6 +1165,10 @@ void CubeGame::BuildGameObjects()
 	mRitemIntances->push_back(blockRI);
 	Block::sBlockInstance = blockRI;
 
+	GenerateWorld();
+}
+
+void CubeGame::GenerateWorld() {
 	mWorldMgr.Init(mMaterialIndexes);
 	mWorldMgr.CreateWorld();
 	mWorldMgr.LoadFirstChunks(mSpawnPoint);

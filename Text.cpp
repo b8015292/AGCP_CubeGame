@@ -40,6 +40,10 @@ void Text::InitFont() {
 		}
 	}
 
+	//Space
+	Font::myChar temp(col * size, row * size, size, size);
+	mFnt.chars[' '] = temp;
+
 	//numbers
 	row = 6;
 	col = 0;
@@ -59,7 +63,7 @@ void Text::InitFont() {
 	//Specials
 	row = 7;
 	col = 1;
-	char spec[] = { '.', ',', ';', ':', '$', '#', 'X', '!', '"', '/', '?', '%', '&', '(', ')', '@', ' ' };
+	char spec[] = { '.', ',', ';', ':', '$', '#', '"', '!', '"', '/', '?', '%', '&', '(', ')', '@' };
 	for (int i = 0; i <= 16 + 9; i++) {
 
 		Font::myChar temp(col * size, row * size, size, size);
@@ -71,6 +75,8 @@ void Text::InitFont() {
 			row++;
 		}
 	}
+
+
 }
 
 void Text::SetChar(char c, int p, std::vector<GeometryGenerator::Vertex>& vs) {

@@ -83,6 +83,7 @@ private:
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
     //Makes a cube
     //void CreateCube(std::string materialName, XMFLOAT3 pos);
+    void GenerateWorld();
 
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
@@ -138,10 +139,13 @@ private:
     const float mFrontPlane = 0.0001f;
 
     //User interface
+    //Text
     std::shared_ptr<Text> mUI_Text;
     Font fnt;
     const int mUIRows = 26;
     const int mUICols = 26;
+    //Crosshairs
+    std::shared_ptr<UI> mUI_Crosshair;
 
     //Mouse input
     bool mCursorInUse = false;
@@ -170,6 +174,8 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+
+
 
 
     const UINT mMaxNumberOfItemEntities = 10;

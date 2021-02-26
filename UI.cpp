@@ -14,7 +14,11 @@ void UI::Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12Graph
 	mStartVertices = mVertices;
 
 	//Move the image so it fills the whole screen
-	XMStoreFloat4x4(&mRI->World, DirectX::XMMatrixTranslation(-0.02f, 0.02f, 0));
+	//DirectX::XMMatrixMultiply();
+	DirectX::XMMATRIX world;
+	GameData::StoreFloat4x4InMatrix(world, mRI->World);
+
+	XMStoreFloat4x4(&mRI->World, DirectX::XMMatrixMultiply(world, DirectX::XMMatrixTranslation(-0.02f, 0.02f, 0)));
 	SetDirtyFlag();
 }
 
@@ -154,6 +158,17 @@ void UI::UpdateBuffer() {
 		subResourceData.pData = mVertices.data();
 		subResourceData.RowPitch = (UINT)sizeof(GeometryGenerator::Vertex) * (UINT)mVertices.size();
 		subResourceData.SlicePitch = subResourceData.RowPitch;
+
+		//*************************
+
+		//Have a different GEO for each UI!?!?!?!?
+
+		Microsoft::WRL::ComPtr<ID3D12Resource> bufferPointer = mRI->Geo->VertexBufferGPU;
+		ID3D12Resource* raw = bufferPointer.Get();
+
+		raw->Map()
+
+		//********************
 
 		// Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
 		// will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
