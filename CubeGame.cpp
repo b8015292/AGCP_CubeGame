@@ -264,11 +264,24 @@ void CubeGame::Update(const GameTimer& gt)
 		}
 		break;
 	case GameStates::PAUSE:
+	{
+		//Update the UI
+		SetUIString("Press P to leave pause", 10, 0);
+
+		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+		while (it != mAllUIs->end()) {
+			if (it->second->GetDirty()) {
+				it->second->SetRIDirty();
+			}
+			it++;
+		}
+	}
 		break;
 	case GameStates::MAINMENU:
 		break;
 	case GameStates::STARTUP:
 		//Update the UI
+	{
 		SetUIString("START GAME", 10, 8);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
@@ -279,6 +292,7 @@ void CubeGame::Update(const GameTimer& gt)
 			it++;
 		}
 		break;
+	}
 	}
 
 	AnimateMaterials(gt);
@@ -350,6 +364,26 @@ void CubeGame::Draw(const GameTimer& gt)
 	}
 		break;
 	case GameStates::PAUSE:
+	{
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		//Instance*************
+		mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
+		//Set the material buffer
+		auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
+		//Set the texture table
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+		DrawInstanceItems(mCommandList.Get());
+	}
 		break;
 	case GameStates::MAINMENU:
 		break;
@@ -464,44 +498,50 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	float playerZ = 0.f;
 	bool playerJump = false;
 
-	bool keyW = GetAsyncKeyState('W') & 0x8000;
-	bool keyS = GetAsyncKeyState('S') & 0x8000;
-	bool keyA = GetAsyncKeyState('A') & 0x8000;
-	bool keyD = GetAsyncKeyState('D') & 0x8000;
-	bool keyP = GetAsyncKeyState('P') & 0x8000;
-	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	bool keyWDown = GetAsyncKeyState('W') & 0x8000;
+	bool keySDown = GetAsyncKeyState('S') & 0x8000;
+	bool keyADown = GetAsyncKeyState('A') & 0x8000;
+	bool keyDDown = GetAsyncKeyState('D') & 0x8000;
+	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
+	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown)
+	{
+		actionComplete = false;
+	}
+
+
 	switch (currentState)
 	{
 	case GameStates::PLAYGAME:
-		if (keyW || keyS || keyA || keyD || keySpace) {
-			if (keyW) {
+		if (keyWDown || keySDown || keyADown || keyDDown || keySpaceDown) {
+			if (keyWDown) {
 				playerZ = 1.f;
 			}
 
-			if (keyS) {
+			if (keySDown) {
 				playerZ = -1.f;
 			}
 
-			if (keyA) {
+			if (keyADown) {
 				playerX = -1.f;
 			}
 
-			if (keyD) {
+			if (keyDDown) {
 				playerX = 1.f;
 			}
 
-			if (keySpace) {
+			if (keySpaceDown) {
 
 				playerJump = true;
 			}
 
-			if (keyP) {
-
-				changeState(GameStates::PAUSE);
-			}
-
 			mPlayerChangedView = true;
 			mPlayer->SetMovement(playerX, playerZ, playerJump);
+		}
+		if (keyPDown && (actionComplete == false))
+		{
+			actionComplete = true;
+			changeState(GameStates::PAUSE);
 		}
 		//DEBUG
 		if (GetAsyncKeyState('1') & 0x8000) {
@@ -520,14 +560,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		}
 		break;
 	case GameStates::PAUSE:
-		if (keyP) {
-
-			changeState(GameStates::PAUSE);
+		if (keyPDown && (actionComplete == false))
+		{
+			//while (keyPDown & 0x80);
+			actionComplete = true;
+			changeState(GameStates::PLAYGAME);
 		}
 		break;
 	case GameStates::STARTUP:
-		if (keySpace) {
-
+		if (keySpaceDown) {
+			//while (keySpaceDown & 0x80);
 			changeState(GameStates::PLAYGAME);
 		}
 		break;
