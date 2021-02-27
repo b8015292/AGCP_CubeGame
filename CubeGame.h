@@ -23,6 +23,14 @@ using namespace DirectX::PackedVector;
 
 const int gNumFrameResources = GameData::sNumFrameResources;
 
+enum class GameStates
+{
+    STARTUP,
+    MAINMENU,
+    PLAYGAME,
+    PAUSE
+};
+
 class CubeGame : public D3DApp
 {
 public:
@@ -51,12 +59,13 @@ private:
     virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
     void OnKeyboardInput(const GameTimer& gt);
 
-    //Updateing
+    //Updating
     virtual void Update(const GameTimer& gt)override;
     void AnimateMaterials(const GameTimer& gt);
     void UpdateObjectCBs(const GameTimer& gt);
     void UpdateMaterialCBs(const GameTimer& gt);
     void UpdateMainPassCB(const GameTimer& gt);
+    void changeState(GameStates newState);
 
     //Drawing
     virtual void Draw(const GameTimer& gt)override;
@@ -86,6 +95,7 @@ private:
 
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
+    void ShowDebug();
 
     //Block stuff
     void UpdateBlockSelector();
@@ -95,6 +105,9 @@ private:
     void RespawnPlayer();
 
 private:
+    GameStates currentState;
+    bool actionComplete = false;
+
     //Each frame resource has its own copy of the pass constant, materials and objects
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrFrameResource = nullptr;
@@ -169,5 +182,12 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+
+
+    const UINT mMaxNumberOfItemEntities = 10;
+
+
+    //Debug
+    int mShowDebugInfo = 2;
 
 };

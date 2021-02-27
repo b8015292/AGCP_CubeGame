@@ -36,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP)
 {
 }
 
@@ -84,7 +84,7 @@ bool CubeGame::Initialize()
     BuildPSOs();
 
 	//Initialise the camera
-	mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
+	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	mPlayer->SetPosition(mSpawnPoint);
 
     // Execute the initialization commands.
@@ -172,7 +172,7 @@ void CubeGame::OnResize()
 	// The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
 	if (mPlayer) {
-		mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
+		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, mBackPlane);
 	}
 }
 
@@ -204,74 +204,96 @@ void CubeGame::Update(const GameTimer& gt)
 			SetCapture(mhMainWnd);
 	}
 
-	if (GameData::sRunning) {
-		//Update entities and set dirty flag
-		for (int i = 0; i < Entity::sAllEntities->size(); i++) {
-			Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
-		}
+	//Deciding what to update depending on the current game state
 
-		//Hanlde mouse input - Place and destroy blocks
-		if (mLeftMouseDown) {
-			if (mPreviousSelectedBlock != nullptr) {
-				MineSelectedBlock(gt.DeltaTime());
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+
+		if (GameData::sRunning) {
+			//Update entities and set dirty flag
+			for (int i = 0; i < Entity::sAllEntities->size(); i++) {
+				Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
 			}
-		}
-		if (mRightMouseDown) {
-			mRightMouseDownTimer += gt.DeltaTime();
-			if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
-				mRightMouseDownTimer = 0.f;
 
-				std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-				if (block != nullptr) {
-					block->SetActive(true);
-					mPlayerChangedView = true;
+			//Hanlde mouse input - Place and destroy blocks
+			if (mLeftMouseDown) {
+				if (mPreviousSelectedBlock != nullptr) {
+					MineSelectedBlock(gt.DeltaTime());
 				}
 			}
+			if (mRightMouseDown) {
+				mRightMouseDownTimer += gt.DeltaTime();
+				if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
+					mRightMouseDownTimer = 0.f;
+
+					std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+					if (block != nullptr) {
+						block->SetActive(true);
+						mPlayerChangedView = true;
+					}
+				}
+			}
+
+			//If the player's moved update  the block selector
+			if (mPlayerChangedView) {
+				UpdateBlockSelector();
+				mPlayerChangedView = false;
+				//DEBUG
+				ShowDebug();
+			}
+
+			if (mPlayer->GetUpdateWorldPos()) {
+				mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
+			}
+
+			//Update the UI
+			std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+			while (it != mAllUIs->end()) {
+				if (it->second->GetDirty()) {
+					it->second->SetRIDirty();
+				}
+				it++;
+			}
+
+			if (mBlockSelector->GetDirty()) {
+				mBlockSelector->SetRIDirty();	//Number of frame resources
+				mBlockSelector->SetRIDirty();
+				mBlockSelector->SetRIDirty();
+			}
 		}
-
-		//If the player's moved update  the block selector
-		if (mPlayerChangedView) {
-			UpdateBlockSelector();
-			mPlayerChangedView = false;
-			//DEBUG
-			XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
-			SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
-			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
-			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
-
-			std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
-			WorldManager::Pos cPos = c->GetPos();
-			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
-			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
-			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
-			int i = c->GetID();
-			if(i < 10)
-				SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
-			else
-				SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
-		}
-
-		if (mPlayerMoved) {
-			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
-			mPlayerMoved = false;
-		}
-
+		break;
+	case GameStates::PAUSE:
+	{
 		//Update the UI
+		SetUIString("Press P to leave pause", 10, 0);
+
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
-			if(it->second->GetDirty()){
+			if (it->second->GetDirty()) {
 				it->second->SetRIDirty();
 			}
 			it++;
 		}
-
-		if (mBlockSelector->GetDirty()) {
-			mBlockSelector->SetRIDirty();	//Number of frame resources
-			mBlockSelector->SetRIDirty();
-			mBlockSelector->SetRIDirty();
-		}
 	}
+		break;
+	case GameStates::MAINMENU:
+		break;
+	case GameStates::STARTUP:
+		//Update the UI
+	{
+		SetUIString("START GAME", 10, 8);
 
+		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+		while (it != mAllUIs->end()) {
+			if (it->second->GetDirty()) {
+				it->second->SetRIDirty();
+			}
+			it++;
+		}
+		break;
+	}
+	}
 
 	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
@@ -317,25 +339,65 @@ void CubeGame::Draw(const GameTimer& gt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+	{
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
-	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
-	mUI_Text->UpdateBuffer();
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
-	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
 
-	//Instance*************
-	mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
-	//Set the material buffer
-	auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
-	mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
-	//Set the texture table
-	mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		//Instance*************
+		mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
+		//Set the material buffer
+		auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
+		//Set the texture table
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-	DrawInstanceItems(mCommandList.Get());
-	//**********************
+		DrawInstanceItems(mCommandList.Get());
+	}
+		break;
+	case GameStates::PAUSE:
+	{
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		//Instance*************
+		mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
+		//Set the material buffer
+		auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
+		//Set the texture table
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+		DrawInstanceItems(mCommandList.Get());
+	}
+		break;
+	case GameStates::MAINMENU:
+		break;
+	case GameStates::STARTUP:
+
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		break;
+	}
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -436,48 +498,83 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	float playerZ = 0.f;
 	bool playerJump = false;
 
-	bool keyW = GetAsyncKeyState('W') & 0x8000;
-	bool keyS = GetAsyncKeyState('S') & 0x8000;
-	bool keyA = GetAsyncKeyState('A') & 0x8000;
-	bool keyD = GetAsyncKeyState('D') & 0x8000;
-	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
-
-	if (keyW || keyS || keyA || keyD || keySpace) {
-		if (keyW) {
-			playerZ = 1.f;
-		}
-
-		if (keyS) {
-			playerZ = -1.f;
-		}
-
-		if (keyA) {
-			playerX = -1.f;
-		}
-
-		if (keyD) {
-			playerX = 1.f;
-		}
-
-		if (keySpace) {
-			playerJump = true;
-		}
-
-		mPlayerChangedView = true;
-		mPlayerMoved = true;
-		mPlayer->SetMovement(playerX, playerZ, playerJump);
+	bool keyWDown = GetAsyncKeyState('W') & 0x8000;
+	bool keySDown = GetAsyncKeyState('S') & 0x8000;
+	bool keyADown = GetAsyncKeyState('A') & 0x8000;
+	bool keyDDown = GetAsyncKeyState('D') & 0x8000;
+	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
+	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown)
+	{
+		actionComplete = false;
 	}
 
-	//DEBUG
-	if (GetAsyncKeyState('1') & 0x8000) {
-		mCursorInUse = false;
-	}
 
-	if (GetAsyncKeyState('2') & 0x8000) {
-		RespawnPlayer();
-	}
-	if (GetAsyncKeyState('3') & 0x8000) {
-		mPlayer->SetPosition(mSpawnPoint);
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+		if (keyWDown || keySDown || keyADown || keyDDown || keySpaceDown) {
+			if (keyWDown) {
+				playerZ = 1.f;
+			}
+
+			if (keySDown) {
+				playerZ = -1.f;
+			}
+
+			if (keyADown) {
+				playerX = -1.f;
+			}
+
+			if (keyDDown) {
+				playerX = 1.f;
+			}
+
+			if (keySpaceDown) {
+
+				playerJump = true;
+			}
+
+			mPlayerChangedView = true;
+			mPlayer->SetMovement(playerX, playerZ, playerJump);
+		}
+		if (keyPDown && (actionComplete == false))
+		{
+			actionComplete = true;
+			changeState(GameStates::PAUSE);
+		}
+		//DEBUG
+		if (GetAsyncKeyState('1') & 0x8000) {
+			mCursorInUse = false;
+		}
+
+		if (GetAsyncKeyState('2') & 0x8000) {
+			RespawnPlayer();
+		}
+		if (GetAsyncKeyState('3') & 0x8000) {
+			mShowDebugInfo++;
+			if (mShowDebugInfo > 2) mShowDebugInfo = 0;
+
+			mUI_Text->ResetVerticies();
+			mPlayerChangedView = true;
+		}
+		break;
+	case GameStates::PAUSE:
+		if (keyPDown && (actionComplete == false))
+		{
+			//while (keyPDown & 0x80);
+			actionComplete = true;
+			changeState(GameStates::PLAYGAME);
+		}
+		break;
+	case GameStates::STARTUP:
+		if (keySpaceDown) {
+			//while (keySpaceDown & 0x80);
+			changeState(GameStates::PLAYGAME);
+		}
+		break;
+	default:
+		break;
 	}
 }
 
@@ -517,37 +614,13 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 		DestroySelectedBlock();
 }
 void CubeGame::DestroySelectedBlock() {
-	
-	XMFLOAT3 blockCenter = mPreviousSelectedBlock->GetBoundingBox().Center;
-
-	bool stacked = false;
-
-	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
-		if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
-			XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
-			XMFLOAT3 difference = XMFLOAT3{ blockCenter.x - entityCenter.x, blockCenter.y - entityCenter.y, blockCenter.z - entityCenter.z };
-			float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
-
-			if (distance <= 4) {
-				//They are close enough to stack
-				entity->AddStack();
-				entity->SetPosition(blockCenter);
-				stacked = true;
-				break;
-			}
-		}
-	}
-
-	if (!stacked) {
-		auto geo = mGeometries->at("geo_shape").get();
-		auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-		auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
-		GameObject::sAllGObjs->push_back(itemEntity);
-		ItemEntity::sAllEntities->push_back(itemEntity);
-		ItemEntity::sAllItemEntities->push_back(itemEntity);
-		mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
-	}
-
+	auto geo = mGeometries->at("geo_shape").get();
+	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+	GameObject::sAllGObjs->push_back(itemEntity);
+	ItemEntity::sAllEntities->push_back(itemEntity);
+	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+	//std::shared_ptr<Material> mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName);
 	mPreviousSelectedBlock->SetActive(false);
 	mPreviousSelectedBlock = Block::sAllBlocks->at(0);	
 	mBlockSelectorTextureCount = 0;
@@ -561,6 +634,33 @@ void CubeGame::DestroySelectedBlock() {
 void CubeGame::RespawnPlayer() {
 	mWorldMgr.RelocatePlayer(mSpawnPoint);
 	mPlayer->SetPosition(mSpawnPoint);
+	mPlayerChangedView = true;
+}
+
+void CubeGame::ShowDebug() {
+	
+	if (mShowDebugInfo == 1) {
+		XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
+		SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
+		SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
+		SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
+
+		std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetChunkFromWorldCoords(pos);
+		WorldManager::Pos cPos = c->GetPos();
+		SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
+		SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
+		SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
+		int i = c->GetID();
+		if (i < 10)
+			SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
+		else
+			SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
+	}
+	else if (mShowDebugInfo == 2) {
+		SetUIString("1 to unfocus mouse", 0, 0);
+		SetUIString("2 to respawn", 1, 0);
+		SetUIString("3 to toggle debug text", 2, 0);
+	}
 }
 
 void CubeGame::AnimateMaterials(const GameTimer& gt)
@@ -1048,7 +1148,7 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
-	UINT totalExtraRI = 5; // maxEntityCount + maxUICount;		//Render items which have not yet been created
+	UINT totalExtraRI = mMaxNumberOfItemEntities; // maxEntityCount + maxUICount;		//Render items which have not yet been created
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
@@ -1276,4 +1376,11 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
 		pointWrap, pointClamp,
 		linearWrap, linearClamp,
 		anisotropicWrap, anisotropicClamp };
+}
+
+void CubeGame::changeState(GameStates newState)
+{
+	currentState = newState;
+	mUI_Text->ResetVerticies();
+	mUI_Text->SetDirtyFlag();
 }

@@ -64,7 +64,7 @@ void WorldManager::Chunk::Init(Pos pos) {
 					float treeNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 40);
 					if (treeNoise > 0.81) {
 
-						sTreeStartPositions.push_back({ (int)x, (int)y + 1, (int)z });
+						sTreeStartPositions.push_back({ (int)x, (int)y + 2, (int)z});
 					}
 					//	for (int i = 1; i <= 5; i++) {
 					//		trunkLocations.push_back({ (int)x, (int)y + i, (int)z });
@@ -146,7 +146,7 @@ WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
 
 
 std::shared_ptr<Block> WorldManager::Chunk::GetBlock(Pos pos) {
-	return GetBlocks()->at((size_t)(pos.y + (pos.x * sChunkDimension) + (pos.z * sChunkDimension * sChunkDimension) - 1));
+	return GetBlocks()->at((size_t)(pos.y + (pos.x * sChunkDimension) + (pos.z * sChunkDimension * sChunkDimension)));
 }
 
 
@@ -199,12 +199,57 @@ void WorldManager::CreateWorld() {
 	for (size_t i = 0; i < threads; i++) {
 		mChunks.insert(mChunks.end(), lists[i].begin(), lists[i].end());
 	}
+
+	PopulateMapWithTrees();
 }
 
 void WorldManager::PopulateMapWithTrees() {
-	for each (Pos p in sTreeStartPositions) {
+	const int trunkHeight = 5;
+	const int foliageWidth = 2;
+	const int foliageHeight = 1;
+	const int totalHeight = trunkHeight + foliageHeight;
 
+	for each (Pos p in sTreeStartPositions) {
+		std::shared_ptr<Chunk> mainChunk = GetChunkFromWorldCoords({ (float)p.x, (float)p.y, (float)p.z });
+		std::shared_ptr<Chunk> aboveChunk;
+		std::shared_ptr<Chunk> sideChunk;
+		std::shared_ptr<Chunk> frontChunk;
+
+		Pos stumpCoords = GetChunkCoordsFromWorldCoods(p);
+		Pos currCoords = stumpCoords;
+
+		if ((p.y + totalHeight) >= sChunkDimension) {
+			aboveChunk = GetChunkFromWorldCoords({ (float)p.x, (float)(p.y + totalHeight), (float)p.z });
+		}
+		
+
+
+		bool above = false;
+		std::shared_ptr<Chunk> chunkToUse = mainChunk;
+
+		for (int i = 0; i < trunkHeight; i++) {
+
+			if (!above && p.y + i >= sChunkDimension) {
+				chunkToUse = aboveChunk;
+				currCoords.y = 0; 
+				above = true;
+			}
+
+			SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_log", true);
+			currCoords.y ++;
+		}
+
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.y++;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
 	}
+}
+
+WorldManager::Pos WorldManager::GetChunkCoordsFromWorldCoods(WorldManager::Pos p) {
+	p.x -= (int)floorf(p.x / sChunkDimension) * sChunkDimension;
+	p.y -= (int)floorf(p.y / sChunkDimension) * sChunkDimension;
+	p.z -= (int)floorf(p.z / sChunkDimension) * sChunkDimension;
+	return p;
 }
 
 void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances) {
@@ -269,7 +314,8 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 
 	//Set the chunk to active and set its starting indexes
 	SetChunkActive(chunk, true);
-	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
+	if(!mCreatedWorld)
+		chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
 
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
@@ -294,6 +340,7 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 		Block::sAllBlocks->erase(Block::sAllBlocks->begin() + blockStart, Block::sAllBlocks->begin() + blockStart + sChunkSize);
 		GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + gObjStart, GameObject::sAllGObjs->begin() + gObjStart + sChunkSize);
 		Block::sBlockInstance->Instances.erase(Block::sBlockInstance->Instances.begin() + instanceStart, Block::sBlockInstance->Instances.begin() + instanceStart + sChunkSize);
+		chunk->SetStartIndexes(blockStart, gObjStart, instanceStart);
 
 		//Insert the new values
 		Block::sAllBlocks->insert(Block::sAllBlocks->begin() + blockStart, blocksToInsert->begin(), blocksToInsert->end());
@@ -347,7 +394,7 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 
 void WorldManager::SwapChunk(Pos old, Pos neew) {
 	if (!IsChunkCoordValid(old.x, old.y, old.z) || !IsChunkCoordValid(neew.x, neew.y, neew.z))
-		return;
+ 		return;
 
 	//Get the chunks
 	std::shared_ptr<Chunk> oldChunk = GetChunk(old.x, old.y, old.z);
@@ -359,7 +406,7 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 
 	//If the previous chunk wasnt loaded, then load it instead of swapping
 	if (!oldChunk->GetAcitve()) {
- 		LoadChunk(neew.x, neew.y, neew.z);
+   		LoadChunk(neew.x, neew.y, neew.z);
 		return;
 	}
 
@@ -421,7 +468,7 @@ int WorldManager::GetPlayerChunkIndex(DirectX::XMFLOAT3 pos) {
 	return x + (z * mMaxLength);
 }
 
-std::shared_ptr<WorldManager::Chunk> WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos){
+std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunkFromWorldCoords(DirectX::XMFLOAT3 pos){
 	int x = (int)floorf(pos.x / sChunkDimension);
 	int y = (int)floorf(pos.y / sChunkDimension);
 	int z = (int)floorf(pos.z / sChunkDimension);
@@ -438,7 +485,7 @@ WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
 
 void WorldManager::LoadFirstChunks(DirectX::XMFLOAT3 pos) {
 
-	mPlayerPos = GetPlayerChunk(pos)->GetPos();
+	mPlayerPos = GetChunkFromWorldCoords(pos)->GetPos();
 
 	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
@@ -455,6 +502,10 @@ void WorldManager::LoadFirstChunks(DirectX::XMFLOAT3 pos) {
 void WorldManager::RelocatePlayer(DirectX::XMFLOAT3 newPos) {
 	UnloadAllChunks();
 	LoadFirstChunks(newPos);
+
+	Pos playerChunkPos = GetPlayerChunkCoords(newPos);
+	mPlayerPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
+	mPlayerAtEdge = Pos();
 }
 
 void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
@@ -530,6 +581,8 @@ void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
 
 					}
 				}
+				
+				mPlayerPos[changeAxis] += mChangeInPlayerPos[changeAxis];
 			}
 		}
 		mPlayerPos = newPos;
