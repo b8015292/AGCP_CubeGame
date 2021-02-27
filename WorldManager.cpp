@@ -1,5 +1,7 @@
 #include "WorldManager.h"
 
+#include <ctime>
+
 PerlinNoise WorldManager::sNoise = PerlinNoise();
 std::shared_ptr<std::unordered_map<std::string, int>> WorldManager::sMaterialIndexes = nullptr;
 int WorldManager::sChunkMaxID = 0;
@@ -23,6 +25,10 @@ void WorldManager::Chunk::Init(Pos pos) {
 
 	std::vector<Pos> trunkLocations;
 	std::vector<Pos> leafLocations;
+
+	float treeNoise = (float)WorldManager::sNoise.OctavePerlin(pos.x * 0.002, pos.y * 0.002, pos.z * 0.002, 15, 40);
+
+	int treeLocationHeight = -1;
 
 	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
 	{
@@ -59,13 +65,19 @@ void WorldManager::Chunk::Init(Pos pos) {
 				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
 					CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
 
-
-					//Create Tree
-					float treeNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 40);
-					if (treeNoise > 0.81) {
-
-						sTreeStartPositions.push_back({ (int)x, (int)y + 2, (int)z});
+					if (worldX == WorldManager::sChunkDimension / 2 && worldZ == WorldManager::sChunkDimension / 2) {
+						treeLocationHeight = y + 1;
 					}
+
+					////Create Tree
+					//if (worldX > 3 && worldX < WorldManager::sChunkDimension - 3 && worldZ > 3 && worldZ < WorldManager::sChunkDimension - 3) {
+					//	if (treeNoise > 0.65) {
+
+					//		sTreeStartPositions.push_back({ (int)x, (int)y + 2, (int)z });
+					//	}
+					//}
+
+
 					//	for (int i = 1; i <= 5; i++) {
 					//		trunkLocations.push_back({ (int)x, (int)y + i, (int)z });
 					//	}
@@ -115,6 +127,13 @@ void WorldManager::Chunk::Init(Pos pos) {
 				//}
 			}
 		}
+
+		int trees = rand() % 100;
+
+		if (treeLocationHeight >= 0 && trees > 90) {
+			sTreeStartPositions.push_back({ pos.x * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2), treeLocationHeight, pos.z * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2) });
+		}
+
 	}
 	
 	
@@ -157,9 +176,10 @@ std::shared_ptr<Block> WorldManager::Chunk::GetBlock(Pos pos) {
 
 WorldManager::WorldManager(){
 	//Seed the noise
-	srand(time_t(NULL));
+	srand(std::time(NULL));
 	unsigned int seed = rand() % 10000;//237;
 	sNoise = PerlinNoise(seed);
+	srand(sNoise.GetSeed());
 
 	//std::srand(std::time(nullptr));
 	//noise = PerlinNoise(std::rand());
@@ -222,8 +242,6 @@ void WorldManager::PopulateMapWithTrees() {
 			aboveChunk = GetChunkFromWorldCoords({ (float)p.x, (float)(p.y + totalHeight), (float)p.z });
 		}
 		
-
-
 		bool above = false;
 		std::shared_ptr<Chunk> chunkToUse = mainChunk;
 
@@ -239,8 +257,47 @@ void WorldManager::PopulateMapWithTrees() {
 			currCoords.y ++;
 		}
 
-		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.y = stumpCoords.y + trunkHeight - 3;
+
+		for (currCoords.x = stumpCoords.x - foliageWidth; currCoords.x <= stumpCoords.x + foliageWidth; currCoords.x++) {
+			for (currCoords.z = stumpCoords.z - foliageWidth; currCoords.z <= stumpCoords.z + foliageWidth; currCoords.z++) {
+				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
+					SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+				}
+			}
+		}
 		currCoords.y++;
+		for (currCoords.x = stumpCoords.x - foliageWidth; currCoords.x <= stumpCoords.x + foliageWidth; currCoords.x++) {
+			for (currCoords.z = stumpCoords.z - foliageWidth; currCoords.z <= stumpCoords.z + foliageWidth; currCoords.z++) {
+				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
+					SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+				}
+			}
+		}
+		currCoords.y++;
+		for (currCoords.x = stumpCoords.x - foliageWidth / 2; currCoords.x <= stumpCoords.x + foliageWidth / 2; currCoords.x++) {
+			for (currCoords.z = stumpCoords.z - foliageWidth / 2; currCoords.z <= stumpCoords.z + foliageWidth / 2; currCoords.z++) {
+				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
+					SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+				}
+			}
+		}
+
+		currCoords.y++;
+		currCoords.x = stumpCoords.x + 1;
+		currCoords.z = stumpCoords.z;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x;
+		currCoords.z = stumpCoords.z + 1;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x - 1;
+		currCoords.z = stumpCoords.z;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x;
+		currCoords.z = stumpCoords.z - 1;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x;
+		currCoords.z = stumpCoords.z;
 		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
 	}
 }
