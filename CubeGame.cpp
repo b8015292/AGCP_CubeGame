@@ -84,7 +84,7 @@ bool CubeGame::Initialize()
     BuildPSOs();
 
 	//Initialise the camera
-	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
+	mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	mPlayer->SetPosition(mSpawnPoint);
 
     // Execute the initialization commands.
@@ -172,7 +172,7 @@ void CubeGame::OnResize()
 	// The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
 	if (mPlayer) {
-		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, mBackPlane);
+		mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	}
 }
 
@@ -614,18 +614,42 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 		DestroySelectedBlock();
 }
 void CubeGame::DestroySelectedBlock() {
-	auto geo = mGeometries->at("geo_shape").get();
-	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
-	GameObject::sAllGObjs->push_back(itemEntity);
-	ItemEntity::sAllEntities->push_back(itemEntity);
-	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
-	//std::shared_ptr<Material> mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName);
+
+	XMFLOAT3 blockCenter = mPreviousSelectedBlock->GetBoundingBox().Center;
+
+	bool stacked = false;
+
+	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+		if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
+			XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+			XMFLOAT3 difference = XMFLOAT3{ blockCenter.x - entityCenter.x, blockCenter.y - entityCenter.y, blockCenter.z - entityCenter.z };
+			float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+
+			if (distance <= 4) {
+				//They are close enough to stack
+				entity->AddStack();
+				entity->SetPosition(blockCenter);
+				stacked = true;
+				break;
+			}
+		}
+	}
+
+	if (!stacked) {
+		auto geo = mGeometries->at("geo_shape").get();
+		auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+		auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+		GameObject::sAllGObjs->push_back(itemEntity);
+		ItemEntity::sAllEntities->push_back(itemEntity);
+		ItemEntity::sAllItemEntities->push_back(itemEntity);
+		mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+	}
+
 	mPreviousSelectedBlock->SetActive(false);
-	mPreviousSelectedBlock = Block::sAllBlocks->at(0);	
+	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
-	
+
 
 
 	mPlayerChangedView = true;
