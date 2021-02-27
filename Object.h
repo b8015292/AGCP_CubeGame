@@ -92,7 +92,12 @@ public:
 
     void Update(const float dTime) override;
 
+    void AddStack();
+    int GetStackAmount();
+
     void Pickup();
+private:
+    int stackedAmount = 1;
 };
 
 class Block : public GameObject{
