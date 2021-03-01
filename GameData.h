@@ -49,6 +49,8 @@ public:
     static void StoreFloat4x4InMatrix(DirectX::XMMATRIX& dest, const DirectX::XMFLOAT4X4 source);
     static std::wstring StringToWString(std::string s);
     static void Print(std::string message);
+
+    static DirectX::XMFLOAT3 AddFloat3AndVector(DirectX::XMFLOAT3, DirectX::XMVECTOR);
 };
 
 class Font {

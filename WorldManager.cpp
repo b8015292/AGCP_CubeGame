@@ -194,8 +194,6 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, int>> ma
 	WorldManager::sMaterialIndexes = mats;
 
 	mChangeInPlayerPos = Pos();
-	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
-	mChunksToLoad = mChunkRowsToLoad * mChunkRowsToLoad * mChunkRowsToLoad;
 	mWorldSizes.x = mMaxLength;
 	mWorldSizes.y = mMaxHeight;
 	mWorldSizes.z = mMaxLength;

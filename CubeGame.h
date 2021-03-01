@@ -27,6 +27,7 @@ enum class GameStates
 {
     STARTUP,
     MAINMENU,
+    LOADWORLD,
     PLAYGAME,
     PAUSE
 };
@@ -63,7 +64,7 @@ private:
     virtual void Update(const GameTimer& gt)override;
     void AnimateMaterials(const GameTimer& gt);
     void UpdateObjectCBs(const GameTimer& gt);
-    void UpdateMaterialCBs(const GameTimer& gt);
+    void UpdateMaterialCBs();
     void UpdateMainPassCB(const GameTimer& gt);
     void changeState(GameStates newState);
 
@@ -186,6 +187,7 @@ private:
     const int mGUITextCols = 26;
     //Crosshairs
     std::shared_ptr<UI> mUI_Crosshair;
+    std::shared_ptr<UI> mUI_Hotbar;
 
     //GUI textures
     const int mGUIElTexSize = 31;
@@ -197,9 +199,16 @@ private:
     const int mGUIElementRows = 15;
     const int mGUIElementCols = 15;
 
+    //GUI menu
+    //X and Y are the position, Z and W are the size.
+    std::unordered_map<std::string, DirectX::XMFLOAT4> mGUIElementTexturePositionsAndSizes;
+    DirectX::XMFLOAT2 mGUIMenuFileSize{ 228.f, 130.f };
+    const int mHotbarSlots = 7;
+    std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
 
-
+    //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
+    const UINT mMaxUICount = 3;
 
 
     //Debug

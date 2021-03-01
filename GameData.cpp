@@ -31,3 +31,10 @@ void GameData::Print(std::string message) {
 	OutputDebugStringW(StringToWString(message).c_str());
 }
 
+DirectX::XMFLOAT3 GameData::AddFloat3AndVector(DirectX::XMFLOAT3 inFloat3, DirectX::XMVECTOR inVector) {
+	inFloat3.x += inVector.m128_f32[0];
+	inFloat3.y += inVector.m128_f32[1];
+	inFloat3.z += inVector.m128_f32[2];
+
+	return inFloat3;
+}

@@ -159,8 +159,9 @@ private:
 	const int mMaxLength = 6;
 
 	int mLoadedChunksAroundCurrentChunk = 1; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
-	int mChunksToLoad = -1;
-	int mChunkRowsToLoad = -1;
+	int mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
+	int mChunksToLoad = mChunkRowsToLoad * mChunkRowsToLoad * mChunkRowsToLoad;
+
 
 	bool mCreatedWorld = false;
 	//If a variable is +/- 1 then player is at the +/- edge of the map by that axis

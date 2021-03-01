@@ -188,3 +188,10 @@ void UI::SetTexture(const int VertexPos, DirectX::XMFLOAT2 texturePos, const Dir
 	mVertices[pos + mSizeX].TexC = { texturePos.x, texturePos.y + textureSize.y };
 	mVertices[pos + mSizeX + 1].TexC = { texturePos.x + textureSize.x, texturePos.y + textureSize.y };
 }
+
+void UI::SetWholeTexture(DirectX::XMFLOAT2 texturePos, const DirectX::XMFLOAT2 textureSize) {
+	mVertices[0].TexC = { texturePos.x, texturePos.y };
+	mVertices[1].TexC = { texturePos.x + textureSize.x, texturePos.y };
+	mVertices[2].TexC = { texturePos.x, texturePos.y + textureSize.y };
+	mVertices[3].TexC = { texturePos.x + textureSize.x, texturePos.y + textureSize.y };
+}
