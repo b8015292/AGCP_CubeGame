@@ -107,6 +107,7 @@ private:
 
 private:
     GameStates currentState;
+    bool actionComplete = false;
 
     //Each frame resource has its own copy of the pass constant, materials and objects
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;

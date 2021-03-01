@@ -5,6 +5,7 @@ int GameObject::sMaxID = 0;
 
 std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> GameObject::sAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 std::shared_ptr<std::vector<std::shared_ptr<Entity>>> Entity::sAllEntities = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
+std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> ItemEntity::sAllItemEntities = std::make_shared<std::vector<std::shared_ptr<ItemEntity>>>();
 std::shared_ptr<std::vector<std::shared_ptr<Block>>> Block::sAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
 std::shared_ptr<RenderItemInstance> Block::sBlockInstance = std::make_shared<RenderItemInstance>();
 
@@ -86,7 +87,6 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Translate the bounding box
 	mRI->mBoundingBox.Transform(mRI->mBoundingBox, translateMatrix);
 
-
 	SetDirtyFlag();
 }
 
@@ -128,7 +128,7 @@ void GameObject::SetPosition(XMFLOAT3 pos) {
 	XMStoreFloat4x4(&mRI->World, translateMatrix);
 	SetDirtyFlag();
 
-	mRI->CreateBoundingBox();
+	mRI->mBoundingBox.Center = pos;
 }
 
 //************************************************************************************************************
@@ -232,8 +232,7 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 
 ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
 	//sBlockInstance->Instances.push_back(idata);
-
-	//CreateBoundingBox();
+	
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 
@@ -244,7 +243,14 @@ void ItemEntity::Update(const float dTime) {
 }
 
 void ItemEntity::Pickup() {
+	//Link with inventory
+}
 
+void ItemEntity::AddStack() {
+	stackedAmount++;
+}
+int ItemEntity::GetStackAmount() {
+	return stackedAmount;
 }
 
 
@@ -367,7 +373,7 @@ void Block::SetPosition(XMFLOAT3 pos) {
 	XMStoreFloat4x4(&mInstanceData->World, translateMatrix);
 	SetDirtyFlag();
 
-	mRI->CreateBoundingBox();
+	mRI->UpdateBoundingBox();
 }
 
 void Block::Translate(const float dTime, float x, float y, float z) {

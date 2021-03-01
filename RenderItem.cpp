@@ -15,14 +15,15 @@ RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* ma
 	: RenderItemParent(meshGeo, meshName, mat) {
 	ObjCBIndex = ++sCBIndex;
 	XMStoreFloat4x4(&World, world);
+	CreateBoundingBox();
 	UpdateBoundingBox();
 }
 
 void RenderItemParent::CreateBoundingBox() {
 	std::array<DirectX::XMFLOAT3, 8> coords = GetCoords();
 
-	DirectX::XMFLOAT3 topFrontRight = coords[1];  //top front right
-	DirectX::XMFLOAT3 backBottomLeft = coords[6]; //bottom back left
+	DirectX::XMFLOAT3 topFrontRight = coords[1];
+	DirectX::XMFLOAT3 backBottomLeft = coords[6];
 
 	float xDist = topFrontRight.x - backBottomLeft.x;
 	float yDist = topFrontRight.y - backBottomLeft.y;

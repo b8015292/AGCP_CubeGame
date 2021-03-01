@@ -84,7 +84,7 @@ bool CubeGame::Initialize()
     BuildPSOs();
 
 	//Initialise the camera
-	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
+	mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	mPlayer->SetPosition(mSpawnPoint);
 
     // Execute the initialization commands.
@@ -178,7 +178,7 @@ void CubeGame::OnResize()
 	// The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
 	if (mPlayer) {
-		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, mBackPlane);
+		mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	}
 }
 
@@ -270,11 +270,24 @@ void CubeGame::Update(const GameTimer& gt)
 		}
 		break;
 	case GameStates::PAUSE:
+	{
+		//Update the UI
+		SetUIString("Press P to leave pause", 10, 0);
+
+		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+		while (it != mAllUIs->end()) {
+			if (it->second->GetDirty()) {
+				it->second->SetRIDirty();
+			}
+			it++;
+		}
+	}
 		break;
 	case GameStates::MAINMENU:
 		break;
 	case GameStates::STARTUP:
 		//Update the UI
+	{
 		SetUIString("START GAME", 10, 8);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
@@ -285,6 +298,7 @@ void CubeGame::Update(const GameTimer& gt)
 			it++;
 		}
 		break;
+	}
 	}
 
 	AnimateMaterials(gt);
@@ -356,6 +370,26 @@ void CubeGame::Draw(const GameTimer& gt)
 	}
 		break;
 	case GameStates::PAUSE:
+	{
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		//Instance*************
+		mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
+		//Set the material buffer
+		auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
+		//Set the texture table
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+		DrawInstanceItems(mCommandList.Get());
+	}
 		break;
 	case GameStates::MAINMENU:
 		break;
@@ -470,44 +504,50 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	float playerZ = 0.f;
 	bool playerJump = false;
 
-	bool keyW = GetAsyncKeyState('W') & 0x8000;
-	bool keyS = GetAsyncKeyState('S') & 0x8000;
-	bool keyA = GetAsyncKeyState('A') & 0x8000;
-	bool keyD = GetAsyncKeyState('D') & 0x8000;
-	bool keyP = GetAsyncKeyState('P') & 0x8000;
-	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	bool keyWDown = GetAsyncKeyState('W') & 0x8000;
+	bool keySDown = GetAsyncKeyState('S') & 0x8000;
+	bool keyADown = GetAsyncKeyState('A') & 0x8000;
+	bool keyDDown = GetAsyncKeyState('D') & 0x8000;
+	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
+	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown)
+	{
+		actionComplete = false;
+	}
+
+
 	switch (currentState)
 	{
 	case GameStates::PLAYGAME:
-		if (keyW || keyS || keyA || keyD || keySpace) {
-			if (keyW) {
+		if (keyWDown || keySDown || keyADown || keyDDown || keySpaceDown) {
+			if (keyWDown) {
 				playerZ = 1.f;
 			}
 
-			if (keyS) {
+			if (keySDown) {
 				playerZ = -1.f;
 			}
 
-			if (keyA) {
+			if (keyADown) {
 				playerX = -1.f;
 			}
 
-			if (keyD) {
+			if (keyDDown) {
 				playerX = 1.f;
 			}
 
-			if (keySpace) {
+			if (keySpaceDown) {
 
 				playerJump = true;
 			}
 
-			if (keyP) {
-
-				changeState(GameStates::PAUSE);
-			}
-
 			mPlayerChangedView = true;
 			mPlayer->SetMovement(playerX, playerZ, playerJump);
+		}
+		if (keyPDown && (actionComplete == false))
+		{
+			actionComplete = true;
+			changeState(GameStates::PAUSE);
 		}
 		//DEBUG
 		if (GetAsyncKeyState('1') & 0x8000) {
@@ -526,14 +566,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		}
 		break;
 	case GameStates::PAUSE:
-		if (keyP) {
-
-			changeState(GameStates::PAUSE);
+		if (keyPDown && (actionComplete == false))
+		{
+			//while (keyPDown & 0x80);
+			actionComplete = true;
+			changeState(GameStates::PLAYGAME);
 		}
 		break;
 	case GameStates::STARTUP:
-		if (keySpace) {
-
+		if (keySpaceDown) {
+			//while (keySpaceDown & 0x80);
 			changeState(GameStates::PLAYGAME);
 		}
 		break;
@@ -578,18 +620,42 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 		DestroySelectedBlock();
 }
 void CubeGame::DestroySelectedBlock() {
-	auto geo = mGeometries->at("geo_shape").get();
-	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
-	GameObject::sAllGObjs->push_back(itemEntity);
-	ItemEntity::sAllEntities->push_back(itemEntity);
-	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
-	//std::shared_ptr<Material> mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName);
+
+	XMFLOAT3 blockCenter = mPreviousSelectedBlock->GetBoundingBox().Center;
+
+	bool stacked = false;
+
+	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+		if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
+			XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+			XMFLOAT3 difference = XMFLOAT3{ blockCenter.x - entityCenter.x, blockCenter.y - entityCenter.y, blockCenter.z - entityCenter.z };
+			float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+
+			if (distance <= 4) {
+				//They are close enough to stack
+				entity->AddStack();
+				entity->SetPosition(blockCenter);
+				stacked = true;
+				break;
+			}
+		}
+	}
+
+	if (!stacked) {
+		auto geo = mGeometries->at("geo_shape").get();
+		auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+		auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+		GameObject::sAllGObjs->push_back(itemEntity);
+		ItemEntity::sAllEntities->push_back(itemEntity);
+		ItemEntity::sAllItemEntities->push_back(itemEntity);
+		mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+	}
+
 	mPreviousSelectedBlock->SetActive(false);
-	mPreviousSelectedBlock = Block::sAllBlocks->at(0);	
+	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
-	
+
 
 
 	mPlayerChangedView = true;
