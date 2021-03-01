@@ -188,12 +188,14 @@ private:
     //Crosshairs
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
+    std::shared_ptr<Text> mUI_HotbarItems;
 
     //GUI textures
     const int mGUIElTexSize = 31;
     const int mGUIElTexRows = 3;
     const int mGUIElTexCols = 7;
     const std::string mGUIElTexNames[21] = { "heartFull", "heartHalf", "heartEmpty", "crosshair", "NULL", "NULL", "NULL", "NULL", "item_grass", "item_dirt", "NULL", "item_sword", "item_pickaxe", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL" };
+    std::unordered_map<std::string, char> mGUIElementTextureCharacters;
     std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
     DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
     const int mGUIElementRows = 15;
@@ -203,12 +205,13 @@ private:
     //X and Y are the position, Z and W are the size.
     std::unordered_map<std::string, DirectX::XMFLOAT4> mGUIElementTexturePositionsAndSizes;
     DirectX::XMFLOAT2 mGUIMenuFileSize{ 228.f, 130.f };
-    const int mHotbarSlots = 7;
     std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
+    const int mHotbarSlots = 7;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
-    const UINT mMaxUICount = 3;
+    //Text, crosshair, hotbar, hotbar slots
+    const UINT mMaxUICount = 4;     
 
 
     //Debug

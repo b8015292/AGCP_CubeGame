@@ -81,13 +81,16 @@ void Text::InitFont() {
 
 void Text::SetChar(char c, int p) {
 	//Skip every other position
-	int pos = p + p;				//Skip every other colomn
-	int row = (p / (mSizeX / 2));	//Calculate the row number
-	row *= mSizeX;					//Multiply the row number by the size of each row
-	pos += row;						//Add the x and y positions
+	int pos = p;
+	if (p != 0) {
+		pos += p;				//Skip every other colomn
+		int row = (p / (mSizeX / 2));	//Calculate the row number
+		row *= mSizeX;					//Multiply the row number by the size of each row
+		pos += row;						//Add the x and y positions
 
-	//If there aren't enough spaces, don't set the char
-	if (pos >= mVertices.size()) return;
+		//If there aren't enough spaces, don't set the char
+		if (pos >= mVertices.size()) return;
+	}
 
 	//Set a square of texture coords
 	mVertices[pos].TexC = { mFnt.chars.at(c).posX, mFnt.chars.at(c).posY };

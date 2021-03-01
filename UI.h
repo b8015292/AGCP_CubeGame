@@ -21,6 +21,12 @@ public:
 
 	//Getters/Setters
 	std::shared_ptr<RenderItem> GetRI() { return mRI; };
+	void SwapSizes() {
+		int temp = mSizeY;
+		mSizeY = mSizeX;
+		mSizeX = temp;
+
+	}
 
 	//Dirty
 	bool GetDirty() { return mDirty; };
