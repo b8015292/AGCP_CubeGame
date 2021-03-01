@@ -14,6 +14,7 @@ public:
 	~UI();				//Releases the render item and command list
 
 	//Mutators
+	void SetTexture(const int VertexPos, DirectX::XMFLOAT2 texturePos, const DirectX::XMFLOAT2 textureSize);
 	void UpdateBuffer();									//Updates the GPUs version of the verticies. Use this in the main Draw function in CubeGame.cpp, before drawing this.
 	void ResetVerticies() { mVertices = mStartVertices; };	//Clears the GUI.
 

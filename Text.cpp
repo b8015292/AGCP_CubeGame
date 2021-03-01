@@ -79,7 +79,7 @@ void Text::InitFont() {
 
 }
 
-void Text::SetChar(char c, int p, std::vector<GeometryGenerator::Vertex>& vs) {
+void Text::SetChar(char c, int p) {
 	//Skip every other position
 	int pos = p + p;				//Skip every other colomn
 	int row = (p / (mSizeX / 2));	//Calculate the row number
@@ -87,13 +87,13 @@ void Text::SetChar(char c, int p, std::vector<GeometryGenerator::Vertex>& vs) {
 	pos += row;						//Add the x and y positions
 
 	//If there aren't enough spaces, don't set the char
-	if (pos >= vs.size()) return;
+	if (pos >= mVertices.size()) return;
 
 	//Set a square of texture coords
-	vs[pos].TexC = { mFnt.chars.at(c).posX, mFnt.chars.at(c).posY };
-	vs[pos + 1].TexC = { mFnt.chars.at(c).posX + mFnt.chars.at(c).width, mFnt.chars.at(c).posY };
-	vs[pos + mSizeX].TexC = { mFnt.chars.at(c).posX, mFnt.chars.at(c).posY + mFnt.chars.at(c).height };
-	vs[pos + mSizeX + 1].TexC = { mFnt.chars.at(c).posX + mFnt.chars.at(c).width, mFnt.chars.at(c).posY + mFnt.chars.at(c).height };
+	mVertices[pos].TexC = { mFnt.chars.at(c).posX, mFnt.chars.at(c).posY };
+	mVertices[pos + 1].TexC = { mFnt.chars.at(c).posX + mFnt.chars.at(c).width, mFnt.chars.at(c).posY };
+	mVertices[pos + mSizeX].TexC = { mFnt.chars.at(c).posX, mFnt.chars.at(c).posY + mFnt.chars.at(c).height };
+	mVertices[pos + mSizeX + 1].TexC = { mFnt.chars.at(c).posX + mFnt.chars.at(c).width, mFnt.chars.at(c).posY + mFnt.chars.at(c).height };
 }
 
 void Text::SetString(std::string str, float posX, float posY) {
@@ -111,7 +111,7 @@ void Text::SetString(std::string str, float posX, float posY) {
 	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
 	for each (char c in str) {
 		if (c == '-') c = 'm';
-		SetChar(c, pos, mVertices);
+		SetChar(c, pos);
 		pos++;
 	}
 

@@ -99,10 +99,10 @@ bool CubeGame::Initialize()
 }
 
 void CubeGame::SetUIString(std::string str, int lineNo, int col) {
-	if (lineNo > mUIRows) lineNo = mUIRows;
-	if (col > mUICols) col = mUICols;
-	float row = (float)lineNo * 1 / mUIRows;
-	float colm = (float) col * 1 / mUICols;
+	if (lineNo > mGUITextRows) lineNo = mGUITextRows;
+	if (col > mGUITextCols) col = mGUITextCols;
+	float row = (float)lineNo * 1 / mGUITextRows;
+	float colm = (float) col * 1 / mGUITextCols;
 
 	mUI_Text->SetString(str, colm, row);
 }
@@ -110,9 +110,12 @@ void CubeGame::SetUIString(std::string str, int lineNo, int col) {
 void CubeGame::BuildUserInterfaces() {
 	mUI_Text = std::make_shared<Text>();
 	mUI_Text->InitFont();
-	
 	std::pair<std::string, std::shared_ptr<Text>> text("Text", mUI_Text);
 	mAllUIs->insert(text);
+
+	mUI_Crosshair = std::make_shared<UI>();
+	std::pair<std::string, std::shared_ptr<UI>> cross("Crosshair", mUI_Crosshair);
+	mAllUIs->insert(cross);
 }
 
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -147,6 +150,7 @@ void CubeGame::LoadTextures() {
 
 	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
 	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
+	SplitTextureMapIntoPositions(mGUIElementTexturePositions, mGUIElTexSize, mGUIElTexRows, mGUIElTexCols, mGUIElTexNames);
 }
 
 void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
@@ -665,7 +669,7 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 
 			if (idata->Active) {
 
-				if (cameraFrust.Contains(idata->mBoundingBox) == DirectX::DISJOINT) {
+				//if (cameraFrust.Contains(idata->mBoundingBox) == DirectX::DISJOINT) {
 
 					XMMATRIX world = XMLoadFloat4x4(&idata->World);
 
@@ -677,7 +681,7 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 					rItem->InstanceCount++;
 
 					idata->NumFramesDirty--;
-				}
+				//}
 			}
 		}
 	}
@@ -907,8 +911,8 @@ void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 2;
-	std::string geoHolderNames[numb] = { "geo_shape", "geo_ui" };// , "geo_ui", "geo_sky"};
+	const int numb = 3;
+	std::string geoHolderNames[numb] = { "geo_shape", "geo_ui_text1" , "geo_ui_crosshair"};
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
 
@@ -925,10 +929,10 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[0].push_back("mesh_sky");
 
 	//UI Geos
-	meshDatas[1].push_back(mAllUIs->at("Text")->CreateUIPlane2D(1.95f, 1.95f, mUIRows, mUICols));
-	meshNames[1].push_back("mesh_gui_text");
-	//meshDatas[1].push_back(mAllUIs->at("Text")->CreateUIPlane2D(0.5f, 0.5f, 1, 1));
-	//meshNames[1].push_back("mesh_gui_crosshair");
+	meshDatas[1].push_back(mAllUIs->at("Text")->CreateUIPlane2D(1.95f, 1.95f, mGUITextRows, mGUITextCols));
+	meshNames[1].push_back("mesh_gui_text1");
+	meshDatas[2].push_back(mAllUIs->at("Crosshair")->CreateUIPlane2D(1.95f, 1.95f, mGUIElementRows, mGUIElementCols));
+	meshNames[2].push_back("mesh_gui_crosshair");
 
 
 	for (int md = 0; md < numb; md++) {
@@ -1167,6 +1171,9 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_blockSelect6", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 6, 0.f });
 
 	CreateMaterial("mat_gui_elements", 4, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
+
+
+
 	CreateMaterial("mat_gui_menus", 5, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
 }
 
@@ -1200,7 +1207,6 @@ void CubeGame::BuildGameObjects()
 {
 	//Get geometries
 	auto geo = mGeometries->at("geo_shape").get();
-	auto ui = mGeometries->at("geo_ui").get();
 
 	//Player-------------------------
 	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", GameData::sMaterials->at("mat_player").get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
@@ -1214,13 +1220,15 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Sky]->push_back(skyRI);
 
 	//UI----------------------------
-	auto text = std::make_shared<RenderItem>(ui, "mesh_gui_text", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
+	auto text = std::make_shared<RenderItem>(mGeometries->at("geo_ui_text1").get(), "mesh_gui_text1", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
 	mUI_Text->Init(text, mCommandList);
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Text->GetRI());
 
-	//auto crosshair = std::make_shared<RenderItem>(ui, "mesh_gui_crosshair", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixIdentity());
-	//mUI_Crosshair->Init(crosshair, mCommandList);
-	//mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
+	std::shared_ptr<RenderItem> crosshair = std::make_shared<RenderItem>(mGeometries->at("geo_ui_crosshair").get(), "mesh_gui_crosshair", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixIdentity());
+	mUI_Crosshair->Init(crosshair, mCommandList);
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
+	mUI_Crosshair->SetTexture((mGUIElementCols * (mGUIElementRows / 2) + (mGUIElementCols / 2)), mGUIElementTexturePositions["crosshair"], mGUIElementTextureSize);
+	mUI_Crosshair->UpdateBuffer();
 
 	//Block selector---------------
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", GameData::sMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));

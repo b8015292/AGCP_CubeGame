@@ -158,17 +158,7 @@ void UI::UpdateBuffer() {
 		subResourceData.pData = mVertices.data();
 		subResourceData.RowPitch = (UINT)sizeof(GeometryGenerator::Vertex) * (UINT)mVertices.size();
 		subResourceData.SlicePitch = subResourceData.RowPitch;
-
-		//*************************
-
-		//Have a different GEO for each UI!?!?!?!?
-
-		Microsoft::WRL::ComPtr<ID3D12Resource> bufferPointer = mRI->Geo->VertexBufferGPU;
-		ID3D12Resource* raw = bufferPointer.Get();
-
-		raw->Map()
-
-		//********************
+		//subResourceData.SlicePitch = 1;
 
 		// Schedule to copy the data to the default buffer resource.  At a high level, the helper function UpdateSubresources
 		// will copy the CPU memory into the intermediate upload heap.  Then, using ID3D12CommandList::CopySubresourceRegion,
@@ -181,4 +171,20 @@ void UI::UpdateBuffer() {
 		mCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRI->Geo->VertexBufferGPU.Get(),
 			D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
 	}
+}
+
+void UI::SetTexture(const int VertexPos, DirectX::XMFLOAT2 texturePos, const DirectX::XMFLOAT2 textureSize) {
+	int pos = VertexPos + VertexPos;				//Skip every other colomn
+	int row = (VertexPos / (mSizeX / 2));	//Calculate the row number
+	row *= mSizeX;					//Multiply the row number by the size of each row
+	pos += row;						//Add the x and y positions
+
+	//If there aren't enough spaces, don't set the char
+	if (pos >= mVertices.size()) return;
+
+	//Set a square of texture coords
+	mVertices[pos].TexC = { texturePos.x, texturePos.y };
+	mVertices[pos + 1].TexC = { texturePos.x + textureSize.x, texturePos.y };
+	mVertices[pos + mSizeX].TexC = { texturePos.x, texturePos.y + textureSize.y };
+	mVertices[pos + mSizeX + 1].TexC = { texturePos.x + textureSize.x, texturePos.y + textureSize.y };
 }

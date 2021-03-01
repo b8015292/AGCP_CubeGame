@@ -11,7 +11,7 @@ public:
 	Font* GetFont() { return &mFnt; };
 
 private:
-	void SetChar(char character, int position, std::vector<GeometryGenerator::Vertex>& vertices);	//Sets a single character. Called from the SetString function
+	void SetChar(char character, int position);	//Sets a single character. Called from the SetString function
 
 private:
 	Font mFnt;

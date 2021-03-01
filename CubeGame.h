@@ -149,15 +149,6 @@ private:
     const float mBackPlane = 1000.0f;
     const float mFrontPlane = 0.0001f;
 
-    //User interface
-    //Text
-    std::shared_ptr<Text> mUI_Text;
-    Font fnt;
-    const int mUIRows = 26;
-    const int mUICols = 26;
-    //Crosshairs
-    std::shared_ptr<UI> mUI_Crosshair;
-
     //Mouse input
     bool mCursorInUse = false;
     bool mCursorInUsePrev = false;
@@ -186,6 +177,24 @@ private:
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
 
+    //User interface
+    //Text
+    std::shared_ptr<Text> mUI_Text;
+    Font fnt;
+    const int mGUITextRows = 26;
+    const int mGUITextCols = 26;
+    //Crosshairs
+    std::shared_ptr<UI> mUI_Crosshair;
+
+    //GUI textures
+    const int mGUIElTexSize = 31;
+    const int mGUIElTexRows = 3;
+    const int mGUIElTexCols = 7;
+    const std::string mGUIElTexNames[21] = { "heartFull", "heartHalf", "heartEmpty", "crosshair", "NULL", "NULL", "NULL", "NULL", "item_grass", "item_dirt", "NULL", "item_sword", "item_pickaxe", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL" };
+    std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
+    DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
+    const int mGUIElementRows = 15;
+    const int mGUIElementCols = 15;
 
 
 

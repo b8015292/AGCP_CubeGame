@@ -313,6 +313,8 @@ void Camera::UpdateViewMatrix()
 		//Update the frustum
 		mBoundingFrustum.Origin = { P.m128_f32[0], P.m128_f32[1], P.m128_f32[2] };
 		mBoundingFrustum.Orientation = {R.m128_f32[0], R.m128_f32[1], R.m128_f32[2], R.m128_f32[3] };
+
+		//DirectX::Quaternion
 	}
 }
 
