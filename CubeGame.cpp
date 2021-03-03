@@ -419,7 +419,7 @@ void CubeGame::Draw(const GameTimer& gt)
 	case GameStates::MAINMENU:
 	case GameStates::STARTUP:
 		mUI_HotbarItemSelector->UpdateBuffer();
-		mUI_HotbarItemSelector->UpdateBuffer();
+		mUI_HotbarItems->UpdateBuffer();
 	case GameStates::LOADWORLD:
 
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
@@ -737,8 +737,11 @@ void CubeGame::UpdateHotbar() {
 	if (mInventory.GetHotbarDirty()) {
 		std::string items = "";
 		for each (invItem i in mInventory.getHotbar()) {
-			items += i.mTextureReference + mGUIElementTextureCharacters.at("empty");
+			items += i.mTextureReference;
+			items += mGUIElementTextureCharacters.at("empty");
 		}
+		mUI_HotbarItems->SetString(items, 0, 0);
+		mUI_HotbarItems->SetDirtyFlag();
 	}
 }
 
@@ -1400,9 +1403,25 @@ void CubeGame::BuildGameObjects()
 	mUI_HotbarItemSelector->SetString(selectorChar, 0, 0);
 	mUI_HotbarItemSelector->UpdateBuffer();
 
-	Item pick("woodenPickaxe", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters["item_pickaxe"]);
-	int numb = 1;
-	mInventory.addItem(pick, numb);
+	//int numb = 1;
+
+	//Item pick("woodenPickaxe", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters.at("item_pickaxe"));
+	//mInventory.addItem(pick, numb);
+
+	//Item sword("woodenSword", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters.at("item_sword"));
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+
+	//Item stick("stick", ItemType::MISC, 1, 0, 1, 'a');
+	//mInventory.addItem(stick, numb);
+	//mInventory.addItem(stick, numb);
+
 
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());

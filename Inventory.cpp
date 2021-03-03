@@ -117,7 +117,7 @@ void Inventory::hotbarToInv(int spaceToMove)
 }
 void Inventory::addItem(Item newItem, int &amount)
 {
-	//Creating a local versino of the item in the structure format to simplify the code
+	//Creating a local version of the item in the structure format to simplify the code
 	invItem sNewItem;
 	sNewItem.name = newItem.getName();
 	sNewItem.stackSize = amount;
@@ -132,7 +132,7 @@ void Inventory::addItem(Item newItem, int &amount)
 	if (mHotbar.size() != 0)
 	{
 		mHotbarDirty = true;
-		while (complete != true && i < mHotbar.size() - 1)
+		while (complete != true && i < mHotbar.size())
 		{
 			if ((mHotbar[i].name == sNewItem.name) && (mHotbar[i].full == false))
 			{
@@ -164,13 +164,16 @@ void Inventory::addItem(Item newItem, int &amount)
 			++i;
 		}
 	}
-	else mHotbar.push_back(sNewItem);
-
+	else {
+		mHotbar.push_back(sNewItem);
+		complete = true;
+		mHotbarDirty = true;
+	}
 	// If the hotbar cannot take the item, then attempt to move the item to the inventory
 	if (mInventory.size() != 0 && !complete)
 	{
 		mInventoryDirty = true;
-		while (complete != true && i < mInventory.size() - 1)
+		while (complete != true && i < mInventory.size())
 		{
 			if ((mInventory[i].name == sNewItem.name) && (mInventory[i].full == false))
 			{
@@ -202,7 +205,10 @@ void Inventory::addItem(Item newItem, int &amount)
 
 		++i;
 	}
-	else if (!complete) mInventory.push_back(sNewItem);
+	else if (!complete) {
+		mInventory.push_back(sNewItem);
+		mInventoryDirty = true;
+	}
 }
 
 void Inventory::removeItemFromInvClick(int spaceToRemove, bool all)

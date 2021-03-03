@@ -36,7 +36,7 @@ public:
 private:
 	std::vector<invItem> mInventory;
 	std::vector<invItem> mHotbar;
-	int mHotbarSize = 0;
+	int mHotbarSize;
 	bool mHotbarDirty = false;
 	bool mInventoryDirty = false;
 };
