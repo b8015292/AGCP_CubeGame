@@ -10,13 +10,15 @@ enum class ItemType {
 
 class Item {
 public:
-    Item(std::string Name, ItemType Type, int MaxStackSize, int MeleeDamage, int Durability) : mName(Name), mType(Type), mMaxStackSize(MaxStackSize), mMeleeDamage(MeleeDamage), mDurability(Durability) {};
+    Item(std::string Name, ItemType Type, int MaxStackSize, int MeleeDamage, int Durability, char textureRef) 
+        : mName(Name), mType(Type), mMaxStackSize(MaxStackSize), mMeleeDamage(MeleeDamage), mDurability(Durability), mTextureReference(textureRef) {};
     ~Item() {}
     std::string getName() { return mName; }
     ItemType getType() { return mType; }
     int getMaxStackSize() { return mMaxStackSize; }
     int getMeleeDamage() { return mMeleeDamage; }
     int getDurability() { return mDurability; }
+    char GetTextureChar() { return mTextureReference; };
 
 protected:
     std::string mName;
@@ -24,4 +26,5 @@ protected:
     int mMaxStackSize;
     int mMeleeDamage;
     int mDurability;
+    char mTextureReference;
 };

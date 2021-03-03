@@ -8,7 +8,7 @@
 #include "Object.h"
 #include "Text.h"
 #include "WorldManager.h"
-#include "Inventory.h"
+#include "Crafting.h"
 #include "Player.h"
 #include "LivingEntity.h"
 
@@ -219,6 +219,7 @@ private:
     const UINT mMaxUICount = 5;     
 
     Inventory mInventory;
+    crafting mCrafting;
 
     //Debug
     int mShowDebugInfo = 2;

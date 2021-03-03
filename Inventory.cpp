@@ -3,10 +3,12 @@
 
 #include "Inventory.h"
 
-Inventory::Inventory()
+Inventory::Inventory(int hotbarSize)
 {
+	mHotbarSize = hotbarSize;
+
 	mInventory.reserve(64);
-	mHotbar.reserve(8);
+	mHotbar.reserve(mHotbarSize);
 }
 
 void Inventory::invToHotbar(int spaceToMove)

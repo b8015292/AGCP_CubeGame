@@ -36,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance), currentState(GameStates::STARTUP)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory, mGUIElementTextureCharacters)
 {
 }
 
@@ -1356,6 +1356,8 @@ void CubeGame::BuildGameObjects()
 	mUI_HotbarItemSelector->SetString(selectorChar, 0, 0);
 	mUI_HotbarItemSelector->UpdateBuffer();
 
+	Item pick("woodenPickaxe", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters["item_pickaxe"]);
+	//mInventory.addItem
 
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());
@@ -1372,6 +1374,7 @@ void CubeGame::BuildGameObjects()
 	mRitemIntances->push_back(blockRI);
 	Block::sBlockInstance = blockRI;
 	mWorldMgr.Init(mMaterialIndexes);
+
 }
 
 void CubeGame::GenerateWorld() {

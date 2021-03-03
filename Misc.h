@@ -4,22 +4,22 @@
 class Coal : public Item
 {
 public:
-	Coal() : Item("coal", ItemType::MISC, 64, 1, 1) {}
+	Coal(char texRef) : Item("coal", ItemType::MISC, 64, 1, 1, texRef) {}
 };
 
 class Iron : public Item
 {
-	Iron() : Item("iron", ItemType::MISC, 64, 1, 1) {}
+	Iron(char texRef) : Item("iron", ItemType::MISC, 64, 1, 1, texRef) {}
 };
 
 class Stick : public Item
 {
 public:
-	Stick() : Item("stick", ItemType::MISC, 64, 1, 1) {}
+	Stick(char texRef) : Item("stick", ItemType::MISC, 64, 1, 1, texRef) {}
 };
 
 class Torch : public Item
 {
 public:
-	Torch() : Item("torch", ItemType::MISC, 64, 1, 1) {}
+	Torch(char texRef) : Item("torch", ItemType::MISC, 64, 1, 1, texRef) {}
 };

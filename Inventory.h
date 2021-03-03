@@ -14,13 +14,13 @@ struct invItem {
 class Inventory
 {
 public:
-	Inventory();
+	Inventory(int hotbarSize);
 
 	std::vector<invItem> getInventory() { return mInventory; }
 	std::vector<invItem> getHotbar() { return mHotbar; }
 
 	bool fullInventory() { return mInventory.size() == 64; }
-	bool fullHotbar() { return mHotbar.size() == 8; }
+	bool fullHotbar() { return mHotbar.size() == mHotbarSize; }
 
 	void invToHotbar(int spaceToMove);
 	void hotbarToInv(int spaceToMove);
@@ -32,4 +32,5 @@ public:
 private:
 	std::vector<invItem> mInventory;
 	std::vector<invItem> mHotbar;
+	int mHotbarSize;
 };
