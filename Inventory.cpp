@@ -14,6 +14,8 @@ Inventory::Inventory(int hotbarSize)
 void Inventory::invToHotbar(int spaceToMove)
 {
 	bool complete = false;
+	mHotbarDirty = true;
+	mInventoryDirty = true;
 	int i(0);
 
 	if (!fullHotbar())
@@ -64,6 +66,8 @@ void Inventory::invToHotbar(int spaceToMove)
 void Inventory::hotbarToInv(int spaceToMove)
 {
 	bool complete = false;
+	mHotbarDirty = true;
+	mInventoryDirty = true;
 	int i(0);
 
 	if (!fullHotbar())
@@ -126,6 +130,7 @@ void Inventory::addItem(Item newItem, int &amount)
 	// Try to add new Item to the hotbar first
 	if (mHotbar.size() != 0)
 	{
+		mHotbarDirty = true;
 		while (complete != true && i < mHotbar.size() - 1)
 		{
 			if ((mHotbar[i].name == sNewItem.name) && (mHotbar[i].full == false))
@@ -163,6 +168,7 @@ void Inventory::addItem(Item newItem, int &amount)
 	// If the hotbar cannot take the item, then attempt to move the item to the inventory
 	if (mInventory.size() != 0 && !complete)
 	{
+		mInventoryDirty = true;
 		while (complete != true && i < mInventory.size() - 1)
 		{
 			if ((mInventory[i].name == sNewItem.name) && (mInventory[i].full == false))
@@ -200,6 +206,7 @@ void Inventory::addItem(Item newItem, int &amount)
 
 void Inventory::removeItemFromInvClick(int spaceToRemove, bool all)
 {
+	mInventoryDirty = true;
 	if (all) mInventory.erase(mInventory.begin() + spaceToRemove);
 	else
 	{
@@ -209,6 +216,7 @@ void Inventory::removeItemFromInvClick(int spaceToRemove, bool all)
 }
 void Inventory::removeItemFromHotbarClick(int spaceToRemove, bool all)
 {
+	mHotbarDirty = true;
 	if (all) mHotbar.erase(mHotbar.begin() + spaceToRemove);
 	else
 	{
@@ -225,6 +233,7 @@ void Inventory::removeItemCraft(std::string itemName, int amount)
 	{
 		if (mInventory[i].name == itemName)
 		{
+			mInventoryDirty = true;
 			if (amount >= mInventory[i].stackSize)
 			{
 				amount -= mInventory[i].stackSize;
@@ -247,6 +256,7 @@ void Inventory::removeItemCraft(std::string itemName, int amount)
 	{
 		if (mHotbar[i].name == itemName)
 		{
+			mHotbarDirty = true;
 			if (amount >= mHotbar[i].stackSize)
 			{
 				amount -= mHotbar[i].stackSize;
