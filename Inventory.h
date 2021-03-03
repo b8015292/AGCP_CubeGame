@@ -29,8 +29,13 @@ public:
 	void removeItemFromInvClick(int spaceToRemove, bool all);
 	void removeItemFromHotbarClick(int spaceToRemove, bool all);
 
+	bool GetHotbarDirty();
+	bool GetInventoryDirty();
+
 private:
 	std::vector<invItem> mInventory;
 	std::vector<invItem> mHotbar;
-	int mHotbarSize;
+	int mHotbarSize = 0;
+	bool mHotbarDirty = false;
+	bool mInventoryDirty = false;
 };

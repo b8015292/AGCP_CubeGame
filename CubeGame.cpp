@@ -305,6 +305,8 @@ void CubeGame::Update(const GameTimer& gt)
 				mBlockSelector->SetRIDirty();
 				mBlockSelector->SetRIDirty();
 			}
+
+			UpdateHotbar();
 		}
 		break;
 	case GameStates::PAUSE:
@@ -328,6 +330,8 @@ void CubeGame::Update(const GameTimer& gt)
 	case GameStates::STARTUP:
 		//Update the UI
 	{
+		UpdateHotbar();
+
 		SetUIString("START GAME", 10, 8);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
@@ -393,6 +397,8 @@ void CubeGame::Draw(const GameTimer& gt)
 
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
 		mUI_Text->UpdateBuffer();
+		mUI_HotbarItemSelector->UpdateBuffer();
+		mUI_HotbarItemSelector->UpdateBuffer();
 		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
 		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
@@ -412,6 +418,8 @@ void CubeGame::Draw(const GameTimer& gt)
 		break;
 	case GameStates::MAINMENU:
 	case GameStates::STARTUP:
+		mUI_HotbarItemSelector->UpdateBuffer();
+		mUI_HotbarItemSelector->UpdateBuffer();
 	case GameStates::LOADWORLD:
 
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
@@ -489,6 +497,22 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mLastMousePos.x = x;
 		mLastMousePos.y = y;
     }
+}
+
+void CubeGame::OnMouseScroll(WPARAM btnState, int x, int y) {
+	//Each turn on the wheel equates to 120.
+	int inc = GET_WHEEL_DELTA_WPARAM(btnState) / 120;
+	int total = mHotbarSelectorSlot + inc;
+	if (total < 0) {
+		mHotbarSelectorSlot = mHotbarSlots + total;
+	}
+	else if (total >= mHotbarSlots) {
+		mHotbarSelectorSlot = total - mHotbarSlots;
+	}
+	else {
+		mHotbarSelectorSlot = total;
+	}
+	
 }
 
 void CubeGame::UpdateBlockSelector() {
@@ -696,6 +720,23 @@ void CubeGame::RespawnPlayer() {
 	mWorldMgr.RelocatePlayer(mSpawnPoint);
 	mPlayer->SetPosition(mSpawnPoint);
 	mPlayerChangedView = true;
+}
+
+void CubeGame::UpdateHotbar() {
+	//Update the selector
+	if (mHotbarSelectorSlot != mHotbarSelectorPreviousSlot) {
+		//Remove the old selector and put the selector in the new position
+		mUI_HotbarItemSelector->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot * 2);
+		mUI_HotbarItemSelector->SetChar(mGUIElementTextureCharacters.at("item_sword"), mHotbarSelectorSlot * 2);
+		mUI_HotbarItemSelector->SetDirtyFlag();
+
+		mHotbarSelectorPreviousSlot = mHotbarSelectorSlot;
+	}
+
+	//Update the hotbar items
+	if (mInventory.GetHotbarDirty()) {
+
+	}
 }
 
 void CubeGame::ShowDebug() {
@@ -1357,7 +1398,8 @@ void CubeGame::BuildGameObjects()
 	mUI_HotbarItemSelector->UpdateBuffer();
 
 	Item pick("woodenPickaxe", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters["item_pickaxe"]);
-	//mInventory.addItem
+	int numb = 1;
+	mInventory.addItem(pick, numb);
 
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());

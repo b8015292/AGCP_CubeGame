@@ -58,6 +58,7 @@ private:
     virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
     virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
     virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
+    virtual void OnMouseScroll(WPARAM btnState, int x, int y)override;
     void OnKeyboardInput(const GameTimer& gt);
 
     //Updating
@@ -97,7 +98,7 @@ private:
 
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
-    void AddItemToHotbar(std::string itemName);
+    void UpdateHotbar();
     void ShowDebug();
 
     //Block stuff
@@ -212,6 +213,7 @@ private:
     std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
     const int mHotbarSlots = 7;
     int mHotbarSelectorSlot = 0;
+    int mHotbarSelectorPreviousSlot = 0;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;

@@ -9,8 +9,6 @@ public:
 	//Getters/Setters
 	void SetString(std::string str, float posX, float posY);		//Sets a string. The positions are normalized (between 0 and 1f)
 	Font* GetFont() { return &mFnt; };
-
-private:
 	void SetChar(char character, int position);	//Sets a single character. Called from the SetString function
 
 private:

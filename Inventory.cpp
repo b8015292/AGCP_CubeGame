@@ -265,3 +265,18 @@ void Inventory::removeItemCraft(std::string itemName, int amount)
 
 	assert(amount != 0);
 }
+
+bool Inventory::GetHotbarDirty() {
+	if (mHotbarDirty) {
+		mHotbarDirty = false;
+		return true;
+	}
+	return false;
+}
+bool Inventory::GetInventoryDirty() {
+	if (mInventoryDirty) {
+		mInventoryDirty = false;
+		return true;
+	}
+	return false;
+}
