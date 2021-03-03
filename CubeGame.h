@@ -97,6 +97,7 @@ private:
 
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
+    void AddItemToHotbar(std::string itemName);
     void ShowDebug();
 
     //Block stuff
@@ -189,12 +190,15 @@ private:
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
     std::shared_ptr<Text> mUI_HotbarItems;
+    std::shared_ptr<Text> mUI_HotbarItemSelector;
 
     //GUI textures
     const int mGUIElTexSize = 31;
     const int mGUIElTexRows = 3;
     const int mGUIElTexCols = 7;
-    const std::string mGUIElTexNames[21] = { "heartFull", "heartHalf", "heartEmpty", "crosshair", "NULL", "NULL", "NULL", "NULL", "item_grass", "item_dirt", "NULL", "item_sword", "item_pickaxe", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL" };
+    const std::string mGUIElTexNames[21] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "NULL1", "NULL2", 
+                                                "NULL3", "item_grass", "item_dirt", "selector", "item_sword", "item_pickaxe", "NULL4",    
+                                                "NULL5", "NULL6", "NULL7", "NULL8", "NULL9", "NULL10", "NULL11" };
     std::unordered_map<std::string, char> mGUIElementTextureCharacters;
     std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
     DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
@@ -207,12 +211,14 @@ private:
     DirectX::XMFLOAT2 mGUIMenuFileSize{ 228.f, 130.f };
     std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
     const int mHotbarSlots = 7;
+    int mHotbarSelectorSlot = 0;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
-    //Text, crosshair, hotbar, hotbar slots
-    const UINT mMaxUICount = 4;     
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector
+    const UINT mMaxUICount = 5;     
 
+    Inventory mInventory;
 
     //Debug
     int mShowDebugInfo = 2;

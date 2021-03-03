@@ -16,7 +16,7 @@ public:
             : Pos(pX, pY, pZ), Normal(nX, nY, nZ), TexC(tU, tV)
         {}
 
-        Vertex() : Pos(0, 0, 0), Normal(0, 0, 0), TexC(0, 0) {}
+        Vertex(){}
 
         Vertex operator=(const Vertex& v) {
             //Vertex ret(Pos.x, Pos.y, Pos.z, Normal.x, Normal.y, Normal.z, TexC.x, TexC.y);
@@ -26,9 +26,9 @@ public:
             return *this;
         }
 
-        DirectX::XMFLOAT3 Pos;
-        DirectX::XMFLOAT3 Normal;
-        DirectX::XMFLOAT2 TexC;
+        DirectX::XMFLOAT3 Pos{ 0.f,0.f,0.f };
+        DirectX::XMFLOAT3 Normal{ 0.f,0.f,0.f };
+        DirectX::XMFLOAT2 TexC{ 0.f,0.f };
     };
 
     struct MeshData

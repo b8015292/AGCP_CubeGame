@@ -22,12 +22,12 @@ void UI::Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12Graph
 	SetDirtyFlag();
 }
 
-GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int oM, int oN) {
+GeometryGenerator::MeshData UI::CreateUIPlane2D(float widthOfPlane, float heightOfPlane, int numbOfCols, int numbOfRows) {
 	GeometryGenerator::MeshData meshData;
 
 	//Multiplies the rows and colomns by 2
-	mSizeX = (int)oM * 2;
-	mSizeY = (int)oN * 2;
+	mSizeX = (int)numbOfCols * 2;
+	mSizeY = (int)numbOfRows * 2;
 
 	//Set these for use in later functions
 	mVertsPerObj = mSizeX * mSizeY;
@@ -36,91 +36,54 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 
 
 	int faceCount = (mSizeX - 1) * (mSizeY - 1) * 2;
-	float halfWidth = 0.5f * width;
-	float halfHeight = 0.5f * height;
+	float halfWidth = 0.5f * widthOfPlane;
+	float halfHeight = 0.5f * heightOfPlane;
 
+	float faceWidth = (widthOfPlane / ((float)mSizeY - 1)) * 2.f; //Vertices per row
+	float faceHeight = (heightOfPlane / ((float)mSizeX - 1)) * 2.f; //Vertices per column
 
-	float dx = width / ((float)mSizeY - 1); //Vertices per row
-	float dz = height / ((float)mSizeX - 1); //Vertices per column
-
-	//Normalized tex coord increment per vertex
-	float du = 1.0f / ((float)mSizeY - 1); 
-	float dv = 1.0f / ((float)mSizeX - 1);
-
-	int decI = 0;
 	meshData.Vertices.resize(mVertsPerObj);
+
+	//Iterate along the colomns
+	float y = halfHeight;
 	for (int i = 0; i < mSizeX; ++i)
 	{
-		float y = halfHeight - (float)(i - decI) * (dz * 2.f);
-		int decJ = 0;
+		float x = -halfWidth;
+		//Iterate along the rows
 		for (int j = 0; j < mSizeY; ++j)
 		{
 
-			float x = -halfWidth + (float)(j - decJ) * (dx * 2.f);
-			size_t index = i * mSizeY + j;
-
-			meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-			meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-			// Stretch texture over grid.
-			//meshData.Vertices[index].TexC.x = (float)j * du;
-			//meshData.Vertices[index].TexC.y = (float)i * dv;
-			meshData.Vertices[index].TexC = { 0.f, 0.f };
+			meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 
 			if (j != 0 && j < mSizeY - 1) {
 				j++;
-				index = i * mSizeY + j;
 
-				meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-				// Stretch texture over grid.
-				//meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
-				//meshData.Vertices[index].TexC.y = (float)(i - 1) * dv;
-				meshData.Vertices[index].TexC = { 0.f, 0.f };
-
-				decJ++;
+				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 			}
 
+			x += faceWidth;
 		}
 
 		if (i != 0 && i < mSizeX - 1) {
 			i++;
+			x = -halfWidth;
 
-			int decJ = 0;
 			for (int j = 0; j < mSizeY; ++j)
 			{
 
-				float x = -halfWidth + (float)(j - decJ) * (dx * 2);
-				size_t index = i * mSizeY + j;
-
-				meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-				meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-				// Stretch texture over grid.
-				//meshData.Vertices[index].TexC.x = (float)j * du;
-				//meshData.Vertices[index].TexC.y = (float)i * dv;
-				meshData.Vertices[index].TexC = { 0.f, 0.f };
+				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 
 				if (j != 0 && j < mSizeY - 1) {
 					j++;
-					index = i * mSizeY + j;
 
-					meshData.Vertices[index].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-					meshData.Vertices[index].Normal = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-					// Stretch texture over grid.
-					//meshData.Vertices[index].TexC.x = (float)(j - 1) * du;
-					//meshData.Vertices[index].TexC.y = (float)(i - 1) * dv;
-					meshData.Vertices[index].TexC = { 0.f, 0.f };
-
-					decJ++;
+					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 				}
 
+				x += faceWidth;
 			}
-
-			decI++;
 		}
+
+		y -= faceHeight;
 	}
 
 	//
@@ -149,6 +112,156 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float width, float height, int o
 
 	return meshData;
 }
+
+GeometryGenerator::MeshData UI::CreateUIPlane2DWithSpaces(float widthOfPlane, float heightOfPlane, int numbOfRows, int numbOfCols, float gapWidthRatio, float gapHeightRatio) {
+	GeometryGenerator::MeshData meshData;
+
+	bool colGap = true;
+	bool rowGap = true;
+
+	if (gapHeightRatio != 0) {
+		mSizeX = (int)numbOfRows * 4 - 2;
+	}
+	else {
+		rowGap = false;
+		mSizeX = (int)numbOfRows * 2;
+	}
+
+	if (gapWidthRatio != 0) {
+		mSizeY = (int)numbOfCols * 4 - 2;
+	}
+	else {
+		colGap = false;
+		mSizeY = (int)numbOfCols * 2;
+	}
+
+	//Set these for use in later functions
+	mVertsPerObj = mSizeX * mSizeY;
+	mVbByteSize = mVertsPerObj * sizeof(GeometryGenerator::Vertex);
+	mVertices.resize(mVertsPerObj);
+
+	//Number of faces, including the gaps (used for indicies)
+	int faceCount = (mSizeX - 1) * (mSizeY - 1) * 2;
+
+	//Because the centre (0,0) is in the centre of the screen instead of a corner, half the width is in both directions
+	float halfWidth = 0.5f * widthOfPlane;
+	float halfHeight = 0.5f * heightOfPlane;
+
+	////Get the size of each face without considering the gaps
+	//float faceWidth = (widthOfPlane / ((float)mSizeY - 1)) * 2.f; //Vertices per row
+	//float faceHeight = (heightOfPlane / ((float)mSizeX - 1)) * 2.f; //Vertices per column
+
+	////Get the size of the gaps
+	//float gapWidth = faceWidth * gapWidthRatio;
+	//float gapHeight = faceHeight * gapHeightRatio;
+
+	////Remove the size of the gaps from the faces
+	//faceWidth -= gapWidth;
+	//faceHeight -= gapHeight;
+
+
+
+
+	//Get the size of each face without considering the gaps
+	float faceWidth = (widthOfPlane / ((float)mSizeY - 1)) * 4.f; //Vertices per row
+	float faceHeight = (heightOfPlane / ((float)mSizeX - 1)) * 2.f; //Vertices per column
+
+	//Get the size of the gaps
+	float gapWidth = faceWidth* gapWidthRatio;
+	float gapHeight = faceHeight * gapHeightRatio;
+
+	//Remove the size of the gaps from the faces
+	faceWidth -= gapWidth;
+	faceHeight -= gapHeight;
+
+
+
+
+	meshData.Vertices.resize(mVertsPerObj);
+
+	//Iterate along the colomns
+	float y = halfHeight;
+	for (int i = 0; i < mSizeX; ++i)
+	{
+		float x = -halfWidth;
+		//Iterate along the rows
+		for (int j = 0; j < mSizeY; ++j)
+		{
+
+			meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+			if (j != 0 && j < mSizeY - 3) {
+				j++;
+				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+				if (colGap) {
+					x += gapWidth;
+					j++;
+					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+					j++;
+					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+				}
+			}
+
+			x += faceWidth;
+		}
+
+		if (i != 0 && i < mSizeX - 1) {
+			i++;
+			x = -halfWidth;
+			y += gapHeight;
+			for (int j = 0; j < mSizeY; ++j)
+			{
+
+				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+				if (j != 0 && j < mSizeY - 1) {
+					j++;
+					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+					if (colGap) {
+						x += gapWidth;
+						j++;
+						meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+						j++;
+						meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+					}
+				}
+
+				x += faceWidth;
+			}
+		}
+
+		y -= faceHeight;
+	}
+
+	//
+	// Create the indices.
+	//
+
+	meshData.Indices32.resize((size_t)faceCount * 3); // 3 indices per face
+
+	// Iterate over each quad and compute indices.
+	GeometryGenerator::uint32 k = 0;
+	for (GeometryGenerator::uint32 i = 0; i < (GeometryGenerator::uint32)mSizeX - 1; ++i)
+	{
+		for (GeometryGenerator::uint32 j = 0; j < (GeometryGenerator::uint32)mSizeY - 1; ++j)
+		{
+			meshData.Indices32[k] = i * mSizeY + j;
+			meshData.Indices32[k + 1] = i * mSizeY + j + 1;
+			meshData.Indices32[k + 2] = (i + 1) * mSizeY + j;
+
+			meshData.Indices32[k + 3] = (i + 1) * mSizeY + j;
+			meshData.Indices32[k + 4] = i * mSizeY + j + 1;
+			meshData.Indices32[k + 5] = (i + 1) * mSizeY + j + 1;
+
+			k += 6; // next quad
+		}
+	}
+
+	return meshData;
+}
+
 
 void UI::UpdateBuffer() {
 	if (mChanged) {

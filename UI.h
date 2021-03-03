@@ -10,7 +10,9 @@ class UI {
 public:
 	//Init
 	void Init(std::shared_ptr<RenderItem> ri, Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmdList);	//Sets the verticies list and other variables. Use after the RI has been made with CreateUIPlane2D
-	GeometryGenerator::MeshData CreateUIPlane2D(float width, float depth, int oM, int oN);					//Creates a 2D plane which can display characters
+	GeometryGenerator::MeshData CreateUIPlane2D(float widthOfPlane, float heightOfPlane, int numbOfRows, int numbOfCols);					//Creates a 2D plane which can display characters
+	//Gap size is relative to the size of colomns and rows
+	GeometryGenerator::MeshData CreateUIPlane2DWithSpaces(float widthOfPlane, float heightOfPlane, int numbOfRows, int numbOfCols, float gapWidthRatio, float gapHeightRatio);		//Creates a 2D plane which can display characters with gaps between each character
 	~UI();				//Releases the render item and command list
 
 	//Mutators
