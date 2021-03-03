@@ -119,6 +119,7 @@ void Inventory::addItem(Item newItem, int &amount)
 	sNewItem.stackSize = amount;
 	sNewItem.maxStackSize = newItem.getMaxStackSize();
 	sNewItem.durability = newItem.getDurability();
+	sNewItem.mTextureReference = newItem.GetTextureChar();
 
 	bool complete = false;
 	int i(0);

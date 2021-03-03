@@ -9,6 +9,7 @@ struct invItem {
 	int stackSize;
 	int durability;
 	bool full = false;
+	char mTextureReference;
 };
 
 class Inventory

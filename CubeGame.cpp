@@ -735,7 +735,10 @@ void CubeGame::UpdateHotbar() {
 
 	//Update the hotbar items
 	if (mInventory.GetHotbarDirty()) {
-
+		std::string items = "";
+		for each (invItem i in mInventory.getHotbar()) {
+			items += i.mTextureReference + mGUIElementTextureCharacters.at("empty");
+		}
 	}
 }
 
