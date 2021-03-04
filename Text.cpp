@@ -105,15 +105,20 @@ void Text::SetString(std::string str, float posX, float posY) {
 	if (posY > 1.f) posY = 1.f;
 
 	//Calculate the starting position
-	posX *= mSizeX * 0.5f;
-	posY *= mSizeY * 0.5f;
-	posY *= mSizeX * 0.5f;
+	if (posX != 0 || posY != 0) {
+		posX *= mSizeX * 0.5f;
+		posY *= mSizeY * 0.5f;
+		posY *= mSizeX * 0.5f;
+	}
 
 	int pos = (int)(posX + posY);
 
+
 	//Change the texture coords of each sub-square on the UI plane to match those in the font sprite map
 	for each (char c in str) {
-		if (c == '-') c = 'm';
+		if (c == '-') {
+			c = 'm';
+		}
 		SetChar(c, pos);
 		pos++;
 	}

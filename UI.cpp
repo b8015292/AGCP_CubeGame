@@ -116,22 +116,32 @@ GeometryGenerator::MeshData UI::CreateUIPlane2D(float widthOfPlane, float height
 GeometryGenerator::MeshData UI::CreateUIPlane2DWithSpaces(float widthOfPlane, float heightOfPlane, int numbOfRows, int numbOfCols, float gapWidthRatio, float gapHeightRatio) {
 	GeometryGenerator::MeshData meshData;
 
-	bool colGap = true;
-	bool rowGap = true;
+	//bool colGap = true;
+	//bool rowGap = true;
 
-	if (gapHeightRatio != 0) {
+	//if (gapHeightRatio != 0) {
+	//	mSizeX = (int)numbOfRows * 4 - 2;
+	//}
+	//else {
+	//	rowGap = false;
+	//	mSizeX = (int)numbOfRows * 2;
+	//}
+
+	//if (gapWidthRatio != 0) {
+	//	mSizeY = (int)numbOfCols * 4 - 2;
+	//}
+	//else {
+	//	colGap = false;
+	//	mSizeY = (int)numbOfCols * 2;
+	//}
+
+	if (gapHeightRatio != 0 || gapWidthRatio != 0) {
 		mSizeX = (int)numbOfRows * 4 - 2;
-	}
-	else {
-		rowGap = false;
-		mSizeX = (int)numbOfRows * 2;
-	}
-
-	if (gapWidthRatio != 0) {
 		mSizeY = (int)numbOfCols * 4 - 2;
+		mHasGaps = true;
 	}
 	else {
-		colGap = false;
+		mSizeX = (int)numbOfRows * 2;
 		mSizeY = (int)numbOfCols * 2;
 	}
 
@@ -147,21 +157,6 @@ GeometryGenerator::MeshData UI::CreateUIPlane2DWithSpaces(float widthOfPlane, fl
 	float halfWidth = 0.5f * widthOfPlane;
 	float halfHeight = 0.5f * heightOfPlane;
 
-	////Get the size of each face without considering the gaps
-	//float faceWidth = (widthOfPlane / ((float)mSizeY - 1)) * 2.f; //Vertices per row
-	//float faceHeight = (heightOfPlane / ((float)mSizeX - 1)) * 2.f; //Vertices per column
-
-	////Get the size of the gaps
-	//float gapWidth = faceWidth * gapWidthRatio;
-	//float gapHeight = faceHeight * gapHeightRatio;
-
-	////Remove the size of the gaps from the faces
-	//faceWidth -= gapWidth;
-	//faceHeight -= gapHeight;
-
-
-
-
 	//Get the size of each face without considering the gaps
 	float faceWidth = (widthOfPlane / ((float)mSizeY - 1)) * 4.f; //Vertices per row
 	float faceHeight = (heightOfPlane / ((float)mSizeX - 1)) * 2.f; //Vertices per column
@@ -174,65 +169,99 @@ GeometryGenerator::MeshData UI::CreateUIPlane2DWithSpaces(float widthOfPlane, fl
 	faceWidth -= gapWidth;
 	faceHeight -= gapHeight;
 
-
-
-
 	meshData.Vertices.resize(mVertsPerObj);
 
 	//Iterate along the colomns
 	float y = halfHeight;
 	for (int i = 0; i < mSizeX; ++i)
 	{
+
+		//First (or last) row
 		float x = -halfWidth;
-		//Iterate along the rows
 		for (int j = 0; j < mSizeY; ++j)
 		{
-
 			meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 
 			if (j != 0 && j < mSizeY - 3) {
-				j++;
-				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+				meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 
-				if (colGap) {
-					x += gapWidth;
-					j++;
-					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-					j++;
-					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-				}
+				x += gapWidth;
+				meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+				meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 			}
 
 			x += faceWidth;
 		}
 
+		//Middle columns
 		if (i != 0 && i < mSizeX - 1) {
+			//top of the gap
 			i++;
-			x = -halfWidth;
-			y += gapHeight;
+			float x = -halfWidth;
+			for (int j = 0; j < mSizeY; ++j)
+			{
+				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+				if (j != 0 && j < mSizeY - 3) {
+					meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+					x += gapWidth;
+					meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+					meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+				}
+
+				x += faceWidth;
+			}
+
+			
+			//Bottom of the gap and top of the next face
+			y -= gapHeight;
+
+			for (int k = 0; k < 2; k++) {
+				i++;
+				x = -halfWidth;
+				for (int j = 0; j < mSizeY; ++j)
+				{
+	
+					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+					//reset x
+					if (j != 0 && j < mSizeY - 3) {
+						meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+
+						x += gapWidth;
+						meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+						meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+					}
+
+					x += faceWidth;
+				}
+			}
+
+
+		}
+
+		y -= faceHeight;
+
+		if (i == mSizeY - 2) {
+			//Bottom row
+			i++;
+			float x = -halfWidth;
 			for (int j = 0; j < mSizeY; ++j)
 			{
 
 				meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 
-				if (j != 0 && j < mSizeY - 1) {
-					j++;
-					meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+				if (j != 0 && j < mSizeY - 3) {
+					meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 
-					if (colGap) {
-						x += gapWidth;
-						j++;
-						meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-						j++;
-						meshData.Vertices[i * mSizeY + j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
-					}
+					x += gapWidth;
+					meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
+					meshData.Vertices[i * mSizeY + ++j].Pos = DirectX::XMFLOAT3(x, y, 0.0f);
 				}
 
 				x += faceWidth;
 			}
 		}
-
-		y -= faceHeight;
 	}
 
 	//
