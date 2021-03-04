@@ -11,6 +11,8 @@
 #include "Crafting.h"
 #include "Player.h"
 #include "LivingEntity.h"
+#include "Raycast.h"
+#include "PerlinNoise.h"
 
 #include "omp.h"
 

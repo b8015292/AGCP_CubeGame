@@ -2,10 +2,8 @@
 #include <vector>
 
 #include "Crafting.h"
-#include "Tool.h"
-#include "Misc.h"
 
-crafting::crafting(Inventory &inv, std::unordered_map<std::string, char>& textureCharacters) : mInv(&inv)
+crafting::crafting(Inventory &inv, std::unordered_map<std::string, char>& textureCharacters) : mInv(&inv), woodTool(25, 5, "Wood"), stoneTool(50, 10, "Stone"), ironTool(100, 15, "Iron")
 {
 	mGUIElementTextureCharacters = textureCharacters;
 
@@ -120,7 +118,7 @@ void crafting::craftPick(ItemMaterial mat)
 
 	if (mat == ItemMaterial::WOOD)
 	{
-		Pickaxe tempPick(WOOD, mGUIElementTextureCharacters.at("NULL1"));
+		Pickaxe tempPick(woodTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("woodBlock", 3);
@@ -128,7 +126,7 @@ void crafting::craftPick(ItemMaterial mat)
 	}
 	else if (mat == ItemMaterial::STONE)
 	{
-		Pickaxe tempPick(STONE, mGUIElementTextureCharacters.at("NULL1"));
+		Pickaxe tempPick(stoneTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("stoneBlock", 3);
@@ -136,7 +134,7 @@ void crafting::craftPick(ItemMaterial mat)
 	}
 	else if (mat == ItemMaterial::IRON)
 	{
-		Pickaxe tempPick(IRON, mGUIElementTextureCharacters.at("NULL1"));
+		Pickaxe tempPick(ironTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("iron", 3);
@@ -150,7 +148,7 @@ void crafting::craftShovel(ItemMaterial mat)
 
 	if (mat == ItemMaterial::WOOD)
 	{
-		Shovel tempShovel(WOOD, mGUIElementTextureCharacters.at("NULL1"));
+		Shovel tempShovel(woodTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("woodBlock", 1);
@@ -158,7 +156,7 @@ void crafting::craftShovel(ItemMaterial mat)
 	}
 	else if (mat == ItemMaterial::STONE)
 	{
-		Shovel tempShovel(STONE, mGUIElementTextureCharacters.at("NULL1"));
+		Shovel tempShovel(stoneTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("stoneBlock", 1);
@@ -166,7 +164,7 @@ void crafting::craftShovel(ItemMaterial mat)
 	}
 	else if (mat == ItemMaterial::IRON)
 	{
-		Shovel tempShovel(IRON, mGUIElementTextureCharacters.at("NULL1"));
+		Shovel tempShovel(ironTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("iron", 1);
@@ -180,7 +178,7 @@ void crafting::craftSword(ItemMaterial mat)
 
 	if (mat == ItemMaterial::WOOD)
 	{
-		Shovel tempSword(WOOD, mGUIElementTextureCharacters.at("NULL1"));
+		Sword tempSword(woodTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("woodBlock", 2);
@@ -188,7 +186,7 @@ void crafting::craftSword(ItemMaterial mat)
 	}
 	else if (mat == ItemMaterial::STONE)
 	{
-		Shovel tempSword(STONE, mGUIElementTextureCharacters.at("NULL1"));
+		Sword tempSword(stoneTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("stoneBlock", 2);
@@ -196,7 +194,7 @@ void crafting::craftSword(ItemMaterial mat)
 	}
 	else if (mat == ItemMaterial::IRON)
 	{
-		Shovel tempSword(IRON, mGUIElementTextureCharacters.at("NULL1"));
+		Sword tempSword(ironTool, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("iron", 2);

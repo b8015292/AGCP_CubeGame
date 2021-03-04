@@ -7,25 +7,6 @@
 #include "Common/d3dUtil.h"
 //#include "Common/MathHelper.h"
 
-enum items
-{
-    bread,
-    meat,
-    cookedMeat,
-
-    pickaxe,
-    shovel,
-    sword,
-
-    dirt,
-    stone,
-    wood,
-    sticks,
-    iron,
-    gold,
-    diamond
-};
-
 class GameData {
 public:
     static const int sNumFrameResources = 3;

@@ -5,8 +5,6 @@
 #include <ctime>
 
 #include "CubeGame.h"
-#include "Raycast.h"
-#include "PerlinNoise.h"
 
 bool GameData::sRunning = true;
 
@@ -1403,24 +1401,33 @@ void CubeGame::BuildGameObjects()
 	mUI_HotbarItemSelector->SetString(selectorChar, 0, 0);
 	mUI_HotbarItemSelector->UpdateBuffer();
 
-	//int numb = 1;
+	int numb = 1;
 
 	//Item pick("woodenPickaxe", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters.at("item_pickaxe"));
 	//mInventory.addItem(pick, numb);
 
-	//Item sword("woodenSword", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters.at("item_sword"));
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
-	//mInventory.addItem(sword, numb);
+	Sword sword(mCrafting.woodTool, mGUIElementTextureCharacters.at("item_sword"));
+	Pickaxe pickaxe(mCrafting.stoneTool, mGUIElementTextureCharacters.at("item_sword"));
+	Stick stick('a');
+	DirtBlock dirtBlock('b');
+	CoalBlock coalBlock('c');
+	mInventory.addItem(dirtBlock, numb);
+	mInventory.addItem(dirtBlock, numb);
+	mInventory.addItem(sword, numb);
+	for (int i(0); i < 64; ++i)
+	{
+		mInventory.addItem(dirtBlock, numb);
 
-	//Item stick("stick", ItemType::MISC, 1, 0, 1, 'a');
-	//mInventory.addItem(stick, numb);
-	//mInventory.addItem(stick, numb);
+	}
+	mInventory.addItem(pickaxe, numb);
+	mInventory.addItem(sword, numb);
+	mInventory.addItem(pickaxe, numb);
+	mInventory.addItem(sword, numb);
+	mInventory.addItem(sword, numb);
+	mInventory.addItem(sword, numb);
+	mInventory.addItem(sword, numb);
+	mInventory.addItem(stick, numb);
+	mInventory.addItem(stick, numb);
 
 
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());

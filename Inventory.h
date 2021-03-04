@@ -8,7 +8,6 @@ struct invItem {
 	int maxStackSize;
 	int stackSize;
 	int durability;
-	bool full = false;
 	char mTextureReference;
 };
 
@@ -29,6 +28,7 @@ public:
 	void removeItemCraft(std::string itemName, int name);
 	void removeItemFromInvClick(int spaceToRemove, bool all);
 	void removeItemFromHotbarClick(int spaceToRemove, bool all);
+	bool stackIsFull(bool hotbar, int invSpace);
 
 	bool GetHotbarDirty();
 	bool GetInventoryDirty();
