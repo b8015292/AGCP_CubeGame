@@ -258,6 +258,13 @@ void WorldManager::PopulateMapWithTrees() {
 		}
 
 		currCoords.y = stumpCoords.y + trunkHeight - 3;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
+		else {
+			chunkToUse = mainChunk;
+		}
 
 		for (currCoords.x = stumpCoords.x - foliageWidth; currCoords.x <= stumpCoords.x + foliageWidth; currCoords.x++) {
 			for (currCoords.z = stumpCoords.z - foliageWidth; currCoords.z <= stumpCoords.z + foliageWidth; currCoords.z++) {
@@ -267,6 +274,10 @@ void WorldManager::PopulateMapWithTrees() {
 			}
 		}
 		currCoords.y++;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
 		for (currCoords.x = stumpCoords.x - foliageWidth; currCoords.x <= stumpCoords.x + foliageWidth; currCoords.x++) {
 			for (currCoords.z = stumpCoords.z - foliageWidth; currCoords.z <= stumpCoords.z + foliageWidth; currCoords.z++) {
 				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
@@ -275,6 +286,10 @@ void WorldManager::PopulateMapWithTrees() {
 			}
 		}
 		currCoords.y++;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
 		for (currCoords.x = stumpCoords.x - foliageWidth / 2; currCoords.x <= stumpCoords.x + foliageWidth / 2; currCoords.x++) {
 			for (currCoords.z = stumpCoords.z - foliageWidth / 2; currCoords.z <= stumpCoords.z + foliageWidth / 2; currCoords.z++) {
 				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
@@ -284,6 +299,10 @@ void WorldManager::PopulateMapWithTrees() {
 		}
 
 		currCoords.y++;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
 		currCoords.x = stumpCoords.x + 1;
 		currCoords.z = stumpCoords.z;
 		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
