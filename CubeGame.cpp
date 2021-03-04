@@ -104,13 +104,30 @@ bool CubeGame::Initialize()
     return true;
 }
 
-void CubeGame::SetUIString(std::string str, int lineNo, int col) {
-	if (lineNo > mGUITextRows) lineNo = mGUITextRows;
-	if (col > mGUITextCols) col = mGUITextCols;
-	float row = (float)lineNo * 1 / mGUITextRows;
-	float colm = (float) col * 1 / mGUITextCols;
+void CubeGame::SetUIString(std::string str, int lineNo, int col, TextLayers layer) {
+	float row;
+	float colm;
 
-	mUI_Text->SetString(str, colm, row);
+	switch (layer) {
+	default:
+	case(TextLayers::DEBUG):
+		if (lineNo > mGUITextRows) lineNo = mGUITextRows;
+		if (col > mGUITextCols) col = mGUITextCols;
+		row = (float)lineNo * 1 / mGUITextRows;
+		colm = (float)col * 1 / mGUITextCols;
+
+		mUI_Text->SetString(str, colm, row);
+		break;
+	
+	case(TextLayers::ITEM):
+		if (lineNo > mGUITextRows) lineNo = mGUITextRows;
+		if (col > mGUITextCols) col = mGUITextCols;
+		row = (float)lineNo * 1 / mGUITextRows;
+		colm = (float)col * 1 / mGUITextCols;
+
+		mUI_ItemText->SetString(str, colm, row);
+		break;
+	}
 }
  
 void CubeGame::BuildUserInterfaces() {
@@ -144,6 +161,9 @@ void CubeGame::BuildUserInterfaces() {
 	mUI_InventoryItems = std::make_shared<Text>();
 	std::pair<std::string, std::shared_ptr<Text>> inventoryItems("InventoryItems ", mUI_InventoryItems);
 	mAllUIs->insert(inventoryItems);
+	mUI_ItemText = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> itemText("ItemText ", mUI_ItemText);
+	mAllUIs->insert(itemText);
 }
 
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -203,6 +223,7 @@ void CubeGame::LoadTextures() {
 	*mUI_InventoryItems->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_InventorySelector->GetFont() = *mUI_HotbarItems->GetFont();
 
+	*mUI_ItemText->GetFont() = *mUI_Text->GetFont();
 }
 
 void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
@@ -326,7 +347,7 @@ void CubeGame::Update(const GameTimer& gt)
 	case GameStates::PAUSE:
 	{
 		//Update the UI
-		SetUIString("Press P to leave pause", 10, 0);
+		SetUIString("Press P to leave pause", 10, 0, TextLayers::DEBUG);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
@@ -344,7 +365,7 @@ void CubeGame::Update(const GameTimer& gt)
 	case GameStates::STARTUP:
 		//Update the UI
 	{
-		SetUIString("START GAME", 10, 8);
+		SetUIString("START GAME", 10, 8, TextLayers::DEBUG);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
@@ -357,9 +378,7 @@ void CubeGame::Update(const GameTimer& gt)
 	}
 	}
 
-	//AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
-	//UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
 
 }
@@ -408,11 +427,15 @@ void CubeGame::Draw(const GameTimer& gt)
 		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+
+		//Update all the GUI
 		mUI_Text->UpdateBuffer();
 		mUI_HotbarItemSelector->UpdateBuffer();
 		mUI_HotbarItems->UpdateBuffer();
 		mUI_InventorySelector->UpdateBuffer();
 		mUI_InventoryItems->UpdateBuffer();
+		mUI_ItemText->UpdateBuffer();
+
 		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
 		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
@@ -623,13 +646,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	case GameStates::STARTUP:
 		if (keySpaceDown) {
 			changeState(GameStates::LOADWORLD);
-			SetUIString("Loading", 10, 8);
+			SetUIString("Loading", 10, 8, TextLayers::DEBUG);
 		}
 		break;
 	case GameStates::LOADWORLD:
-		SetUIString("Loading...", 10, 8);
+		SetUIString("Loading...", 10, 8, TextLayers::DEBUG);
 
 		GenerateWorld();
+
+		//Add the GUI to the game
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_ItemText->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());
@@ -899,10 +925,6 @@ void CubeGame::UpdateHotbar() {
 	}	
 }
 
-void CubeGame::UpdateInventory() {
-
-}
-
 void CubeGame::ToggleInventory() {
 	mInventoryOpen = !mInventoryOpen;
 
@@ -923,25 +945,25 @@ void CubeGame::ShowDebug() {
 	
 	if (mShowDebugInfo == 1) {
 		XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
-		SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
-		SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
-		SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
+		SetUIString(("x:" + std::to_string(pos.x)), 0, 0, TextLayers::DEBUG);
+		SetUIString(("y:" + std::to_string(pos.y)), 1, 0, TextLayers::DEBUG);
+		SetUIString(("z:" + std::to_string(pos.z)), 2, 0, TextLayers::DEBUG);
 
 		std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetChunkFromWorldCoords(pos);
 		WorldManager::Pos cPos = c->GetPos();
-		SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
-		SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
-		SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
+		SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0, TextLayers::DEBUG);
+		SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0, TextLayers::DEBUG);
+		SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0, TextLayers::DEBUG);
 		int i = c->GetID();
 		if (i < 10)
-			SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
+			SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0, TextLayers::DEBUG);
 		else
-			SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
+			SetUIString(("chunk id:" + std::to_string(i)), 7, 0, TextLayers::DEBUG);
 	}
 	else if (mShowDebugInfo == 2) {
-		SetUIString("1 to unfocus mouse", 0, 0);
-		SetUIString("2 to respawn", 1, 0);
-		SetUIString("3 to toggle debug text", 2, 0);
+		SetUIString("1 to unfocus mouse", 0, 0, TextLayers::DEBUG);
+		SetUIString("2 to respawn", 1, 0, TextLayers::DEBUG);
+		SetUIString("3 to toggle debug text", 2, 0, TextLayers::DEBUG);
 	}
 }
 
@@ -1233,11 +1255,12 @@ void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 9;
+	const int numb = 10;
 	std::string geoHolderNames[numb] = { 
 		"geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , 
 		"geo_ui_hotbar", "geo_ui_hotbarItems", "geo_ui_hotbarItemSelector" , 
-		"geo_ui_inventory", "geo_ui_inventoryItems", "geo_ui_inventoryHover"
+		"geo_ui_inventory", "geo_ui_inventoryItems", "geo_ui_inventoryHover",
+		"geo_ui_itemText"
 	};
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
@@ -1271,6 +1294,8 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[7].push_back("mesh_gui_inventoryItems");
 	meshDatas[8].push_back(mUI_InventorySelector->CreateUIPlane2DWithSpaces(1.12f, 2.f, mInventoryCols, mInventoryRows, 0.13f, 0.13f));
 	meshNames[8].push_back("mesh_gui_inventoryHover");
+	meshDatas[9].push_back(mUI_ItemText->CreateUIPlane2D(1.95f, 1.95f, mGUIItemTextRows, mGUIItemTextCols * 2));
+	meshNames[9].push_back("mesh_gui_text1");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1543,7 +1568,7 @@ void CubeGame::BuildGameObjects()
 
 	//Player-------------------------
 	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", GameData::sMaterials->at("mat_player").get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
-	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI));						//Make the Player
+	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI), &mInventory);						//Make the Player
 	GameObject::sAllGObjs->push_back(mPlayer);
 	Entity::sAllEntities->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mPlayer->GetRI());			//Add the players render item to the main list
@@ -1615,7 +1640,10 @@ void CubeGame::BuildGameObjects()
 	mUI_InventorySelector->Init(inventorySelector, mCommandList);
 	mUI_InventorySelector->SwapSizes();
 
-
+	//Item Text
+	auto itemText = std::make_shared<RenderItem>(mGeometries->at("geo_ui_itemText").get(), "mesh_gui_itemText", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
+	mUI_ItemText->Init(itemText, mCommandList);
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_ItemText->GetRI());
 
 	//End of UI----------------------------
 
