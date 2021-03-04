@@ -294,10 +294,38 @@ void CubeGame::Update(const GameTimer& gt)
 				if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
 					mRightMouseDownTimer = 0.f;
 
-					std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-					if (block != nullptr) {
-						block->SetActive(true);
-						mPlayerChangedView = true;
+					if (!mInventory.getHotbar().size() == 0) {
+						invItem itemInHand = GetItemInHand();
+						if (itemInHand.name != "BLANK") {
+							std::string materialName = "mat_" + itemInHand.name;
+							bool found = false;
+
+							for (auto material : *GameData::sMaterials) {
+								if (material.first == materialName) {
+									found = true;
+									break;
+								}
+							}
+
+							if (found) {
+								int amount = itemInHand.stackSize;
+								if (amount == 1) {
+									//Remove item
+
+								}
+								else {
+									//Reduce stack size
+									
+								}
+
+								std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+								if (block != nullptr) {
+									block->SetActive(true);
+									block->ChangeMaterial(materialName);
+									mPlayerChangedView = true;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1805,4 +1833,13 @@ void CubeGame::changeState(GameStates newState)
 	currentState = newState;
 	mUI_Text->ResetVerticies();
 	mUI_Text->SetDirtyFlag();
+}
+
+invItem CubeGame::GetItemInHand() {
+	if (mInventory.getHotbar().size() > mHotbarSelectorSlot.x) {
+		return mInventory.getHotbar().at(mHotbarSelectorSlot.x);
+	}
+	else {
+		return invItem{"BLANK", 0, 0, 0, 'a'};
+	}
 }

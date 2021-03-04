@@ -249,6 +249,8 @@ private:
     bool mInventoryOpen = false;
     bool mSelectorOnHotbar = true;
 
+    invItem GetItemInHand();
+
     //Debug
     int mShowDebugInfo = 2;
 

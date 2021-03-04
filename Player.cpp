@@ -79,7 +79,7 @@ void Player::Update(const float dTime) {
 				float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
 
 				if (distance <= 1) {
-					Item item("Test", ItemType::MISC, 50, 0, 0, 'c' );
+					Item item(entity->GetRI()->Mat->Name.substr(4), ItemType::MISC, 50, 0, 0, 'c' );
 					int amount = entity->GetStackAmount();
 					mInventory->addItem(item, amount);
 					entity->Pickup();
