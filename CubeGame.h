@@ -99,6 +99,8 @@ private:
     //Sets a string on the GUI
     void SetUIString(std::string str, int lineNo, int col); 
     void UpdateHotbar();
+    void UpdateInventory();
+    void ToggleInventory();
     void ShowDebug();
 
     //Block stuff
@@ -192,6 +194,9 @@ private:
     std::shared_ptr<UI> mUI_Hotbar;
     std::shared_ptr<Text> mUI_HotbarItems;
     std::shared_ptr<Text> mUI_HotbarItemSelector;
+    std::shared_ptr<UI> mUI_Inventory;
+    std::shared_ptr<Text> mUI_InventoryItems;
+    std::shared_ptr<Text> mUI_InventorySelector;
 
     //GUI textures
     const int mGUIElTexSize = 31;
@@ -209,19 +214,27 @@ private:
     //GUI menu
     //X and Y are the position, Z and W are the size.
     std::unordered_map<std::string, DirectX::XMFLOAT4> mGUIElementTexturePositionsAndSizes;
-    DirectX::XMFLOAT2 mGUIMenuFileSize{ 228.f, 130.f };
+    DirectX::XMFLOAT2 mGUIMenuFileSize{ 325.f, 195.f };
     std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
     const int mHotbarSlots = 7;
-    int mHotbarSelectorSlot = 0;
-    int mHotbarSelectorPreviousSlot = 0;
+    DirectX::XMFLOAT2 mHotbarSelectorSlot{0.f, 0.f};
+    DirectX::XMFLOAT2 mHotbarSelectorPreviousSlot{0.f, 0.f};
+
+    const int mInventoryRows = 7;
+    const int mInventoryCols = 5;
+    const int mInventorySize = mInventoryRows * mInventoryCols;
+    const int mFacesPerRowInventory = (mInventoryRows * 2 - 1) * 2;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
-    //Text, crosshair, hotbar, hotbar slots, hotbar selector
-    const UINT mMaxUICount = 5;     
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv hover/select
+    const UINT mMaxUICount = 8;     
 
     Inventory mInventory;
     crafting mCrafting;
+
+    bool mInventoryOpen = false;
+    bool mSelectorOnHotbar = true;
 
     //Debug
     int mShowDebugInfo = 2;
