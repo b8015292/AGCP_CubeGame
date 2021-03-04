@@ -244,6 +244,7 @@ void ItemEntity::Update(const float dTime) {
 
 void ItemEntity::Pickup() {
 	//Link with inventory
+	SetActive(false);
 }
 
 void ItemEntity::AddStack() {

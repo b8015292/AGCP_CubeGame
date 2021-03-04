@@ -657,30 +657,55 @@ void CubeGame::DestroySelectedBlock() {
 	bool stacked = false;
 
 	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
-		if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
-			XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
-			XMFLOAT3 difference = XMFLOAT3{ blockCenter.x - entityCenter.x, blockCenter.y - entityCenter.y, blockCenter.z - entityCenter.z };
-			float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+		if (entity->GetActive() == true) {
+			if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
+				XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+				XMFLOAT3 difference = XMFLOAT3{ blockCenter.x - entityCenter.x, blockCenter.y - entityCenter.y, blockCenter.z - entityCenter.z };
+				float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
 
-			if (distance <= mMaxNumberOfItemEntities) {
-				//They are close enough to stack
-				entity->AddStack();
-				entity->SetPosition(blockCenter);
-				stacked = true;
-				break;
+				if (distance <= mItemStackDistance) {
+					//They are close enough to stack
+					entity->AddStack();
+					entity->SetPosition(blockCenter);
+					stacked = true;
+					break;
+				}
 			}
 		}
 	}
 
 	if (!stacked) {
-		auto geo = mGeometries->at("geo_shape").get();
-		auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-		auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
-		GameObject::sAllGObjs->push_back(itemEntity);
-		ItemEntity::sAllEntities->push_back(itemEntity);
-		ItemEntity::sAllItemEntities->push_back(itemEntity);
-		mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+		bool foundInactiveEntity = false;
+		std::shared_ptr<ItemEntity> entityToReplace = nullptr;
+		//Search for an inactive item entity that we can replace
+		for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+			if (entity->GetActive() == false) {
+				foundInactiveEntity = true;
+				entityToReplace = entity;
+			}
+		}
+		if (!foundInactiveEntity) {
+			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
+				auto geo = mGeometries->at("geo_shape").get();
+				auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+				GameObject::sAllGObjs->push_back(itemEntity);
+				ItemEntity::sAllEntities->push_back(itemEntity);
+				ItemEntity::sAllItemEntities->push_back(itemEntity);
+				mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+			}
+			else {
+				entityToReplace = ItemEntity::sAllItemEntities->at(0);
+			}
+		}
+
+		if (entityToReplace != nullptr) {
+			entityToReplace->GetRI()->Mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get();
+			entityToReplace->SetPosition(mPreviousSelectedBlock->GetBoundingBox().Center);
+			entityToReplace->SetActive(true);
+		}
 	}
+
 
 	mPreviousSelectedBlock->SetActive(false);
 	mPreviousSelectedBlock = Block::sAllBlocks->at(0);

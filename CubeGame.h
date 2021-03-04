@@ -178,6 +178,8 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+    //ItemEntity Info
+    const UINT mItemStackDistance = 2;
 
     //User interface
     //Text
