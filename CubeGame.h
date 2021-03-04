@@ -42,6 +42,8 @@ public:
 
     virtual bool Initialize()override;
 
+    enum class TextLayers { DEBUG, ITEM, COUNT };
+
 private:
     //Initialization
     void BuildRootSignature();              //Tells the GPU which registers to expect to use   
@@ -97,7 +99,7 @@ private:
     void GenerateWorld();
 
     //Sets a string on the GUI
-    void SetUIString(std::string str, int lineNo, int col); 
+    void SetUIString(std::string str, int lineNo, int col, TextLayers layer);
     void UpdateHotbar();
     void UpdateInventory();
     void ToggleInventory();
@@ -191,6 +193,8 @@ private:
     Font fnt;
     const int mGUITextRows = 26;
     const int mGUITextCols = 26;
+    const int mGUIItemTextRows = mGUITextRows * 2;
+    const int mGUIItemTextCols = mGUITextRows * 2;
     //Crosshairs
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
@@ -199,6 +203,7 @@ private:
     std::shared_ptr<UI> mUI_Inventory;
     std::shared_ptr<Text> mUI_InventoryItems;
     std::shared_ptr<Text> mUI_InventorySelector;
+    std::shared_ptr<Text> mUI_ItemText;
 
     //GUI textures
     const int mGUIElTexSize = 31;
@@ -229,8 +234,8 @@ private:
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
-    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv hover/select
-    const UINT mMaxUICount = 8;     
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, item text
+    const UINT mMaxUICount = 9;     
 
     Inventory mInventory;
     crafting mCrafting;
