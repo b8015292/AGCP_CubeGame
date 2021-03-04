@@ -36,7 +36,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance), currentState(GameStates::STARTUP)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory, mGUIElementTextureCharacters)
 {
 }
 
@@ -131,6 +131,10 @@ void CubeGame::BuildUserInterfaces() {
 	std::pair<std::string, std::shared_ptr<Text>> item("HotbarItems", mUI_HotbarItems);
 	mAllUIs->insert(item);
 
+	mUI_HotbarItemSelector = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> itemSelector("HotbarItemSelector", mUI_HotbarItemSelector);
+	mAllUIs->insert(itemSelector);
+
 }
 
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -170,23 +174,19 @@ void CubeGame::LoadTextures() {
 
 	mGUIElementTexturePositionsAndSizes["hotbar"] = {0.f, 0.f, 1.f, 33.f/mGUIMenuFileSize.y};
 
-	std::unordered_map<std::string, DirectX::XMFLOAT2>::iterator it;
 	char c = 'a';
-	int i = 0;
-	for (it = mGUIElementTexturePositions.begin(); it != mGUIElementTexturePositions.end(); it++) {
+	for (int i = 0; i < mGUIElTexRows * mGUIElTexCols; i++) {
+		std::string name = mGUIElTexNames[i];
+
 		Font::myChar mc;
-		mc.posX = it->second.x;
-		mc.posY = it->second.y;
+		mc.posX = mGUIElementTexturePositions.at(name).x;
+		mc.posY = mGUIElementTexturePositions.at(name).y;
 		mc.width = mGUIElementTextureSize.x;
 		mc.height = mGUIElementTextureSize.y;
 
-
 		mUI_HotbarItems->GetFont()->chars[c] = mc;
-		//mGUIElementTextureCharacters.at(mGUIElTexNames[i]) = c;
-		mGUIElementTextureCharacters[mGUIElTexNames[i]] = c;
-
-		c++;
-		i++;
+		mUI_HotbarItemSelector->GetFont()->chars[c] = mc;
+		mGUIElementTextureCharacters[name] = c++;
 	}
 
 }
@@ -305,6 +305,8 @@ void CubeGame::Update(const GameTimer& gt)
 				mBlockSelector->SetRIDirty();
 				mBlockSelector->SetRIDirty();
 			}
+
+			UpdateHotbar();
 		}
 		break;
 	case GameStates::PAUSE:
@@ -328,6 +330,8 @@ void CubeGame::Update(const GameTimer& gt)
 	case GameStates::STARTUP:
 		//Update the UI
 	{
+		UpdateHotbar();
+
 		SetUIString("START GAME", 10, 8);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
@@ -393,6 +397,8 @@ void CubeGame::Draw(const GameTimer& gt)
 
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
 		mUI_Text->UpdateBuffer();
+		mUI_HotbarItemSelector->UpdateBuffer();
+		mUI_HotbarItemSelector->UpdateBuffer();
 		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
 		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
@@ -412,6 +418,8 @@ void CubeGame::Draw(const GameTimer& gt)
 		break;
 	case GameStates::MAINMENU:
 	case GameStates::STARTUP:
+		mUI_HotbarItemSelector->UpdateBuffer();
+		mUI_HotbarItems->UpdateBuffer();
 	case GameStates::LOADWORLD:
 
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
@@ -489,6 +497,22 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mLastMousePos.x = x;
 		mLastMousePos.y = y;
     }
+}
+
+void CubeGame::OnMouseScroll(WPARAM btnState, int x, int y) {
+	//Each turn on the wheel equates to 120.
+	int inc = GET_WHEEL_DELTA_WPARAM(btnState) / 120;
+	int total = mHotbarSelectorSlot + inc;
+	if (total < 0) {
+		mHotbarSelectorSlot = mHotbarSlots + total;
+	}
+	else if (total >= mHotbarSlots) {
+		mHotbarSelectorSlot = total - mHotbarSlots;
+	}
+	else {
+		mHotbarSelectorSlot = total;
+	}
+	
 }
 
 void CubeGame::UpdateBlockSelector() {
@@ -721,6 +745,29 @@ void CubeGame::RespawnPlayer() {
 	mWorldMgr.RelocatePlayer(mSpawnPoint);
 	mPlayer->SetPosition(mSpawnPoint);
 	mPlayerChangedView = true;
+}
+
+void CubeGame::UpdateHotbar() {
+	//Update the selector
+	if (mHotbarSelectorSlot != mHotbarSelectorPreviousSlot) {
+		//Remove the old selector and put the selector in the new position
+		mUI_HotbarItemSelector->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot * 2);
+		mUI_HotbarItemSelector->SetChar(mGUIElementTextureCharacters.at("item_sword"), mHotbarSelectorSlot * 2);
+		mUI_HotbarItemSelector->SetDirtyFlag();
+
+		mHotbarSelectorPreviousSlot = mHotbarSelectorSlot;
+	}
+
+	//Update the hotbar items
+	if (mInventory.GetHotbarDirty()) {
+		std::string items = "";
+		for each (invItem i in mInventory.getHotbar()) {
+			items += i.mTextureReference;
+			items += mGUIElementTextureCharacters.at("empty");
+		}
+		mUI_HotbarItems->SetString(items, 0, 0);
+		mUI_HotbarItems->SetDirtyFlag();
+	}
 }
 
 void CubeGame::ShowDebug() {
@@ -1037,8 +1084,8 @@ void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 5;
-	std::string geoHolderNames[numb] = { "geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , "geo_ui_hotbar", "geo_ui_hotbarItems" };
+	const int numb = 6;
+	std::string geoHolderNames[numb] = { "geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , "geo_ui_hotbar", "geo_ui_hotbarItems", "geo_ui_hotbarItemSelector" };
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
 
@@ -1061,8 +1108,10 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[2].push_back("mesh_gui_crosshair");
 	meshDatas[3].push_back(mUI_Hotbar->CreateUIPlane2D(0.7f, 0.15f, 1, 1));
 	meshNames[3].push_back("mesh_gui_hotbar");
-	meshDatas[4].push_back(mUI_HotbarItems->CreateUIPlane2D(0.7f, 0.15f, 1, mHotbarSlots));
+	meshDatas[4].push_back(mUI_HotbarItems->CreateUIPlane2DWithSpaces(1.225f, 0.12f, 1, mHotbarSlots, 0.15f, 0.0f));
 	meshNames[4].push_back("mesh_gui_hotbarItems");
+	meshDatas[5].push_back(mUI_HotbarItemSelector->CreateUIPlane2DWithSpaces(1.225f, 0.12f, 1, mHotbarSlots, 0.15f, 0.0f));
+	meshNames[5].push_back("mesh_gui_hotbarItemSelector");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1365,13 +1414,43 @@ void CubeGame::BuildGameObjects()
 	mUI_Hotbar->UpdateBuffer();
 
 	//Hotbar items
-	std::shared_ptr<RenderItem> hotbarItems = std::make_shared<RenderItem>(mGeometries->at("geo_ui_hotbarItems").get(), "mesh_gui_hotbarItems", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(hotbarXOffset, hotbarYOffset, 0.f));
+	std::shared_ptr<RenderItem> hotbarItems = std::make_shared<RenderItem>(mGeometries->at("geo_ui_hotbarItems").get(), "mesh_gui_hotbarItems", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(hotbarXOffset + 0.29f, hotbarYOffset - 0.0175f, 0.f));
 	mUI_HotbarItems->Init(hotbarItems, mCommandList);
 	mUI_HotbarItems->SwapSizes();
-	std::string c = "";
-	c += mGUIElementTextureCharacters.at("item_grass");
-	mUI_HotbarItems->SetString(c, 0, 0);
-	mUI_HotbarItems->UpdateBuffer();
+
+	//Hotbar item selector
+	std::shared_ptr<RenderItem> hotbarItemSelector = std::make_shared<RenderItem>(mGeometries->at("geo_ui_hotbarItemSelector").get(), "mesh_gui_hotbarItemSelector", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(hotbarXOffset + 0.29f, hotbarYOffset - 0.0175f, 0.f));
+	mUI_HotbarItemSelector->Init(hotbarItemSelector, mCommandList);
+	mUI_HotbarItemSelector->SwapSizes();
+	//Set the initial texture
+	std::string selectorChar = "";
+	selectorChar += mGUIElementTextureCharacters["item_sword"];
+	mUI_HotbarItemSelector->SetString(selectorChar, 0, 0);
+	mUI_HotbarItemSelector->UpdateBuffer();
+
+	//int numb = 1;
+
+	//Item pick("woodenPickaxe", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters.at("item_pickaxe"));
+	//mInventory.addItem(pick, numb);
+
+	//Item sword("woodenSword", ItemType::TOOL, 1, 0, 10, mGUIElementTextureCharacters.at("item_sword"));
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+	//mInventory.addItem(sword, numb);
+
+	//Item stick("stick", ItemType::MISC, 1, 0, 1, 'a');
+	//mInventory.addItem(stick, numb);
+	//mInventory.addItem(stick, numb);
+
+
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Hotbar->GetRI());
 
 	//Block selector---------------
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", GameData::sMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
@@ -1384,6 +1463,7 @@ void CubeGame::BuildGameObjects()
 	mRitemIntances->push_back(blockRI);
 	Block::sBlockInstance = blockRI;
 	mWorldMgr.Init(mMaterialIndexes);
+
 }
 
 void CubeGame::GenerateWorld() {

@@ -21,17 +21,17 @@ ToolType IRON(100, 15, "Iron");
 class Pickaxe : public Item
 {
 public:
-	Pickaxe(ToolType toolType) : Item(toolType.getTypeName() + "Pickaxe", ItemType::TOOL, 1, toolType.getDamageMultiplier(), toolType.getDurability()) {}
+	Pickaxe(ToolType toolType, char texRef) : Item(toolType.getTypeName() + "Pickaxe", ItemType::TOOL, 1, toolType.getDamageMultiplier(), toolType.getDurability(), texRef) {}
 };
 
 class Shovel : public Item
 {
 public:
-	Shovel(ToolType toolType) : Item(toolType.getTypeName() + "Shovel", ItemType::TOOL, 1, toolType.getDamageMultiplier(), toolType.getDurability()) {}
+	Shovel(ToolType toolType, char texRef) : Item(toolType.getTypeName() + "Shovel", ItemType::TOOL, 1, toolType.getDamageMultiplier(), toolType.getDurability(), texRef) {}
 };
 
 class Sword : public Item
 {
 public:
-	Sword(ToolType toolType) : Item(toolType.getTypeName() + "Sword", ItemType::TOOL, 1, 3 * toolType.getDamageMultiplier(), toolType.getDurability()) {}
+	Sword(ToolType toolType, char texRef) : Item(toolType.getTypeName() + "Sword", ItemType::TOOL, 1, 3 * toolType.getDamageMultiplier(), toolType.getDurability(), texRef) {}
 };

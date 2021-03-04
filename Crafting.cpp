@@ -5,8 +5,10 @@
 #include "Tool.h"
 #include "Misc.h"
 
-crafting::crafting(Inventory &inv) : mInv(&inv)
+crafting::crafting(Inventory &inv, std::unordered_map<std::string, char>& textureCharacters) : mInv(&inv)
 {
+	mGUIElementTextureCharacters = textureCharacters;
+
 	//Tools
 	canCraftWoodSword = false;
 	canCraftStoneSword = false;
@@ -95,7 +97,7 @@ void crafting::checkCraftables()
 
 void crafting::craftSticks()
 {
-	Stick tempStick;
+	Stick tempStick(mGUIElementTextureCharacters.at("NULL1"));
 	int amount = 2;
 
 	mInv->removeItemCraft("woodBlock", 2);
@@ -104,7 +106,7 @@ void crafting::craftSticks()
 
 void crafting::craftTorch()
 {
-	Torch tempTorch;
+	Torch tempTorch(mGUIElementTextureCharacters.at("NULL1"));;
 	int amount = 1;
 
 	mInv->removeItemCraft("stick", 1);
@@ -112,29 +114,29 @@ void crafting::craftTorch()
 	mInv->addItem(tempTorch, amount);
 }
 
-void crafting::craftPick(Material mat)
+void crafting::craftPick(ItemMaterial mat)
 {
 	int amount = 1;
 
-	if (mat == Material::WOOD)
+	if (mat == ItemMaterial::WOOD)
 	{
-		Pickaxe tempPick(WOOD);
+		Pickaxe tempPick(WOOD, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("woodBlock", 3);
 		mInv->addItem(tempPick, amount);
 	}
-	else if (mat == Material::STONE)
+	else if (mat == ItemMaterial::STONE)
 	{
-		Pickaxe tempPick(STONE);
+		Pickaxe tempPick(STONE, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("stoneBlock", 3);
 		mInv->addItem(tempPick, amount);
 	}
-	else if (mat == Material::IRON)
+	else if (mat == ItemMaterial::IRON)
 	{
-		Pickaxe tempPick(IRON);
+		Pickaxe tempPick(IRON, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("iron", 3);
@@ -142,29 +144,29 @@ void crafting::craftPick(Material mat)
 	}
 }
 
-void crafting::craftShovel(Material mat)
+void crafting::craftShovel(ItemMaterial mat)
 {
 	int amount = 1;
 
-	if (mat == Material::WOOD)
+	if (mat == ItemMaterial::WOOD)
 	{
-		Shovel tempShovel(WOOD);
+		Shovel tempShovel(WOOD, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("woodBlock", 1);
 		mInv->addItem(tempShovel, amount);
 	}
-	else if (mat == Material::STONE)
+	else if (mat == ItemMaterial::STONE)
 	{
-		Shovel tempShovel(STONE);
+		Shovel tempShovel(STONE, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("stoneBlock", 1);
 		mInv->addItem(tempShovel, amount);
 	}
-	else if (mat == Material::IRON)
+	else if (mat == ItemMaterial::IRON)
 	{
-		Shovel tempShovel(IRON);
+		Shovel tempShovel(IRON, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 2);
 		mInv->removeItemCraft("iron", 1);
@@ -172,29 +174,29 @@ void crafting::craftShovel(Material mat)
 	}
 }
 
-void crafting::craftSword(Material mat)
+void crafting::craftSword(ItemMaterial mat)
 {
 	int amount = 1;
 
-	if (mat == Material::WOOD)
+	if (mat == ItemMaterial::WOOD)
 	{
-		Shovel tempSword(WOOD);
+		Shovel tempSword(WOOD, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("woodBlock", 2);
 		mInv->addItem(tempSword, amount);
 	}
-	else if (mat == Material::STONE)
+	else if (mat == ItemMaterial::STONE)
 	{
-		Shovel tempSword(STONE);
+		Shovel tempSword(STONE, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("stoneBlock", 2);
 		mInv->addItem(tempSword, amount);
 	}
-	else if (mat == Material::IRON)
+	else if (mat == ItemMaterial::IRON)
 	{
-		Shovel tempSword(IRON);
+		Shovel tempSword(IRON, mGUIElementTextureCharacters.at("NULL1"));
 
 		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("iron", 2);

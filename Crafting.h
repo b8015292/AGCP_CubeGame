@@ -1,11 +1,12 @@
 #pragma once
 
 #include <map>
+#include <unordered_map>
 
 #include "Inventory.h"
 #include "Item.h"
 
-enum class Material {
+enum class ItemMaterial {
 	WOOD,
 	STONE,
 	IRON
@@ -14,7 +15,7 @@ enum class Material {
 class crafting 
 {
 public:
-	crafting(Inventory& inv);
+	crafting(Inventory& inv, std::unordered_map<std::string, char>& textureCharacters);
 	crafting(const crafting&) = delete;
 	crafting& operator=(const crafting&) = delete;
 
@@ -23,9 +24,9 @@ public:
 
 	void craftSticks();
 	void craftTorch();
-	void craftPick(Material mat);
-	void craftShovel(Material mat);
-	void craftSword(Material mat);
+	void craftPick(ItemMaterial mat);
+	void craftShovel(ItemMaterial mat);
+	void craftSword(ItemMaterial mat);
 
 	//Tools that can be crafted
 	bool canCraftWoodSword, canCraftStoneSword,
@@ -39,7 +40,7 @@ public:
 private:
 
 	Inventory* mInv;
-
+	std::unordered_map<std::string, char> mGUIElementTextureCharacters;
 	//Temporary variables to store amount of items for crafting
 	int tWood, tStone, tIron, tSticks, tCoal;
 

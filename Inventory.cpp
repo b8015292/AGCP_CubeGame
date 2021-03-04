@@ -3,15 +3,19 @@
 
 #include "Inventory.h"
 
-Inventory::Inventory()
+Inventory::Inventory(int hotbarSize)
 {
+	mHotbarSize = hotbarSize;
+
 	mInventory.reserve(64);
-	mHotbar.reserve(8);
+	mHotbar.reserve(mHotbarSize);
 }
 
 void Inventory::invToHotbar(int spaceToMove)
 {
 	bool complete = false;
+	mHotbarDirty = true;
+	mInventoryDirty = true;
 	int i(0);
 
 	if (!fullHotbar())
@@ -62,6 +66,8 @@ void Inventory::invToHotbar(int spaceToMove)
 void Inventory::hotbarToInv(int spaceToMove)
 {
 	bool complete = false;
+	mHotbarDirty = true;
+	mInventoryDirty = true;
 	int i(0);
 
 	if (!fullHotbar())
@@ -111,12 +117,13 @@ void Inventory::hotbarToInv(int spaceToMove)
 }
 void Inventory::addItem(Item newItem, int &amount)
 {
-	//Creating a local versino of the item in the structure format to simplify the code
+	//Creating a local version of the item in the structure format to simplify the code
 	invItem sNewItem;
 	sNewItem.name = newItem.getName();
 	sNewItem.stackSize = amount;
 	sNewItem.maxStackSize = newItem.getMaxStackSize();
 	sNewItem.durability = newItem.getDurability();
+	sNewItem.mTextureReference = newItem.GetTextureChar();
 
 	bool complete = false;
 	int i(0);
@@ -124,7 +131,8 @@ void Inventory::addItem(Item newItem, int &amount)
 	// Try to add new Item to the hotbar first
 	if (mHotbar.size() != 0)
 	{
-		while (complete != true && i < mHotbar.size() - 1)
+		mHotbarDirty = true;
+		while (complete != true && i < mHotbar.size())
 		{
 			if ((mHotbar[i].name == sNewItem.name) && (mHotbar[i].full == false))
 			{
@@ -156,12 +164,16 @@ void Inventory::addItem(Item newItem, int &amount)
 			++i;
 		}
 	}
-	else mHotbar.push_back(sNewItem);
-
+	else {
+		mHotbar.push_back(sNewItem);
+		complete = true;
+		mHotbarDirty = true;
+	}
 	// If the hotbar cannot take the item, then attempt to move the item to the inventory
 	if (mInventory.size() != 0 && !complete)
 	{
-		while (complete != true && i < mInventory.size() - 1)
+		mInventoryDirty = true;
+		while (complete != true && i < mInventory.size())
 		{
 			if ((mInventory[i].name == sNewItem.name) && (mInventory[i].full == false))
 			{
@@ -193,11 +205,15 @@ void Inventory::addItem(Item newItem, int &amount)
 
 		++i;
 	}
-	else if (!complete) mInventory.push_back(sNewItem);
+	else if (!complete) {
+		mInventory.push_back(sNewItem);
+		mInventoryDirty = true;
+	}
 }
 
 void Inventory::removeItemFromInvClick(int spaceToRemove, bool all)
 {
+	mInventoryDirty = true;
 	if (all) mInventory.erase(mInventory.begin() + spaceToRemove);
 	else
 	{
@@ -207,6 +223,7 @@ void Inventory::removeItemFromInvClick(int spaceToRemove, bool all)
 }
 void Inventory::removeItemFromHotbarClick(int spaceToRemove, bool all)
 {
+	mHotbarDirty = true;
 	if (all) mHotbar.erase(mHotbar.begin() + spaceToRemove);
 	else
 	{
@@ -223,6 +240,7 @@ void Inventory::removeItemCraft(std::string itemName, int amount)
 	{
 		if (mInventory[i].name == itemName)
 		{
+			mInventoryDirty = true;
 			if (amount >= mInventory[i].stackSize)
 			{
 				amount -= mInventory[i].stackSize;
@@ -245,6 +263,7 @@ void Inventory::removeItemCraft(std::string itemName, int amount)
 	{
 		if (mHotbar[i].name == itemName)
 		{
+			mHotbarDirty = true;
 			if (amount >= mHotbar[i].stackSize)
 			{
 				amount -= mHotbar[i].stackSize;
@@ -262,4 +281,19 @@ void Inventory::removeItemCraft(std::string itemName, int amount)
 	}
 
 	assert(amount != 0);
+}
+
+bool Inventory::GetHotbarDirty() {
+	if (mHotbarDirty) {
+		mHotbarDirty = false;
+		return true;
+	}
+	return false;
+}
+bool Inventory::GetInventoryDirty() {
+	if (mInventoryDirty) {
+		mInventoryDirty = false;
+		return true;
+	}
+	return false;
 }
