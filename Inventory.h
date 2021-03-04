@@ -22,8 +22,8 @@ public:
 	bool fullInventory() { return mInventory.size() == 64; }
 	bool fullHotbar() { return mHotbar.size() == mHotbarSize; }
 
-	void invToHotbar(int spaceToMove);
-	void hotbarToInv(int spaceToMove);
+	void invToHotbar(int spaceToMove, bool all);
+	void hotbarToInv(int spaceToMove, bool all);
 	void addItem(Item newItem, int &amount);
 	void removeItemCraft(std::string itemName, int name);
 	void removeItemFromInvClick(int spaceToRemove, bool all);
