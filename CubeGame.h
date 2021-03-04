@@ -104,6 +104,7 @@ private:
     void UpdateInventory();
     void ToggleInventory();
     void ShowDebug();
+    void UpdateUIBuffers();
 
     //Block stuff
     void UpdateBlockSelector();
@@ -193,8 +194,7 @@ private:
     Font fnt;
     const int mGUITextRows = 26;
     const int mGUITextCols = 26;
-    const int mGUIItemTextRows = mGUITextRows * 2;
-    const int mGUIItemTextCols = mGUITextRows * 2;
+
     //Crosshairs
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
@@ -203,15 +203,16 @@ private:
     std::shared_ptr<UI> mUI_Inventory;
     std::shared_ptr<Text> mUI_InventoryItems;
     std::shared_ptr<Text> mUI_InventorySelector;
-    std::shared_ptr<Text> mUI_ItemText;
+    std::shared_ptr<Text> mUI_CraftingItems;
+    std::shared_ptr<Text> mUI_CraftingSelector;
 
     //GUI textures
     const int mGUIElTexSize = 31;
     const int mGUIElTexRows = 3;
     const int mGUIElTexCols = 7;
-    const std::string mGUIElTexNames[21] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "NULL1", "NULL2", 
-                                                "NULL3", "item_grass", "item_dirt", "selector", "item_sword", "item_pickaxe", "NULL4",    
-                                                "NULL5", "NULL6", "NULL7", "NULL8", "NULL9", "NULL10", "NULL11" };
+    const std::string mGUIElTexNames[21] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "+", "=", 
+                                                "stick", "item_grass", "item_dirt", "selector", "item_sword_stone", "item_pickaxe", "item_pickaxe_stone",    
+                                                "item_stone", "item_coal", "item_iron_ore", "item_sword_wood", "item_pickaxe_iron", "item_sword_iron", "item_iron" };
     std::unordered_map<std::string, char> mGUIElementTextureCharacters;
     std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
     DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
@@ -232,9 +233,12 @@ private:
     const int mInventorySize = mInventoryRows * mInventoryCols;
     const int mFacesPerRowInventory = (mInventoryRows * 2 - 1) * 2;
 
+    const int mCraftingCols = 5;
+    const int mCraftingRows = 8;
+
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
-    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, item text
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, crafting, crafting selector
     const UINT mMaxUICount = 9;     
 
     Inventory mInventory;

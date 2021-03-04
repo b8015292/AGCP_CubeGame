@@ -118,15 +118,6 @@ void CubeGame::SetUIString(std::string str, int lineNo, int col, TextLayers laye
 
 		mUI_Text->SetString(str, colm, row);
 		break;
-	
-	case(TextLayers::ITEM):
-		if (lineNo > mGUITextRows) lineNo = mGUITextRows;
-		if (col > mGUITextCols) col = mGUITextCols;
-		row = (float)lineNo * 1 / mGUITextRows;
-		colm = (float)col * 1 / mGUITextCols;
-
-		mUI_ItemText->SetString(str, colm, row);
-		break;
 	}
 }
  
@@ -161,9 +152,9 @@ void CubeGame::BuildUserInterfaces() {
 	mUI_InventoryItems = std::make_shared<Text>();
 	std::pair<std::string, std::shared_ptr<Text>> inventoryItems("InventoryItems ", mUI_InventoryItems);
 	mAllUIs->insert(inventoryItems);
-	mUI_ItemText = std::make_shared<Text>();
-	std::pair<std::string, std::shared_ptr<Text>> itemText("ItemText ", mUI_ItemText);
-	mAllUIs->insert(itemText);
+	mUI_CraftingItems = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> crafting("ItemText ", mUI_CraftingItems);
+	mAllUIs->insert(crafting);
 }
 
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -222,8 +213,7 @@ void CubeGame::LoadTextures() {
 	*mUI_HotbarItemSelector->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_InventoryItems->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_InventorySelector->GetFont() = *mUI_HotbarItems->GetFont();
-
-	*mUI_ItemText->GetFont() = *mUI_Text->GetFont();
+	*mUI_CraftingItems->GetFont() = *mUI_HotbarItems->GetFont();
 }
 
 void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
@@ -237,7 +227,7 @@ void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, Dire
 		out[texNames[i]] = pos;
 
 		col++;
-		if (col > cols) {
+		if (col >= cols) {
 			col = 0;
 			row++;
 		}
@@ -429,12 +419,7 @@ void CubeGame::Draw(const GameTimer& gt)
 		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
 
 		//Update all the GUI
-		mUI_Text->UpdateBuffer();
-		mUI_HotbarItemSelector->UpdateBuffer();
-		mUI_HotbarItems->UpdateBuffer();
-		mUI_InventorySelector->UpdateBuffer();
-		mUI_InventoryItems->UpdateBuffer();
-		mUI_ItemText->UpdateBuffer();
+		UpdateUIBuffers();
 
 		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
@@ -655,7 +640,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		GenerateWorld();
 
 		//Add the GUI to the game
-		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_ItemText->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingItems->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());
@@ -841,7 +826,7 @@ void CubeGame::UpdateHotbar() {
 		}
 
 		inUse->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2 + py);
-		inUse->SetChar(mGUIElementTextureCharacters.at("item_sword"), mHotbarSelectorSlot.x * 2 + y);
+		inUse->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2 + y);
 		inUse->SetDirtyFlag();
 
 		mHotbarSelectorPreviousSlot.x = mHotbarSelectorSlot.x;
@@ -888,7 +873,7 @@ void CubeGame::UpdateHotbar() {
 		}
 
 		previous->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2 + py);
-		inUse->SetChar(mGUIElementTextureCharacters.at("item_sword"), mHotbarSelectorSlot.x * 2 + y);
+		inUse->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2 + y);
 		inUse->SetDirtyFlag();
 
 		mHotbarSelectorPreviousSlot.y = mHotbarSelectorSlot.y;
@@ -934,6 +919,8 @@ void CubeGame::ToggleInventory() {
 	mUI_InventoryItems->SetDirtyFlag();
 	mUI_InventorySelector->GetRI()->active = mInventoryOpen;
 	mUI_InventorySelector->SetDirtyFlag();
+	mUI_CraftingItems->GetRI()->active = mInventoryOpen;
+	mUI_CraftingItems->SetDirtyFlag();
 
 	mUI_Crosshair->GetRI()->active = !mInventoryOpen;
 	mUI_Crosshair->SetDirtyFlag();
@@ -965,6 +952,15 @@ void CubeGame::ShowDebug() {
 		SetUIString("2 to respawn", 1, 0, TextLayers::DEBUG);
 		SetUIString("3 to toggle debug text", 2, 0, TextLayers::DEBUG);
 	}
+}
+
+void CubeGame::UpdateUIBuffers() {
+	mUI_Text->UpdateBuffer();
+	mUI_HotbarItemSelector->UpdateBuffer();
+	mUI_HotbarItems->UpdateBuffer();
+	mUI_InventorySelector->UpdateBuffer();
+	mUI_InventoryItems->UpdateBuffer();
+	mUI_CraftingItems->UpdateBuffer();
 }
 
 void CubeGame::AnimateMaterials(const GameTimer& gt)
@@ -1260,7 +1256,7 @@ void CubeGame::BuildShapeGeometry()
 		"geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , 
 		"geo_ui_hotbar", "geo_ui_hotbarItems", "geo_ui_hotbarItemSelector" , 
 		"geo_ui_inventory", "geo_ui_inventoryItems", "geo_ui_inventoryHover",
-		"geo_ui_itemText"
+		"geo_ui_crafting"
 	};
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
@@ -1294,8 +1290,8 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[7].push_back("mesh_gui_inventoryItems");
 	meshDatas[8].push_back(mUI_InventorySelector->CreateUIPlane2DWithSpaces(1.12f, 2.f, mInventoryCols, mInventoryRows, 0.13f, 0.13f));
 	meshNames[8].push_back("mesh_gui_inventoryHover");
-	meshDatas[9].push_back(mUI_ItemText->CreateUIPlane2D(1.95f, 1.95f, mGUIItemTextRows, mGUIItemTextCols * 2));
-	meshNames[9].push_back("mesh_gui_text1");
+	meshDatas[9].push_back(mUI_CraftingItems->CreateUIPlane2D(0.46f, 1.07f, mCraftingRows, mCraftingCols));
+	meshNames[9].push_back("mesh_gui_crafting");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1611,7 +1607,7 @@ void CubeGame::BuildGameObjects()
 
 	//Set the initial texture
 	std::string selectorChar = "";
-	selectorChar += mGUIElementTextureCharacters["item_sword"];
+	selectorChar += mGUIElementTextureCharacters.at("selector");
 	mUI_HotbarItemSelector->SetString(selectorChar, 0, 0);
 	mUI_HotbarItemSelector->UpdateBuffer();
 
@@ -1639,10 +1635,35 @@ void CubeGame::BuildGameObjects()
 	mUI_InventorySelector->Init(inventorySelector, mCommandList);
 	mUI_InventorySelector->SwapSizes();
 
-	//Item Text
-	auto itemText = std::make_shared<RenderItem>(mGeometries->at("geo_ui_itemText").get(), "mesh_gui_itemText", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
-	mUI_ItemText->Init(itemText, mCommandList);
-	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_ItemText->GetRI());
+	//Crafting
+	auto crafting = std::make_shared<RenderItem>(mGeometries->at("geo_ui_crafting").get(), "mesh_gui_crafting", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(-0.63f, 0.085f, 0.f));
+	crafting->active = false;
+	mUI_CraftingItems->Init(crafting, mCommandList);
+	mUI_CraftingItems->SwapSizes();
+
+	char recipe[5] = {
+		mGUIElementTextureCharacters.at("item_coal"), mGUIElementTextureCharacters.at("+"),
+		mGUIElementTextureCharacters.at("item_iron_ore"), mGUIElementTextureCharacters.at("="),
+		mGUIElementTextureCharacters.at("item_iron")
+	};
+
+	std::string strRec = "";
+	for each (char c in recipe) {
+		strRec += c;
+	}
+
+	float h = 1.f / mCraftingRows;
+
+	mUI_CraftingItems->SetString(strRec, 0, 0);
+	mUI_CraftingItems->SetString(strRec, 0, h);
+	mUI_CraftingItems->SetString(strRec, 0, h * 2);
+	mUI_CraftingItems->SetString(strRec, 0, h * 3);
+	mUI_CraftingItems->SetString(strRec, 0, h * 4);
+	mUI_CraftingItems->SetString(strRec, 0, h * 5);
+	mUI_CraftingItems->SetString(strRec, 0, h * 6);
+	mUI_CraftingItems->SetString(strRec, 0, h * 7);
+	mUI_CraftingItems->SetDirtyFlag();
+
 
 	//End of UI----------------------------
 
