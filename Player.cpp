@@ -69,6 +69,24 @@ void Player::Update(const float dTime) {
 			SetDirtyFlag();
 		}
 
+		//Check if the player can pickup an item
+		for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+			if (entity->GetActive() == true) {
+				XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+				XMFLOAT3 difference = XMFLOAT3{ GetBoundingBox().Center.x - entityCenter.x, GetBoundingBox().Center.y - entityCenter.y, GetBoundingBox().Center.z - entityCenter.z };
+				float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+
+				std::wostringstream woss;
+				woss << distance;
+				woss.str();
+				OutputDebugString(woss.str().c_str());
+
+				if (distance <= 1) {
+					entity->Pickup();
+				}
+			}
+		}
+
 		//Set camera look
 		if (mPitch) {
 			Pitch(mPitch);
