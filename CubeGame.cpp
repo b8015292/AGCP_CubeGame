@@ -1515,6 +1515,7 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_iron_ore", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 6.f,0 });
 	CreateMaterial("mat_oak_log", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 7.f,0 }, { x * 8.f,0 }, { x * 8.f,0 });
 	CreateMaterial("mat_oak_leaf", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 9.f,0 });
+	CreateMaterial("mat_bedrock", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 10.f,0 });
 
 	CreateMaterial("mat_sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
 
