@@ -109,14 +109,9 @@ void GameObject::Rotate(const float dTime, XMVECTOR axis, float angle) {
 
 	//Multiplies the two matricies together
 	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, finalMatrix);
-	//newWorldMatrix = XMMatrixMultiply(newWorldMatrix, translateMatrix);
-	//newWorldMatrix = XMMatrixMultiply(newWorldMatrix, translateBackMatrix);
 
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
-
-	//Translate the bounding box
-	//mBoundingBox.Transform(mBoundingBox, finalMatrix);
 
 	SetDirtyFlag();
 }

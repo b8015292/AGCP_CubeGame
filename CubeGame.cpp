@@ -753,6 +753,7 @@ void CubeGame::DestroySelectedBlock() {
 
 	bool stacked = false;
 
+	//Go through all existing entities to find if there is a nearby one of the same type which can be stacked
 	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
 		if (entity->GetActive() == true) {
 			if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
@@ -781,8 +782,10 @@ void CubeGame::DestroySelectedBlock() {
 				entityToReplace = entity;
 			}
 		}
+		
 		if (!foundInactiveEntity) {
 			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
+				//Create a brand new entity with the correct material data and position
 				auto geo = mGeometries->at("geo_shape").get();
 				auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
 				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
@@ -792,10 +795,12 @@ void CubeGame::DestroySelectedBlock() {
 				mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
 			}
 			else {
+				//If we have reached the max number of item entities in the world, then just replace the first one created
 				entityToReplace = ItemEntity::sAllItemEntities->at(0);
 			}
 		}
 
+		//Entities are set inactive when picked up, so if we find an inactive one we can replace it instead of creating another new entity
 		if (entityToReplace != nullptr) {
 			entityToReplace->GetRI()->Mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get();
 			entityToReplace->SetPosition(mPreviousSelectedBlock->GetBoundingBox().Center);
@@ -803,13 +808,10 @@ void CubeGame::DestroySelectedBlock() {
 		}
 	}
 
-
 	mPreviousSelectedBlock->SetActive(false);
 	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
-
-
 
 	mPlayerChangedView = true;
 }
