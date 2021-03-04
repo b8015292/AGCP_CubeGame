@@ -308,15 +308,7 @@ void CubeGame::Update(const GameTimer& gt)
 							}
 
 							if (found) {
-								int amount = itemInHand.stackSize;
-								if (amount == 1) {
-									//Remove item
-
-								}
-								else {
-									//Reduce stack size
-									
-								}
+								mInventory.removeItemFromHotbarClick(mHotbarSelectorSlot.x, false);
 
 								std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
 								if (block != nullptr) {
