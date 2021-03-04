@@ -1542,7 +1542,7 @@ void CubeGame::BuildGameObjects()
 
 	//Player-------------------------
 	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", GameData::sMaterials->at("mat_player").get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
-	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI));						//Make the Player
+	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI), &mInventory);						//Make the Player
 	GameObject::sAllGObjs->push_back(mPlayer);
 	Entity::sAllEntities->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mPlayer->GetRI());			//Add the players render item to the main list

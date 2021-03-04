@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Object.h"
+#include "Inventory.h"
 
 class Player : public Entity {
 public:
-    Player(std::shared_ptr<GameObject> gobj);
+    Player(std::shared_ptr<GameObject> gobj, Inventory* inv);
 
     void Update(const float dTime) override; //overides entities update
     void TranslateCamera(float dTime, float x, float y, float z);
@@ -55,6 +56,8 @@ private:
     const float mCameraOffsetZ = 0.0f;   //For 3rd person
     const float mCameraOffsetY = 0.6f;   //Height
     DirectX::XMMATRIX mNewWorldMatrix;
+
+    Inventory* mInventory;
 
     //Health & damange stats
     int mPlayerHealth;
