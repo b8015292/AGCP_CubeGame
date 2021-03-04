@@ -1691,6 +1691,40 @@ void CubeGame::BuildGameObjects()
 	mUI_CraftingItems->SetString(strRec, 0, h * 7);
 	mUI_CraftingItems->SetDirtyFlag();
 
+	// INVENTORY TESTING AREA
+	//Sword tempSword(mCrafting.stoneTool, 'a');
+	//Pickaxe tempPick(mCrafting.woodTool, 'b');
+	//DirtBlock dirtBlock('c');
+
+	//int numb(1);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//for(int i(0); i < 64; ++i) mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+
+
+	//mInventory.removeItemFromHotbarClick(1, false);
+	//mInventory.hotbarToInv(5, true);
+	//mInventory.invToHotbar(7, true);
+	//mInventory.removeItemCraft("dirtBlock", 5);
+
+	//int tempIntNum5(0);
+	//++tempIntNum5;
+
+	//END OF INVENTORY TESTING AREA
+
 
 	//End of UI----------------------------
 
