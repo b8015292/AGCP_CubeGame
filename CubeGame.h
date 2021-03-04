@@ -44,6 +44,8 @@ public:
 
     virtual bool Initialize()override;
 
+    enum class TextLayers { DEBUG, ITEM, COUNT };
+
 private:
     //Initialization
     void BuildRootSignature();              //Tells the GPU which registers to expect to use   
@@ -99,9 +101,12 @@ private:
     void GenerateWorld();
 
     //Sets a string on the GUI
-    void SetUIString(std::string str, int lineNo, int col); 
+    void SetUIString(std::string str, int lineNo, int col, TextLayers layer);
     void UpdateHotbar();
+    void UpdateInventory();
+    void ToggleInventory();
     void ShowDebug();
+    void UpdateUIBuffers();
 
     //Block stuff
     void UpdateBlockSelector();
@@ -167,8 +172,8 @@ private:
     //Block textures
     const int mBlockTexSize = 32;
     const int mBlockTexRows = 1;
-    const int mBlockTexCols = 10;
-    const std::string mBlockTexNames[10] = { "null", "dirt", "grassSide", "grass", "stone", "coal_ore", "iron_ore", "oak_log_side", "oak_log_top", "oak_leaf"};
+    const int mBlockTexCols = 11;
+    const std::string mBlockTexNames[11] = { "null", "dirt", "grassSide", "grass", "stone", "coal_ore", "iron_ore", "oak_log_side", "oak_log_top", "oak_leaf", "bedrock"};
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
 
     //Block Break
@@ -182,6 +187,8 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+    //ItemEntity Info
+    const UINT mItemStackDistance = 2;
 
     //User interface
     //Text
@@ -189,19 +196,25 @@ private:
     Font fnt;
     const int mGUITextRows = 26;
     const int mGUITextCols = 26;
+
     //Crosshairs
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
     std::shared_ptr<Text> mUI_HotbarItems;
     std::shared_ptr<Text> mUI_HotbarItemSelector;
+    std::shared_ptr<UI> mUI_Inventory;
+    std::shared_ptr<Text> mUI_InventoryItems;
+    std::shared_ptr<Text> mUI_InventorySelector;
+    std::shared_ptr<Text> mUI_CraftingItems;
+    std::shared_ptr<Text> mUI_CraftingSelector;
 
     //GUI textures
     const int mGUIElTexSize = 31;
     const int mGUIElTexRows = 3;
     const int mGUIElTexCols = 7;
-    const std::string mGUIElTexNames[21] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "NULL1", "NULL2", 
-                                                "NULL3", "item_grass", "item_dirt", "selector", "item_sword", "item_pickaxe", "NULL4",    
-                                                "NULL5", "NULL6", "NULL7", "NULL8", "NULL9", "NULL10", "NULL11" };
+    const std::string mGUIElTexNames[21] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "+", "=", 
+                                                "stick", "item_grass", "item_dirt", "selector", "item_sword_stone", "item_pickaxe", "item_pickaxe_stone",    
+                                                "item_stone", "item_coal", "item_iron_ore", "item_sword_wood", "item_pickaxe_iron", "item_sword_iron", "item_iron" };
     std::unordered_map<std::string, char> mGUIElementTextureCharacters;
     std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
     DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
@@ -211,19 +224,30 @@ private:
     //GUI menu
     //X and Y are the position, Z and W are the size.
     std::unordered_map<std::string, DirectX::XMFLOAT4> mGUIElementTexturePositionsAndSizes;
-    DirectX::XMFLOAT2 mGUIMenuFileSize{ 228.f, 130.f };
+    DirectX::XMFLOAT2 mGUIMenuFileSize{ 325.f, 195.f };
     std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
     const int mHotbarSlots = 7;
-    int mHotbarSelectorSlot = 0;
-    int mHotbarSelectorPreviousSlot = 0;
+    DirectX::XMFLOAT2 mHotbarSelectorSlot{0.f, 0.f};
+    DirectX::XMFLOAT2 mHotbarSelectorPreviousSlot{0.f, 0.f};
+
+    const int mInventoryRows = 7;
+    const int mInventoryCols = 5;
+    const int mInventorySize = mInventoryRows * mInventoryCols;
+    const int mFacesPerRowInventory = (mInventoryRows * 2 - 1) * 2;
+
+    const int mCraftingCols = 5;
+    const int mCraftingRows = 8;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
-    //Text, crosshair, hotbar, hotbar slots, hotbar selector
-    const UINT mMaxUICount = 5;     
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, crafting, crafting selector
+    const UINT mMaxUICount = 9;     
 
     Inventory mInventory;
     crafting mCrafting;
+
+    bool mInventoryOpen = false;
+    bool mSelectorOnHotbar = true;
 
     //Debug
     int mShowDebugInfo = 2;

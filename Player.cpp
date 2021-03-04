@@ -1,7 +1,9 @@
 #include "Player.h"
 
-Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj), mPlayerHealth(100), mPlayerDamage(1) {
+Player::Player(std::shared_ptr<GameObject> gobj, Inventory* inv) : Entity(gobj), mPlayerHealth(100), mPlayerDamage(1) {
 	mRotate90 = XMMatrixRotationY(XMConvertToRadians(90.f));
+
+	mInventory = inv;
 
 	mNextBoxes[Dir::look].Extents = mRI->mBoundingBox.Extents;
 	mNextBoxes[Dir::lookStrafe].Extents = mRI->mBoundingBox.Extents;
@@ -67,6 +69,22 @@ void Player::Update(const float dTime) {
 		if (mSetJump) {
 			Jump();
 			SetDirtyFlag();
+		}
+
+		//Check if the player can pickup an item
+		for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+			if (entity->GetActive() == true) {
+				XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+				XMFLOAT3 difference = XMFLOAT3{ GetBoundingBox().Center.x - entityCenter.x, GetBoundingBox().Center.y - entityCenter.y, GetBoundingBox().Center.z - entityCenter.z };
+				float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+
+				if (distance <= 1) {
+					Item item("Test", ItemType::MISC, 50, 0, 0, 'c' );
+					int amount = entity->GetStackAmount();
+					mInventory->addItem(item, amount);
+					entity->Pickup();
+				}
+			}
 		}
 
 		//Set camera look

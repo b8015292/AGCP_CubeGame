@@ -243,7 +243,8 @@ void ItemEntity::Update(const float dTime) {
 }
 
 void ItemEntity::Pickup() {
-	//Link with inventory
+	SetActive(false);
+	stackedAmount = 1;
 }
 
 void ItemEntity::AddStack() {

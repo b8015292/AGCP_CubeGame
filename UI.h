@@ -38,6 +38,7 @@ public:
 protected:
 	int mSizeX = 0;			//The number of colomns (including the hidden colomns inbetween the visible)
 	int mSizeY = 0;			//The number of rows (see above comment)
+	bool mHasGaps = false;
 
 	UINT mVertsPerObj = 0;	//The number of verticies in the render item. 
 	UINT mVbByteSize = 0;	//Number of verticies * size of vertex
