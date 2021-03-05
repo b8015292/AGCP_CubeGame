@@ -88,16 +88,18 @@ public:
     static std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> sAllItemEntities;
 
     //Constructor
-    ItemEntity(std::shared_ptr<GameObject> gobj);
+    ItemEntity(std::shared_ptr<GameObject> gobj, char texRef);
 
     void Update(const float dTime) override;
 
     void AddStack();
     int GetStackAmount();
+    char GetItemTexture() { return mItemTextureReference; };
 
     void Pickup();
 private:
     int stackedAmount = 1;
+    char mItemTextureReference;
 };
 
 class Block : public GameObject{

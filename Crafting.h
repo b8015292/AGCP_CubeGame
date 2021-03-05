@@ -19,12 +19,14 @@ enum class ItemMaterial {
 class crafting 
 {
 public:
-	crafting(Inventory& inv, std::unordered_map<std::string, char>& textureCharacters);
+	crafting(Inventory& inv);
 	crafting(const crafting&) = delete;
 	crafting& operator=(const crafting&) = delete;
 
+	void SetTexChars(std::unordered_map<std::string, char>& texChars) { mGUIElementTextureCharacters = texChars; };
+
 	void resetCrafting();
-	void checkCraftables();
+	std::string GetCraftables();
 
 	void craftSticks();
 	void craftTorch();
@@ -35,11 +37,11 @@ public:
 	//Tools that can be crafted
 	bool canCraftWoodSword, canCraftStoneSword,
 		canCraftIronSword, canCraftWoodPick,
-		canCraftStonePick, canCraftIronPick,
-		canCraftWoodShovel, canCraftStoneShovel,
-		canCraftIronShovel;
+		canCraftStonePick, canCraftIronPick;// ,
+		//canCraftWoodShovel, canCraftStoneShovel,
+		//canCraftIronShovel;
 	//Misc that can be crafted
-	bool canCraftSticks, canCraftTorch;
+	bool canCraftSticks;// , canCraftTorch;
 
 	ToolType woodTool;
 	ToolType stoneTool;

@@ -34,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory, mGUIElementTextureCharacters)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory)
 {
 }
 
@@ -220,6 +220,8 @@ void CubeGame::LoadTextures() {
 	*mUI_InventorySelector->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_CraftingItems->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_CraftingSelector->GetFont() = *mUI_HotbarItems->GetFont();
+
+	mCrafting.SetTexChars(mGUIElementTextureCharacters);
 }
 
 void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
@@ -787,10 +789,18 @@ void CubeGame::DestroySelectedBlock() {
 		
 		if (!foundInactiveEntity) {
 			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
+				//Use the material to determine the item type
+				std::string prevMat = mPreviousSelectedBlock->GetInstanceData()->MaterialName;
+				//if(prevMat == "")
+				prevMat[0] = 'i';
+				prevMat[1] = 't';
+				prevMat[2] = 'm';
+
+
 				//Create a brand new entity with the correct material data and position
 				auto geo = mGeometries->at("geo_shape").get();
 				auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI), mGUIElementTextureCharacters.at(prevMat));
 				GameObject::sAllGObjs->push_back(itemEntity);
 				ItemEntity::sAllEntities->push_back(itemEntity);
 				ItemEntity::sAllItemEntities->push_back(itemEntity);
@@ -1029,6 +1039,11 @@ void CubeGame::UpdateHotbar() {
 
 	//Update available crafting recipies
 
+	if (mInventoryOpen) {
+		std::string craftables = mCrafting.GetCraftables();
+		mUI_CraftingItems->SetString(craftables, 0, 0);
+	}
+
 }
 
 void CubeGame::ToggleInventory() {
@@ -1049,9 +1064,7 @@ void CubeGame::ToggleInventory() {
 	mUI_Crosshair->SetDirtyFlag();
 
 	if (mHotbarSelectorSlot.x == -1) mHotbarSelectorSlot.x = 0;
-	if (mHotbarSelectorPreviousSlot.x == -1) mHotbarSelectorPreviousSlot.x = 0;
 	mHotbarSelectorSlot.y = 0;
-	mHotbarSelectorPreviousSlot.y = 0;
 }
 
 void CubeGame::ShowDebug() {
@@ -1774,64 +1787,6 @@ void CubeGame::BuildGameObjects()
 	craftingSelector->active = false;
 	mUI_CraftingSelector->Init(craftingSelector, mCommandList);
 	mUI_CraftingSelector->SwapSizes();
-
-
-	//TEMP
-	char recipe[5] = {
-		mGUIElementTextureCharacters.at("item_coal"), mGUIElementTextureCharacters.at("+"),
-		mGUIElementTextureCharacters.at("item_iron_ore"), mGUIElementTextureCharacters.at("="),
-		mGUIElementTextureCharacters.at("item_iron")
-	};
-
-	std::string strRec = "";
-	for each (char c in recipe) {
-		strRec += c;
-	}
-
-	mUI_CraftingItems->SetString(strRec, 0, 0);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 2);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 3);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 4);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 5);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 6);
-	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 7);
-	mUI_CraftingItems->SetDirtyFlag();
-
-	// INVENTORY TESTING AREA
-	//Sword tempSword(mCrafting.stoneTool, 'a');
-	//Pickaxe tempPick(mCrafting.woodTool, 'b');
-	//DirtBlock dirtBlock('c');
-
-	//int numb(1);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//for(int i(0); i < 64; ++i) mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-
-
-	//mInventory.removeItemFromHotbarClick(1, false);
-	//mInventory.hotbarToInv(5, true);
-	//mInventory.invToHotbar(7, true);
-	//mInventory.removeItemCraft("dirtBlock", 5);
-
-	//int tempIntNum5(0);
-	//++tempIntNum5;
-
-	//END OF INVENTORY TESTING AREA
-
 
 	//End of UI----------------------------
 
