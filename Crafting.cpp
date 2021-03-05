@@ -24,6 +24,7 @@ crafting::crafting(Inventory &inv) : mInv(&inv), woodTool(25, 5, "Wood"), stoneT
 	tIron = 0;
 	tSticks = 0;
 	tCoal = 0;
+	tIronOre = 0;
 }
 
 void crafting::resetCrafting()
@@ -47,6 +48,7 @@ void crafting::resetCrafting()
 	tIron = 0;
 	tSticks = 0;
 	tCoal = 0;
+	tIronOre = 0;
 }
 
 std::string crafting::GetCraftables()
@@ -55,60 +57,122 @@ std::string crafting::GetCraftables()
 	char plus = mGUIElementTextureCharacters.at("+");
 	char equals = mGUIElementTextureCharacters.at("=");
 
+	resetCrafting();
 
-	std::for_each(mInv->getInventory().begin(), mInv->getInventory().end(), [&](invItem t) 
-		{
-			if (t.name == "woodBlock") tWood += t.stackSize;
-			else if (t.name == "stoneBlock") tStone += t.stackSize;
-			else if (t.name == "iron") tIron += t.stackSize;
-			else if (t.name == "stick") tSticks += t.stackSize;
-			else if (t.name == "coal") tCoal += t.stackSize;
-		});
+	for (int i = 0; i < mInv->getInventory().size(); i++) {
+		invItem t = mInv->getInventory().at(i);
+		if (t.name == "oak_log") tWood += t.stackSize;
+		else if (t.name == "stone") tStone += t.stackSize;
+		else if (t.name == "iron") tIron += t.stackSize;
+		else if (t.name == "stick") tSticks += t.stackSize;
+		else if (t.name == "coal_ore") tCoal += t.stackSize;
+		else if (t.name == "iron_ore") tIronOre += t.stackSize;
+	}
+
+	for (int i = 0; i < mInv->getHotbar().size(); i++) {
+		invItem t = mInv->getHotbar().at(i);
+		if (t.name == "oak_log") tWood += t.stackSize;
+		else if (t.name == "stone") tStone += t.stackSize;
+		else if (t.name == "iron") tIron += t.stackSize;
+		else if (t.name == "stick") tSticks += t.stackSize;
+		else if (t.name == "coal_ore") tCoal += t.stackSize;
+		else if (t.name == "iron_ore") tIronOre += t.stackSize;
+	}
 	
 	if (tWood >= 2) {
 		canCraftSticks = true;
-		craftables += mGUIElementTextureCharacters.at("itm_oak_log") + mGUIElementTextureCharacters.at("+") + mGUIElementTextureCharacters.at("itm_oak_log") + mGUIElementTextureCharacters.at("=") + mGUIElementTextureCharacters.at("itm_stick");
+
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
+		craftables.push_back(mGUIElementTextureCharacters.at("+"));
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
+		craftables.push_back(mGUIElementTextureCharacters.at("="));
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+	}
+
+	if (tCoal > 0 && tIronOre > 0) {
+		canCraftIron = true;
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_coal_ore"));
+		craftables.push_back(mGUIElementTextureCharacters.at("+"));
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_iron_ore"));
+		craftables.push_back(mGUIElementTextureCharacters.at("="));
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 	}
 
 	if (tSticks >= 1)
 	{
-		if (tWood >= 2) {
+		if (tIron >= 1) {
+			canCraftIronSword = true;
+
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+			craftables.push_back(mGUIElementTextureCharacters.at("+"));
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_iron"));
+			craftables.push_back(mGUIElementTextureCharacters.at("="));
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_sword_iron"));
+		}
+		else if (tStone >= 1) {
+			canCraftStoneSword = true;
+
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+			craftables.push_back(mGUIElementTextureCharacters.at("+"));
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_stone"));
+			craftables.push_back(mGUIElementTextureCharacters.at("="));
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_sword_stone"));
+		} 
+		else if (tWood >= 1) {
 			canCraftWoodSword = true;
+
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+			craftables.push_back(mGUIElementTextureCharacters.at("+"));
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
+			craftables.push_back(mGUIElementTextureCharacters.at("="));
+			craftables.push_back(mGUIElementTextureCharacters.at("itm_sword_wood"));
 		}
 
-		if (tStone >= 2) {
-			canCraftStoneSword = true;
-		}
 		
-		if (tIron >= 2) {
-			canCraftIronSword = true;
-		}
+		
+
 		//if (tCoal >= 1) canCraftTorch = true;
 
-		if (tSticks >= 2)
+		if (tSticks >= 1)
 		{
-			if (tWood >= 1)
+						if (tIron >= 1)
 			{
-				//canCraftWoodShovel = true;
-				if (tWood >= 3) {
-					canCraftWoodPick = true;
+				////canCraftIronShovel = true;
+				//if (tIron >= 3) {
+				canCraftIronPick = true;
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+				craftables.push_back(mGUIElementTextureCharacters.at("+"));
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_iron"));
+				craftables.push_back(mGUIElementTextureCharacters.at("="));
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_pickaxe_iron"));
+				//}
+			}
+			else if (tStone >= 1)
+			{
+				////canCraftStoneShovel = true;
+				//if (tStone >= 3) {
+				canCraftStonePick = true;
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+				craftables.push_back(mGUIElementTextureCharacters.at("+"));
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_stone"));
+				craftables.push_back(mGUIElementTextureCharacters.at("="));
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_pickaxe_stone"));
+				//}
+			}
+			else if (tWood >= 1)
+			{
+				////canCraftWoodShovel = true;
+				//if (tWood >= 3) {
+				canCraftWoodPick = true;
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+				craftables.push_back(mGUIElementTextureCharacters.at("+"));
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
+				craftables.push_back(mGUIElementTextureCharacters.at("="));
+				craftables.push_back(mGUIElementTextureCharacters.at("itm_pickaxe_wood"));
+				//}
+			}
 
-				}
-			}
-			if (tStone >= 1)
-			{
-				//canCraftStoneShovel = true;
-				if (tStone >= 3) {
-					canCraftStonePick = true;
-				}
-			}
-			if (tIron >= 1)
-			{
-				//canCraftIronShovel = true;
-				if (tIron >= 3) {
-					canCraftIronPick = true;
-				}
-			}
+
 		}
 	}
 

@@ -821,11 +821,9 @@ void CubeGame::DestroySelectedBlock() {
 			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
 				//Use the material to determine the item type
 				std::string prevMat = mPreviousSelectedBlock->GetInstanceData()->MaterialName;
-				//if(prevMat == "")
 				prevMat[0] = 'i';
 				prevMat[1] = 't';
 				prevMat[2] = 'm';
-
 
 				//Create a brand new entity with the correct material data and position
 				auto geo = mGeometries->at("geo_shape").get();
