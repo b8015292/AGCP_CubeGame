@@ -126,6 +126,8 @@ bool SoundSystemClass::Play(SoundClass pSound, bool Loop, const unsigned int han
 					pSound->setLoopCount(-1);
 				}
 				//specify FMOD_CHANNEL_REUSE to re-use the same channel multiple times
+				if (mpSystem->playSound(FMOD_CHANNEL_REUSE, pSound, false, &pCh) != FMOD_OK)
+					return false;
 				mChannels.at(i) = (ChannelData(pCh, handle));
 			}
 			break;

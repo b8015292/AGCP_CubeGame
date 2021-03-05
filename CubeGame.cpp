@@ -42,6 +42,7 @@ CubeGame::~CubeGame()
 {
 	mSound.ReleaseSound(BackingTrack);
 	mSound.ReleaseSound(Walk);
+	mSound.ReleaseSound(Hit);
 
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
@@ -619,11 +620,10 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 				if(playWalkSound)
 				{
-					bool mSoundPlaying = mSound.IsPlaying(2);
 					//playsound
-					if(!mSoundPlaying)
 					mSound.Play(Walk, false, 2);
-					WDBOUT(mSoundPlaying);
+					//bool mSoundPlaying = mSound.IsPlaying(2);
+					//WDBOUT(mSoundPlaying);
 				}
 
 				mPlayerChangedView = true;
