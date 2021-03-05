@@ -393,12 +393,14 @@ void CubeGame::Update(const GameTimer& gt)
 		break;
 	case GameStates::MAINMENU:
 		break;
+	case GameStates::CONTROLS:
+		break;
 	case GameStates::LOADWORLD:
 		break;
 	case GameStates::STARTUP:
 		//Update the UI
 	{
-		SetUIString("START GAME", 10, 8, TextLayers::DEBUG);
+		SetUIString("PRESS SPACE TO START GAME", 23, 0, TextLayers::DEBUG);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
