@@ -18,7 +18,7 @@ public:
 	{
 		InitFMOD();
 	}
-	~SoundSystemClass() {};
+	~SoundSystemClass() { Shutdown(); };
 
 	//a data structure only used by the fmod audio group and its manager
 	struct ChannelData
