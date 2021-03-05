@@ -40,9 +40,9 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
-	mSound.ReleaseSound(BackingTrack);
-	mSound.ReleaseSound(Walk);
-	mSound.ReleaseSound(Hit);
+	//mSound.ReleaseSound(BackingTrack);
+	//mSound.ReleaseSound(Walk);
+	//mSound.ReleaseSound(Hit);
 
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
@@ -139,6 +139,14 @@ void CubeGame::BuildUserInterfaces() {
 	std::pair<std::string, std::shared_ptr<UI>> cross("Crosshair", mUI_Crosshair);
 	mAllUIs->insert(cross);
 
+	mUI_Start = std::make_shared<UI>();
+	std::pair<std::string, std::shared_ptr<UI>> start("Start", mUI_Start);
+	mAllUIs->insert(start);
+
+	mUI_Controls = std::make_shared<UI>();
+	std::pair<std::string, std::shared_ptr<UI>> controls("Controls", mUI_Controls);
+	mAllUIs->insert(controls);
+
 	//HOTBAR
 	mUI_Hotbar = std::make_shared<UI>();
 	std::pair<std::string, std::shared_ptr<UI>> hotbar("Hotbar", mUI_Hotbar);
@@ -203,6 +211,8 @@ void CubeGame::LoadTextures() {
 	MakeTexture("tex_blockSelect", L"data/blockBreakMap.dds");
 	MakeTexture("tex_gui_elements", L"data/guiElements.dds");
 	MakeTexture("tex_gui_menus", L"data/guiMenus.dds");
+	MakeTexture("tex_gui_mainMenu", L"data/mainmenu.dds");
+	MakeTexture("tex_gui_controls", L"data/controls.dds");
 
 	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
 	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
@@ -401,6 +411,7 @@ void CubeGame::Update(const GameTimer& gt)
 		//Update the UI
 	{
 		SetUIString("PRESS SPACE TO START GAME", 23, 0, TextLayers::DEBUG);
+		SetUIString("PRESS C TO VIEW CONTROLS", 22, 0, TextLayers::DEBUG);
 
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
@@ -583,8 +594,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	bool keyDDown = GetAsyncKeyState('D') & 0x8000;
 	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
 	bool keyEDown = GetAsyncKeyState('E') & 0x8000;
+	bool keyCDown = GetAsyncKeyState('C') & 0x8000;
 	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
-	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown && !keyEDown)
+	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown && !keyEDown && !keyCDown)
 	{
 		actionComplete = false;
 	}
@@ -701,6 +713,11 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 			changeState(GameStates::LOADWORLD);
 			SetUIString("Loading", 10, 8, TextLayers::DEBUG);
 		}
+		if (keyCDown && (actionComplete == false)) {
+			mUI_Controls->GetRI()->active = !mUI_Controls->GetRI()->active;
+			actionComplete = true;
+		}
+
 		break;
 	case GameStates::LOADWORLD:
 		SetUIString("Loading...", 10, 8, TextLayers::DEBUG);
@@ -708,7 +725,8 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		GenerateWorld();
 
 		//Add the GUI to the game
-		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingItems->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->pop_back();
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->pop_back();
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingSelector->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
@@ -1404,18 +1422,24 @@ void CubeGame::BuildDescriptorHeaps() {
 	
 	hDescriptor.Offset(1, cbvSrvDescriptorSize);
 	CreateTextureSRV("tex_gui_menus", hDescriptor);
+
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_gui_mainMenu", hDescriptor);
+	
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_gui_controls", hDescriptor);
 }
 
 void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 11;
+	const int numb = 13;
 	std::string geoHolderNames[numb] = { 
 		"geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , 
 		"geo_ui_hotbar", "geo_ui_hotbarItems", "geo_ui_hotbarItemSelector" , 
 		"geo_ui_inventory", "geo_ui_inventoryItems", "geo_ui_inventoryHover",
-		"geo_ui_crafting", "geo_ui_craftingSelector"
+		"geo_ui_crafting", "geo_ui_craftingSelector", "geo_ui_start", "geo_ui_controls"
 	};
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
@@ -1453,6 +1477,10 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[9].push_back("mesh_gui_crafting");
 	meshDatas[10].push_back(mUI_CraftingSelector->CreateUIPlane2D(0.26f, 1.07f, mCraftingRows, 1));
 	meshNames[10].push_back("mesh_gui_craftingSelector");
+	meshDatas[11].push_back(mUI_Start->CreateUIPlane2D(1.95f, 1.95f, 1, 1));
+	meshNames[11].push_back("mesh_gui_start");
+	meshDatas[12].push_back(mUI_Controls->CreateUIPlane2D(1.95f, 1.95f, 1, 1));
+	meshNames[12].push_back("mesh_gui_controls");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1690,6 +1718,8 @@ void CubeGame::BuildMaterials()
 
 	CreateMaterial("mat_gui_elements", 4, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
 	CreateMaterial("mat_gui_menus", 5, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
+	CreateMaterial("mat_gui_mainMenu", 6, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
+	CreateMaterial("mat_gui_controls", 7, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -1807,13 +1837,30 @@ void CubeGame::BuildGameObjects()
 	mUI_CraftingSelector->Init(craftingSelector, mCommandList);
 	mUI_CraftingSelector->SwapSizes();
 
+	//main menu
+	std::shared_ptr<RenderItem> start = std::make_shared<RenderItem>(mGeometries->at("geo_ui_start").get(), "mesh_gui_start", GameData::sMaterials->at("mat_gui_mainMenu").get(), XMMatrixIdentity());
+	mUI_Start->Init(start, mCommandList);
+	mUI_Start->SetWholeTexture({ 0.0,0 }, { 1.95,2 });
+	mUI_Start->UpdateBuffer();
+
+	std::shared_ptr<RenderItem> controls = std::make_shared<RenderItem>(mGeometries->at("geo_ui_controls").get(), "mesh_gui_controls", GameData::sMaterials->at("mat_gui_controls").get(), XMMatrixIdentity());
+	controls->active = false;
+	mUI_Controls->Init(controls, mCommandList);
+	mUI_Controls->SetWholeTexture({ 0.0,0 }, { 1.95,2 });
+	mUI_Controls->UpdateBuffer();
+
+
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Controls->GetRI());
+	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Start->GetRI());
+
+
 	//End of UI----------------------------
 
 	//Block selector---------------
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", GameData::sMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(selectorRI);
 	GameObject::sAllGObjs->push_back(mBlockSelector);
-	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
+	//mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
 
 	//World-------------------------
 	auto blockRI = std::make_shared<RenderItemInstance>(geo, "mesh_cube", GameData::sMaterials->at("mat_grass").get());

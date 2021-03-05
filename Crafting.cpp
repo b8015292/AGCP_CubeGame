@@ -49,6 +49,7 @@ void crafting::resetCrafting()
 	tSticks = 0;
 	tCoal = 0;
 	tIronOre = 0;
+	mCraftables.clear();
 }
 
 std::string crafting::GetCraftables()
@@ -81,6 +82,7 @@ std::string crafting::GetCraftables()
 	
 	if (tWood >= 2) {
 		canCraftSticks = true;
+		mCraftables.push_back("itm_stick");
 
 		craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
 		craftables.push_back(mGUIElementTextureCharacters.at("+"));
@@ -91,18 +93,19 @@ std::string crafting::GetCraftables()
 
 	if (tCoal > 0 && tIronOre > 0) {
 		canCraftIron = true;
+		mCraftables.push_back("itm_iron");
 		craftables.push_back(mGUIElementTextureCharacters.at("itm_coal_ore"));
 		craftables.push_back(mGUIElementTextureCharacters.at("+"));
 		craftables.push_back(mGUIElementTextureCharacters.at("itm_iron_ore"));
 		craftables.push_back(mGUIElementTextureCharacters.at("="));
-		craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
+		craftables.push_back(mGUIElementTextureCharacters.at("itm_iron"));
 	}
 
 	if (tSticks >= 1)
 	{
 		if (tIron >= 1) {
 			canCraftIronSword = true;
-
+			mCraftables.push_back("itm_sword_iron");
 			craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 			craftables.push_back(mGUIElementTextureCharacters.at("+"));
 			craftables.push_back(mGUIElementTextureCharacters.at("itm_iron"));
@@ -111,7 +114,7 @@ std::string crafting::GetCraftables()
 		}
 		else if (tStone >= 1) {
 			canCraftStoneSword = true;
-
+			mCraftables.push_back("itm_sword_stone");
 			craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 			craftables.push_back(mGUIElementTextureCharacters.at("+"));
 			craftables.push_back(mGUIElementTextureCharacters.at("itm_stone"));
@@ -120,7 +123,7 @@ std::string crafting::GetCraftables()
 		} 
 		else if (tWood >= 1) {
 			canCraftWoodSword = true;
-
+			mCraftables.push_back("itm_sword_wood");
 			craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 			craftables.push_back(mGUIElementTextureCharacters.at("+"));
 			craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
@@ -135,11 +138,12 @@ std::string crafting::GetCraftables()
 
 		if (tSticks >= 1)
 		{
-						if (tIron >= 1)
+			if (tIron >= 1)
 			{
 				////canCraftIronShovel = true;
 				//if (tIron >= 3) {
 				canCraftIronPick = true;
+				mCraftables.push_back("itm_pickaxe_iron");
 				craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 				craftables.push_back(mGUIElementTextureCharacters.at("+"));
 				craftables.push_back(mGUIElementTextureCharacters.at("itm_iron"));
@@ -152,6 +156,7 @@ std::string crafting::GetCraftables()
 				////canCraftStoneShovel = true;
 				//if (tStone >= 3) {
 				canCraftStonePick = true;
+				mCraftables.push_back("itm_pickaxe_stone");
 				craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 				craftables.push_back(mGUIElementTextureCharacters.at("+"));
 				craftables.push_back(mGUIElementTextureCharacters.at("itm_stone"));
@@ -164,6 +169,7 @@ std::string crafting::GetCraftables()
 				////canCraftWoodShovel = true;
 				//if (tWood >= 3) {
 				canCraftWoodPick = true;
+				mCraftables.push_back("itm_pickaxe_wood");
 				craftables.push_back(mGUIElementTextureCharacters.at("itm_stick"));
 				craftables.push_back(mGUIElementTextureCharacters.at("+"));
 				craftables.push_back(mGUIElementTextureCharacters.at("itm_oak_log"));
@@ -179,12 +185,55 @@ std::string crafting::GetCraftables()
 	return craftables;
 }
 
+void crafting::Craft(int pos) {
+	if (pos < mCraftables.size()) {
+		const std::string chosen = mCraftables.at(pos);
+		
+		if (chosen == "itm_stick") {
+			craftSticks();
+		}
+		else if (chosen == "itm_iron") {
+			craftIron();
+		}
+		else if (chosen == "itm_sword_iron") {
+			craftSword(ItemMaterial::IRON);
+		}
+		else if (chosen == "itm_sword_stone") {
+			craftSword(ItemMaterial::STONE);
+		}
+		else if (chosen == "itm_sword_wood") {
+			craftSword(ItemMaterial::WOOD);
+		}
+		else if (chosen == "itm_pickaxe_iron") {
+			craftPick(ItemMaterial::IRON);
+		}
+		else if (chosen == "itm_pickaxe_stone") {
+			craftPick(ItemMaterial::STONE);
+		}
+		else if (chosen == "itm_pickaxe_wood") {
+			craftPick(ItemMaterial::WOOD);
+		}
+
+
+	}
+}
+
 void crafting::craftSticks()
 {
 	Stick tempStick(mGUIElementTextureCharacters.at("itm_stick"));
 	int amount = 2;
 
-	mInv->removeItemCraft("woodBlock", 2);
+	mInv->removeItemCraft("oak_log", 2);
+	mInv->addItem(tempStick, amount);
+}
+
+void crafting::craftIron()
+{
+	Stick tempStick(mGUIElementTextureCharacters.at("itm_iron"));
+	int amount = 1;
+
+	mInv->removeItemCraft("iron_ore", 1);
+	mInv->removeItemCraft("coal_ore", 1);
 	mInv->addItem(tempStick, amount);
 }
 
@@ -206,24 +255,24 @@ void crafting::craftPick(ItemMaterial mat)
 	{
 		Pickaxe tempPick(woodTool, mGUIElementTextureCharacters.at("itm_pickaxe_wood"));
 
-		mInv->removeItemCraft("stick", 2);
-		mInv->removeItemCraft("woodBlock", 3);
+		mInv->removeItemCraft("stick", 1);
+		mInv->removeItemCraft("oak_log", 1);
 		mInv->addItem(tempPick, amount);
 	}
 	else if (mat == ItemMaterial::STONE)
 	{
 		Pickaxe tempPick(stoneTool, mGUIElementTextureCharacters.at("itm_pickaxe_stone"));
 
-		mInv->removeItemCraft("stick", 2);
-		mInv->removeItemCraft("stoneBlock", 3);
+		mInv->removeItemCraft("stick", 1);
+		mInv->removeItemCraft("stone", 1);
 		mInv->addItem(tempPick, amount);
 	}
 	else if (mat == ItemMaterial::IRON)
 	{
 		Pickaxe tempPick(ironTool, mGUIElementTextureCharacters.at("itm_pickaxe_iron"));
 
-		mInv->removeItemCraft("stick", 2);
-		mInv->removeItemCraft("iron", 3);
+		mInv->removeItemCraft("stick", 1);
+		mInv->removeItemCraft("iron", 1);
 		mInv->addItem(tempPick, amount);
 	}
 }
@@ -236,15 +285,15 @@ void crafting::craftShovel(ItemMaterial mat)
 	{
 		Shovel tempShovel(woodTool, mGUIElementTextureCharacters.at("NULL1"));
 
-		mInv->removeItemCraft("stick", 2);
-		mInv->removeItemCraft("woodBlock", 1);
+		mInv->removeItemCraft("stick", 1);
+		mInv->removeItemCraft("oak_log", 1);
 		mInv->addItem(tempShovel, amount);
 	}
 	else if (mat == ItemMaterial::STONE)
 	{
 		Shovel tempShovel(stoneTool, mGUIElementTextureCharacters.at("NULL1"));
 
-		mInv->removeItemCraft("stick", 2);
+		mInv->removeItemCraft("stick", 1);
 		mInv->removeItemCraft("stoneBlock", 1);
 		mInv->addItem(tempShovel, amount);
 	}
@@ -252,8 +301,8 @@ void crafting::craftShovel(ItemMaterial mat)
 	{
 		Shovel tempShovel(ironTool, mGUIElementTextureCharacters.at("NULL1"));
 
-		mInv->removeItemCraft("stick", 2);
-		mInv->removeItemCraft("iron", 1);
+		mInv->removeItemCraft("stick", 1);
+		mInv->removeItemCraft("oak_log", 1);
 		mInv->addItem(tempShovel, amount);
 	}
 }
@@ -267,7 +316,7 @@ void crafting::craftSword(ItemMaterial mat)
 		Sword tempSword(woodTool, mGUIElementTextureCharacters.at("itm_sword_wood"));
 
 		mInv->removeItemCraft("stick", 1);
-		mInv->removeItemCraft("woodBlock", 2);
+		mInv->removeItemCraft("oak_log", 1);
 		mInv->addItem(tempSword, amount);
 	}
 	else if (mat == ItemMaterial::STONE)
@@ -275,7 +324,7 @@ void crafting::craftSword(ItemMaterial mat)
 		Sword tempSword(stoneTool, mGUIElementTextureCharacters.at("itm_sword_stone"));
 
 		mInv->removeItemCraft("stick", 1);
-		mInv->removeItemCraft("stoneBlock", 2);
+		mInv->removeItemCraft("stone", 1);
 		mInv->addItem(tempSword, amount);
 	}
 	else if (mat == ItemMaterial::IRON)
@@ -283,7 +332,7 @@ void crafting::craftSword(ItemMaterial mat)
 		Sword tempSword(ironTool, mGUIElementTextureCharacters.at("itm_sword_iron"));
 
 		mInv->removeItemCraft("stick", 1);
-		mInv->removeItemCraft("iron", 2);
+		mInv->removeItemCraft("iron", 1);
 		mInv->addItem(tempSword, amount);
 	}
 }
