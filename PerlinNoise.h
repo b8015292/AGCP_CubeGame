@@ -13,7 +13,9 @@ public:
 	// Get a noise value, for 2D images z can have any value
 	double noise(double x, double y, double z);
 	double OctavePerlin(double x, double y, double z, int octaves, double persistence);
+	unsigned int GetSeed() { return mSeed; }
 private:
+	unsigned int mSeed;
 	double fade(double t);
 	double lerp(double t, double a, double b);
 	double grad(int hash, double x, double y, double z);

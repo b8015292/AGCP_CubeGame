@@ -15,12 +15,63 @@ RenderItem::RenderItem(MeshGeometry* meshGeo, std::string meshName, Material* ma
 	: RenderItemParent(meshGeo, meshName, mat) {
 	ObjCBIndex = ++sCBIndex;
 	XMStoreFloat4x4(&World, world);
+	CreateBoundingBox();
+	UpdateBoundingBox();
 }
+
+void RenderItemParent::CreateBoundingBox() {
+	std::array<DirectX::XMFLOAT3, 8> coords = GetCoords();
+
+	DirectX::XMFLOAT3 topFrontRight = coords[1];
+	DirectX::XMFLOAT3 backBottomLeft = coords[6];
+
+	float xDist = topFrontRight.x - backBottomLeft.x;
+	float yDist = topFrontRight.y - backBottomLeft.y;
+	float zDist = topFrontRight.z - backBottomLeft.z;
+
+	DirectX::XMFLOAT3 origin = { topFrontRight.x - (xDist / 2), topFrontRight.y - (yDist / 2), topFrontRight.z - (zDist / 2) };
+	DirectX::XMFLOAT3 extents = { xDist / 2, yDist / 2, zDist / 2 };
+
+	mBoundingBox = DirectX::BoundingBox(origin, extents);
+}
+
+std::array<DirectX::XMFLOAT3, 8> RenderItemParent::GetCoords() {
+	//Define constants
+	const UINT vertsPerObj = 24;
+	const UINT vertsNeeded = 8;
+	const UINT numbOfVerts = vertsPerObj * (UINT)(Geo->DrawArgs.size());
+	const UINT vbByteSize = numbOfVerts * sizeof(GeometryGenerator::Vertex);
+
+	//Where the verticies for this item start in the buffer
+	const int vertStart = BaseVertexLocation;
+
+	//A pointer to the buffer of vertices
+	Microsoft::WRL::ComPtr<ID3DBlob> verticesBlob = Geo->VertexBufferCPU;
+
+	//Move the data from the buffer onto a vector we can view/manipulate
+	std::vector<GeometryGenerator::Vertex> vs(numbOfVerts);
+	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
+
+	////Store all the proper positions in a struct
+	std::array<DirectX::XMFLOAT3, 8> c = { vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos };
+
+	return c;
+}
+
+
+void RenderItem::UpdateBoundingBox() {
+	DirectX::XMMATRIX m;
+	GameData::StoreFloat4x4InMatrix(m, World);
+	mBoundingBox.Transform(mBoundingBox, m);
+}
+
+
+
 
 RenderItemInstance::RenderItemInstance(MeshGeometry* meshGeo, std::string meshName, Material* mat)
 	: RenderItemParent(meshGeo, meshName, mat)
 {
-
+	CreateBoundingBox();
 }
 
 RenderItemInstance& RenderItemInstance::operator=(const RenderItemInstance& rii) {
@@ -36,6 +87,13 @@ RenderItemInstance& RenderItemInstance::operator=(const RenderItemInstance& rii)
 
 	return (*this);
 }
+
+void InstanceData::UpdateBoundingBox() {
+	DirectX::XMMATRIX m;
+	GameData::StoreFloat4x4InMatrix(m, World);
+	mBoundingBox.Transform(mBoundingBox, m);
+}
+
 
 GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
 {

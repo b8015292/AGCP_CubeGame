@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Object.h"
+#include "Inventory.h"
 
 class Player : public Entity {
 public:
-    Player(std::shared_ptr<GameObject> gobj);
+    Player(std::shared_ptr<GameObject> gobj, Inventory* inv);
 
     void Update(const float dTime) override; //overides entities update
     void TranslateCamera(float dTime, float x, float y, float z);
@@ -30,6 +31,8 @@ public:
     //Getters
     Camera* GetCam() { return &mCamera; };
     bool* getDiagonal() { return &mDiagonal; };
+    bool getJump() { return mJumped; };
+    bool GetUpdateWorldPos() { bool temp = mUpdateWorldPos; mUpdateWorldPos = false; return temp; };
 
     //Setters
     void SetRIDirty() override;
@@ -45,12 +48,16 @@ public:
     void decreasePlayerDamage(int weaponBonus) { mPlayerDamage -= weaponBonus; }
 
 private:
+    bool mStarted = false;
+
     //Camera
     Camera mCamera;
     const float mJumpOffset = 0.2f;      //This is applied to the Y axis when checking collisions while walking, because the player is alays being pushed into the ground
     const float mCameraOffsetZ = 0.0f;   //For 3rd person
     const float mCameraOffsetY = 0.6f;   //Height
     DirectX::XMMATRIX mNewWorldMatrix;
+
+    Inventory* mInventory;
 
     //Health & damange stats
     int mPlayerHealth;
@@ -69,6 +76,8 @@ private:
     //Jump
     bool mJumped = true;
     const float mJumpHeight = 15.f;
+
+    bool mUpdateWorldPos = false;
 
     //Movement
     class Dir {

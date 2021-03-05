@@ -5,8 +5,6 @@
 #include <ctime>
 
 #include "CubeGame.h"
-#include "Raycast.h"
-#include "PerlinNoise.h"
 
 bool GameData::sRunning = true;
 
@@ -36,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory)
 {
 }
 
@@ -52,8 +50,8 @@ CubeGame::~CubeGame()
 
 bool CubeGame::Initialize()
 {
-    if(!D3DApp::Initialize())
-        return false;
+	if (!D3DApp::Initialize())
+		return false;
 
 	GameData::sRunning = true;
 
@@ -61,14 +59,12 @@ bool CubeGame::Initialize()
 	mGeometries = std::make_shared<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>>();
 	//sMaterials = std::make_shared<std::unordered_map<std::string, std::shared_ptr<Material>>>();
 	mMaterialIndexes = std::make_shared<std::unordered_map<std::string, int>>();
-	for(int i = 0; i < (int)GameData::RenderLayer::Count; i++)
+	for (int i = 0; i < (int)GameData::RenderLayer::Count; i++)
 		mRitemLayer[i] = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 
 	mActiveRItems = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 	mRitemIntances = std::make_shared<std::vector<std::shared_ptr<RenderItemInstance>>>();
 
-	//std::srand(std::time(nullptr));
-	////noise = PerlinNoise(std::rand());
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -87,8 +83,14 @@ bool CubeGame::Initialize()
     BuildPSOs();
 
 	//Initialise the camera
-	mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
-	mPlayer->SetPosition({ mPlayerSpawnX, mPlayerSpawnY, mPlayerSpawnZ });
+	mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
+	mPlayer->SetPosition(mSpawnPoint);
+
+	//Push the materials into the frame resources
+	for (int i = 0; i < GameData::sNumFrameResources; i++) {
+		mCurrFrameResource = mFrameResources.at(i).get();
+		UpdateMaterialCBs();
+	}
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -109,21 +111,66 @@ bool CubeGame::Initialize()
     return true;
 }
 
-void CubeGame::SetUIString(std::string str, int lineNo, int col) {
-	if (lineNo > mUIRows) lineNo = mUIRows;
-	if (col > mUICols) col = mUICols;
-	float row = (float)lineNo * 1 / mUIRows;
-	float colm = (float) col * 1 / mUICols;
+void CubeGame::SetUIString(std::string str, int lineNo, int col, TextLayers layer) {
+	float row;
+	float colm;
 
-	mUI_Text->SetString(str, colm, row);
+	switch (layer) {
+	default:
+	case(TextLayers::DEBUG):
+		if (lineNo > mGUITextRows) lineNo = mGUITextRows;
+		if (col > mGUITextCols) col = mGUITextCols;
+		row = (float)lineNo * 1 / mGUITextRows;
+		colm = (float)col * 1 / mGUITextCols;
+
+		mUI_Text->SetString(str, colm, row);
+		break;
+	}
 }
  
 void CubeGame::BuildUserInterfaces() {
 	mUI_Text = std::make_shared<Text>();
 	mUI_Text->InitFont();
-	
 	std::pair<std::string, std::shared_ptr<Text>> text("Text", mUI_Text);
 	mAllUIs->insert(text);
+
+	mUI_Crosshair = std::make_shared<UI>();
+	std::pair<std::string, std::shared_ptr<UI>> cross("Crosshair", mUI_Crosshair);
+	mAllUIs->insert(cross);
+
+	//HOTBAR
+	mUI_Hotbar = std::make_shared<UI>();
+	std::pair<std::string, std::shared_ptr<UI>> hotbar("Hotbar", mUI_Hotbar);
+	mAllUIs->insert(hotbar);
+	mUI_HotbarItems = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> item("HotbarItems", mUI_HotbarItems);
+	mAllUIs->insert(item);
+	mUI_HotbarItemSelector = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> itemSelector("HotbarItemSelector", mUI_HotbarItemSelector);
+	mAllUIs->insert(itemSelector);
+
+	//Inventory
+	mUI_Inventory = std::make_shared<UI>();
+	std::pair<std::string, std::shared_ptr<UI>> inventory("Inventory", mUI_Inventory);
+	mAllUIs->insert(inventory);
+	mUI_InventorySelector = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> inventorySelector("InventoryHover", mUI_InventorySelector);
+	mAllUIs->insert(inventorySelector);
+	mUI_InventoryItems = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> inventoryItems("InventoryItems ", mUI_InventoryItems);
+	mAllUIs->insert(inventoryItems);
+
+	//Crafting
+	mUI_CraftingItems = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> crafting("Crafting ", mUI_CraftingItems);
+	mAllUIs->insert(crafting);
+	mUI_CraftingSelector = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> craftingSelector("CraftingSelector", mUI_CraftingSelector);
+	mAllUIs->insert(craftingSelector);
+
+	mInventorys[0] = mUI_HotbarItemSelector;
+	mInventorys[1] = mUI_InventorySelector;
+	mInventorys[2] = mUI_CraftingSelector;
 }
 
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -153,9 +200,39 @@ void CubeGame::LoadTextures() {
 	MakeTexture("tex_blocks", L"data/blockMap.dds");
 	MakeTexture("tex_skyTex", L"data/sky.dds");
 	MakeTexture("tex_blockSelect", L"data/blockBreakMap.dds");
+	MakeTexture("tex_gui_elements", L"data/guiElements.dds");
+	MakeTexture("tex_gui_menus", L"data/guiMenus.dds");
 
 	SplitTextureMapIntoPositions(mBlockTexturePositions, mBlockTexSize, mBlockTexRows, mBlockTexCols, mBlockTexNames);
 	SplitTextureMapIntoPositions(mBlockBreakTexturePositions, mBlockTexSize + 2, 1, 7, mBlockBreakTexNames);
+	SplitTextureMapIntoPositions(mGUIElementTexturePositions, mGUIElTexSize, mGUIElTexRows, mGUIElTexCols, mGUIElTexNames);
+
+
+	mGUIElementTexturePositionsAndSizes["hotbar"] = {0.f, 0.f, 227.f/mGUIMenuFileSize.x, 33.f/mGUIMenuFileSize.y};
+	mGUIElementTexturePositionsAndSizes["inventory"] = {0.f, 34.f / mGUIMenuFileSize.y, 1.f, 1.f - 34.f / mGUIMenuFileSize.y };
+
+	char c = 'a';
+	for (int i = 0; i < mGUIElTexRows * mGUIElTexCols; i++) {
+		std::string name = mGUIElTexNames[i];
+
+		Font::myChar mc;
+		mc.posX = mGUIElementTexturePositions.at(name).x;
+		mc.posY = mGUIElementTexturePositions.at(name).y;
+		mc.width = mGUIElementTextureSize.x;
+		mc.height = mGUIElementTextureSize.y;
+
+		mUI_HotbarItems->GetFont()->chars[c] = mc;
+		mGUIElementTextureCharacters[name] = c++;
+	}
+
+
+	*mUI_HotbarItemSelector->GetFont() = *mUI_HotbarItems->GetFont();
+	*mUI_InventoryItems->GetFont() = *mUI_HotbarItems->GetFont();
+	*mUI_InventorySelector->GetFont() = *mUI_HotbarItems->GetFont();
+	*mUI_CraftingItems->GetFont() = *mUI_HotbarItems->GetFont();
+	*mUI_CraftingSelector->GetFont() = *mUI_HotbarItems->GetFont();
+
+	mCrafting.SetTexChars(mGUIElementTextureCharacters);
 }
 
 void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
@@ -169,7 +246,7 @@ void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, Dire
 		out[texNames[i]] = pos;
 
 		col++;
-		if (col > cols) {
+		if (col >= cols) {
 			col = 0;
 			row++;
 		}
@@ -183,7 +260,7 @@ void CubeGame::OnResize()
 	// The window resized, so update the aspect ratio and recompute the projection matrix.
 	//If the player has been set
 	if (mPlayer) {
-		mPlayer->GetCam()->SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, mBackPlane);
+		mPlayer->GetCam()->SetLens(0.4f * MathHelper::Pi, AspectRatio(), mFrontPlane, mBackPlane);
 	}
 }
 
@@ -216,81 +293,124 @@ void CubeGame::Update(const GameTimer& gt)
 			SetCapture(mhMainWnd);
 	}
 
-	if (GameData::sRunning) {
-		//Update entities and set dirty flag
-		for (int i = 0; i < Entity::sAllEntities->size(); i++) {
-			Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
-		}
+	//Deciding what to update depending on the current game state
 
-		//Hanlde mouse input - Place and destroy blocks
-		if (mLeftMouseDown) {
-			if (mPreviousSelectedBlock != nullptr) {
-				MineSelectedBlock(gt.DeltaTime());
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+
+		if (GameData::sRunning) {
+			//Update entities and set dirty flag
+			for (int i = 0; i < Entity::sAllEntities->size(); i++) {
+				Entity::sAllEntities->at(i)->Update(gt.DeltaTime());
 			}
-		}
-		if (mRightMouseDown) {
-			mRightMouseDownTimer += gt.DeltaTime();
-			if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
-				mRightMouseDownTimer = 0.f;
 
-				std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-				if (block != nullptr) {
-					block->SetActive(true);
-					mPlayerChangedView = true;
+			//Hanlde mouse input - Place and destroy blocks
+			if (mLeftMouseDown) {
+				if (mPreviousSelectedBlock != nullptr) {
+					MineSelectedBlock(gt.DeltaTime());
 				}
 			}
+			if (mRightMouseDown) {
+				mRightMouseDownTimer += gt.DeltaTime();
+				if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
+					mRightMouseDownTimer = 0.f;
+
+					if (!mInventory.getHotbar().size() == 0) {
+						invItem itemInHand = GetItemInHand();
+						if (itemInHand.name != "BLANK") {
+							std::string materialName = "mat_" + itemInHand.name;
+							bool found = false;
+
+							for (auto material : *GameData::sMaterials) {
+								if (material.first == materialName) {
+									found = true;
+									break;
+								}
+							}
+
+							if (found) {
+								mInventory.removeItemFromHotbarClick(mHotbarSelectorSlot.x, false);
+
+								std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+								if (block != nullptr) {
+									block->SetActive(true);
+									block->ChangeMaterial(materialName);
+									mPlayerChangedView = true;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			//If the player's moved update  the block selector
+			if (mPlayerChangedView) {
+				UpdateBlockSelector();
+				mPlayerChangedView = false;
+				//DEBUG
+				ShowDebug();
+			}
+
+			if (mPlayer->GetUpdateWorldPos()) {
+				mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
+			}
+
+			//Update the UI
+			std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+			while (it != mAllUIs->end()) {
+				if (it->second->GetDirty()) {
+					it->second->SetRIDirty();
+				}
+				it++;
+			}
+
+			if (mBlockSelector->GetDirty()) {
+				mBlockSelector->SetRIDirty();	//Number of frame resources
+				mBlockSelector->SetRIDirty();
+				mBlockSelector->SetRIDirty();
+			}
+
+			UpdateHotbar();
 		}
-
-		//If the player's moved update  the block selector
-		if (mPlayerChangedView) {
-			UpdateBlockSelector();
-			mPlayerChangedView = false;
-			//DEBUG
-			XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
-			SetUIString(("x:" + std::to_string(pos.x)), 0, 0);
-			SetUIString(("y:" + std::to_string(pos.y)), 1, 0);
-			SetUIString(("z:" + std::to_string(pos.z)), 2, 0);
-
-			std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetPlayerChunk(pos);
-			WorldManager::Pos cPos = c->GetPos();
-			SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0);
-			SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0);
-			SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0);
-			int i = c->GetID();
-			if(i < 10)
-				SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0);
-			else
-				SetUIString(("chunk id:" + std::to_string(i)), 7, 0);
-		}
-
-		if (mPlayerMoved) {
-			mWorldMgr.UpdatePlayerPosition(mPlayer->GetBoundingBox().Center);
-			mPlayerMoved = false;
-		}
-
+		break;
+	case GameStates::PAUSE:
+	{
 		//Update the UI
+		SetUIString("Press P to leave pause", 10, 0, TextLayers::DEBUG);
+
 		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
 		while (it != mAllUIs->end()) {
-			if(it->second->GetDirty()){
+			if (it->second->GetDirty()) {
 				it->second->SetRIDirty();
 			}
 			it++;
 		}
+	}
+		break;
+	case GameStates::MAINMENU:
+		break;
+	case GameStates::LOADWORLD:
+		break;
+	case GameStates::STARTUP:
+		//Update the UI
+	{
+		SetUIString("START GAME", 10, 8, TextLayers::DEBUG);
 
-		if (mBlockSelector->GetDirty()) {
-			mBlockSelector->SetRIDirty();	//Number of frame resources
-			mBlockSelector->SetRIDirty();
-			mBlockSelector->SetRIDirty();
+		std::unordered_map<std::string, std::shared_ptr<UI>>::iterator it = mAllUIs->begin();
+		while (it != mAllUIs->end()) {
+			if (it->second->GetDirty()) {
+				it->second->SetRIDirty();
+			}
+			it++;
 		}
+		break;
+	}
 	}
 
-
-	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
-	UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
 
-	//GenerateListOfActiveItems();
 }
 
 void CubeGame::Draw(const GameTimer& gt)
@@ -329,25 +449,48 @@ void CubeGame::Draw(const GameTimer& gt)
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+	case GameStates::PAUSE:
+		{
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Main]);
 
-	mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
-	mUI_Text->UpdateBuffer();
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
 
-	mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+		//Update all the GUI
+		UpdateUIBuffers();
 
-	//Instance*************
-	mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
-	//Set the material buffer
-	auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
-	mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
-	//Set the texture table
-	mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
 
-	DrawInstanceItems(mCommandList.Get());
-	//**********************
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		//Instance*************
+		mCommandList->SetPipelineState(mPSOs["pso_instance"].Get());
+		//Set the material buffer
+		auto matBuffer = mCurrFrameResource->MaterialCB->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(5, matBuffer->GetGPUVirtualAddress());
+		//Set the texture table
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+		DrawInstanceItems(mCommandList.Get());
+		//End of Instance******
+		}
+		break;
+	case GameStates::MAINMENU:
+	case GameStates::STARTUP:
+	case GameStates::LOADWORLD:
+
+		mCommandList->SetPipelineState(mPSOs["pso_userInterface"].Get());
+		mUI_Text->UpdateBuffer();
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::UserInterface]);
+
+		mCommandList->SetPipelineState(mPSOs["pso_sky"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)GameData::RenderLayer::Sky]);
+
+		break;
+	}
 
     // Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -377,15 +520,16 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
 {
     mLastMousePos.x = x;
     mLastMousePos.y = y;
+	if (!mInventoryOpen) {
+		if ((btnState & MK_LBUTTON) != 0) {
+			mLeftMouseDown = true;
+			mCursorInUse = true;
+		}
 
-	if ((btnState & MK_LBUTTON) != 0) {
-		mLeftMouseDown = true;
-		mCursorInUse = true;
-	}
-
-	if ((btnState & MK_RBUTTON) != 0) {
-		mRightMouseDown = true;
-		mCursorInUse = true;
+		if ((btnState & MK_RBUTTON) != 0) {
+			mRightMouseDown = true;
+			mCursorInUse = true;
+		}
 	}
 }
 
@@ -402,7 +546,7 @@ void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
 
 void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 {
-    if(mCursorInUse)
+    if(mCursorInUse && !mInventoryOpen)
     {
         // Make each pixel correspond to a quarter of a degree.
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
@@ -414,6 +558,148 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 		mLastMousePos.x = x;
 		mLastMousePos.y = y;
     }
+}
+
+void CubeGame::OnMouseScroll(WPARAM btnState, int x, int y) {
+	//Each turn on the wheel equates to 120.
+	int inc = GET_WHEEL_DELTA_WPARAM(btnState) / 120;
+	mHotbarSelectorSlot.x = mHotbarSelectorSlot.x - inc;
+}
+ 
+void CubeGame::OnKeyboardInput(const GameTimer& gt)
+{
+	float playerX = 0.f;
+	float playerZ = 0.f;
+	bool playerJump = false;
+
+	bool keyWDown = GetAsyncKeyState('W') & 0x8000;
+	bool keySDown = GetAsyncKeyState('S') & 0x8000;
+	bool keyADown = GetAsyncKeyState('A') & 0x8000;
+	bool keyDDown = GetAsyncKeyState('D') & 0x8000;
+	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
+	bool keyEDown = GetAsyncKeyState('E') & 0x8000;
+	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown && !keyEDown)
+	{
+		actionComplete = false;
+	}
+
+
+	switch (currentState)
+	{
+	case GameStates::PLAYGAME:
+		if (!mInventoryOpen) {
+			if (keyWDown || keySDown || keyADown || keyDDown || keySpaceDown) {
+				if (keyWDown) {
+					playerZ = 1.f;
+				}
+
+				if (keySDown) {
+					playerZ = -1.f;
+				}
+
+				if (keyADown) {
+					playerX = -1.f;
+				}
+
+				if (keyDDown) {
+					playerX = 1.f;
+				}
+
+				if (keySpaceDown) {
+
+					playerJump = true;
+				}
+
+				mPlayerChangedView = true;
+				mPlayer->SetMovement(playerX, playerZ, playerJump);
+			}
+		}
+		else {	
+			//Inventory controls
+			if (keyDDown && (actionComplete == false)) {
+				mHotbarSelectorSlot.x += 1;
+				actionComplete = true;
+			}
+			else if (keyADown && (actionComplete == false)) {
+				mHotbarSelectorSlot.x -= 1;
+				actionComplete = true;
+			}
+			if (keyWDown && (actionComplete == false)) {
+				mHotbarSelectorSlot.y += 1;
+				actionComplete = true;
+			}
+			else if (keySDown && (actionComplete == false)) {
+				mHotbarSelectorSlot.y -= 1;
+				actionComplete = true;
+			}
+		}
+
+
+		if (keyPDown && (actionComplete == false))
+		{
+			actionComplete = true;
+			changeState(GameStates::PAUSE);
+		}
+		else if (keyEDown && actionComplete == false) {
+			actionComplete = true;
+			ToggleInventory();
+		}
+		//DEBUG
+		if (GetAsyncKeyState('1') & 0x8000) {
+			mCursorInUse = false;
+		}
+
+		if (GetAsyncKeyState('2') & 0x8000) {
+			RespawnPlayer();
+		}
+		if (GetAsyncKeyState('3') & 0x8000) {
+			mShowDebugInfo++;
+			if (mShowDebugInfo > 2) mShowDebugInfo = 0;
+
+			mUI_Text->ResetVerticies();
+			mPlayerChangedView = true;
+		}
+		break;
+	case GameStates::PAUSE:
+		if (keyPDown && (actionComplete == false))
+		{
+			//while (keyPDown & 0x80);
+			actionComplete = true;
+			changeState(GameStates::PLAYGAME);
+		}
+		break;
+	case GameStates::STARTUP:
+		if (keySpaceDown) {
+			changeState(GameStates::LOADWORLD);
+			SetUIString("Loading", 10, 8, TextLayers::DEBUG);
+		}
+		break;
+	case GameStates::LOADWORLD:
+		SetUIString("Loading...", 10, 8, TextLayers::DEBUG);
+
+		GenerateWorld();
+
+		//Add the GUI to the game
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingItems->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingSelector->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Hotbar->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_InventorySelector->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_InventoryItems->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Inventory->GetRI());
+
+
+
+		//Once everything has loaded, switch to the playstate
+		changeState(GameStates::PLAYGAME);
+
+		break;
+	default:
+		break;
+	}
 }
 
 void CubeGame::UpdateBlockSelector() {
@@ -439,62 +725,6 @@ void CubeGame::UpdateBlockSelector() {
 	else {
 		mBlockSelector->SetActive(false);
 		mPreviousSelectedBlock = nullptr;
-	}
-}
- 
-void CubeGame::OnKeyboardInput(const GameTimer& gt)
-{
-	float playerX = 0.f;
-	float playerZ = 0.f;
-	bool playerJump = false;
-
-	bool keyW = GetAsyncKeyState('W') & 0x8000;
-	bool keyS = GetAsyncKeyState('S') & 0x8000;
-	bool keyA = GetAsyncKeyState('A') & 0x8000;
-	bool keyD = GetAsyncKeyState('D') & 0x8000;
-	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
-
-	if (keyW || keyS || keyA || keyD || keySpace) {
-
-		bool playWalkSound = true;
-
-		if (keyW) {
-			playerZ = 1.f;
-		}
-
-		if (keyS) {
-			playerZ = -1.f;
-		}
-
-		if (keyA) {
-			playerX = -1.f;
-		}
-
-		if (keyD) {
-			playerX = 1.f;
-		}
-
-		if (keySpace) {
-			playerJump = true;
-			playWalkSound = false;
-		}
-
-		mPlayerChangedView = true;
-		mPlayerMoved = true;
-		mPlayer->SetMovement(playerX, playerZ, playerJump);
-
-		if (playWalkSound)
-		{
-			//playsound
-			mSound.Play(Walk, false, 2);
-			bool mSoundPlaying = mSound.IsPlaying(2);
-			WDBOUT(mSoundPlaying);
-		}
-	}
-
-	//DEBUG
-	if (GetAsyncKeyState('1') & 0x8000) {
-		mCursorInUse = false;
 	}
 }
 
@@ -537,21 +767,356 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 		DestroySelectedBlock();
 }
 void CubeGame::DestroySelectedBlock() {
-	auto geo = mGeometries->at("geo_shape").get();
-	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
-	GameObject::sAllGObjs->push_back(itemEntity);
-	ItemEntity::sAllEntities->push_back(itemEntity);
-	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+
+	XMFLOAT3 blockCenter = mPreviousSelectedBlock->GetBoundingBox().Center;
+
+	bool stacked = false;
+
+	//Go through all existing entities to find if there is a nearby one of the same type which can be stacked
+	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+		if (entity->GetActive() == true) {
+			if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
+				XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+				XMFLOAT3 difference = XMFLOAT3{ blockCenter.x - entityCenter.x, blockCenter.y - entityCenter.y, blockCenter.z - entityCenter.z };
+				float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+
+				if (distance <= mItemStackDistance) {
+					//They are close enough to stack
+					entity->AddStack();
+					entity->SetPosition(blockCenter);
+					stacked = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (!stacked) {
+		bool foundInactiveEntity = false;
+		std::shared_ptr<ItemEntity> entityToReplace = nullptr;
+		//Search for an inactive item entity that we can replace
+		for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+			if (entity->GetActive() == false) {
+				foundInactiveEntity = true;
+				entityToReplace = entity;
+			}
+		}
+		
+		if (!foundInactiveEntity) {
+			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
+				//Use the material to determine the item type
+				std::string prevMat = mPreviousSelectedBlock->GetInstanceData()->MaterialName;
+				//if(prevMat == "")
+				prevMat[0] = 'i';
+				prevMat[1] = 't';
+				prevMat[2] = 'm';
+
+
+				//Create a brand new entity with the correct material data and position
+				auto geo = mGeometries->at("geo_shape").get();
+				auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI), mGUIElementTextureCharacters.at(prevMat));
+				GameObject::sAllGObjs->push_back(itemEntity);
+				ItemEntity::sAllEntities->push_back(itemEntity);
+				ItemEntity::sAllItemEntities->push_back(itemEntity);
+				mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+			}
+			else {
+				//If we have reached the max number of item entities in the world, then just replace the first one created
+				entityToReplace = ItemEntity::sAllItemEntities->at(0);
+			}
+		}
+
+		//Entities are set inactive when picked up, so if we find an inactive one we can replace it instead of creating another new entity
+		if (entityToReplace != nullptr) {
+			entityToReplace->GetRI()->Mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get();
+			entityToReplace->SetPosition(mPreviousSelectedBlock->GetBoundingBox().Center);
+			entityToReplace->SetActive(true);
+		}
+	}
 
 	mPreviousSelectedBlock->SetActive(false);
-	mPreviousSelectedBlock = Block::sAllBlocks->at(0);	
+	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
-	
+
 	mPlayerChangedView = true;
 }
 
+void CubeGame::RespawnPlayer() {
+	mWorldMgr.RelocatePlayer(mSpawnPoint);
+	mPlayer->SetPosition(mSpawnPoint);
+	mPlayerChangedView = true;
+}
+
+void CubeGame::UpdateHotbar() {
+
+	//Update the selector on change in X
+	if (mHotbarSelectorSlot.x != mHotbarSelectorPreviousSlot.x || mHotbarSelectorSlot.y != mHotbarSelectorPreviousSlot.y) {
+
+		//HANDLE CHANGE IN Y
+		//If in the hotbar or inventory
+		if (mHotbarSelectorSlot.x != -1) {
+			if (mHotbarSelectorSlot.y < 0) mHotbarSelectorSlot.y = mInventoryCols;
+			else if (mHotbarSelectorSlot.y > mInventoryCols) mHotbarSelectorSlot.y = 0;
+		}
+		//if in the crafting screen
+		else {
+			if (mHotbarSelectorSlot.y < mInventoryCols - mCraftingRows) mHotbarSelectorSlot.y = mCraftingRows;
+			else if (mHotbarSelectorSlot.y >= mCraftingRows - 2) {
+				mHotbarSelectorSlot.x = 0;
+				mHotbarSelectorSlot.y = 0;
+			}
+		}
+
+		//GET THE MENUS
+		//Get which menu is in use
+		if (mHotbarSelectorSlot.x != -1) {
+			if (mHotbarSelectorSlot.y == 0){//  && mHotbarSelectorPreviousSlot.x != -1) {
+				mInvInUse = InvInUse::HOTBAR;
+			}
+			else {
+				if (mHotbarSelectorPreviousSlot.x == -1 && mHotbarSelectorPreviousSlot.y < 1) {
+					mHotbarSelectorSlot.y = 1;
+				}
+
+				mInvInUse = InvInUse::INVENTORY;
+			}
+		}
+		else {
+			//
+			if (mHotbarSelectorSlot.y == 0 && mHotbarSelectorPreviousSlot.y == 0) {
+				mInvInUse = InvInUse::HOTBAR;
+			}
+			else if (mHotbarSelectorSlot.y > mInventoryCols - mCraftingRows) {
+				mInvInUse = InvInUse::CRAFTING;
+			}
+			else {
+				mHotbarSelectorSlot.y = 0;
+				mHotbarSelectorSlot.x = 0;
+				mInvInUse = InvInUse::HOTBAR;
+			}
+
+		}
+
+		//Get which menu was previously in use
+		if (mHotbarSelectorPreviousSlot.x != -1) {
+			if (mHotbarSelectorPreviousSlot.y == 0) {
+				mPrevInvInUse = InvInUse::HOTBAR;
+			}
+			else {
+				mPrevInvInUse = InvInUse::INVENTORY;
+			}
+		}
+		else {
+			if (mHotbarSelectorPreviousSlot.y > mInventoryCols - mCraftingRows) {
+				mPrevInvInUse = InvInUse::CRAFTING;
+			}
+			else {
+				mHotbarSelectorPreviousSlot.y = 0;
+				mHotbarSelectorPreviousSlot.x = 0;
+				mPrevInvInUse = InvInUse::HOTBAR;
+			}
+		}
+
+
+
+
+		//if (mHotbarSelectorSlot.y == 0) {
+		//	mInvInUse = InvInUse::HOTBAR;
+		//}
+		//else {
+		//	if (mHotbarSelectorSlot.x != -1) {
+		//		mInvInUse = InvInUse::INVENTORY;
+		//	}
+		//	else {
+		//		mInvInUse = InvInUse::CRAFTING;
+		//	}
+		//}
+
+		////Get which menu was previously in use
+		//if (mHotbarSelectorPreviousSlot.y == 0) {
+		//	mPrevInvInUse = InvInUse::HOTBAR;
+		//}
+		//else {
+		//	if (mHotbarSelectorPreviousSlot.x != -1) {
+		//		mPrevInvInUse = InvInUse::INVENTORY;
+		//	}
+		//	else {
+		//		mPrevInvInUse = InvInUse::CRAFTING;
+		//	}
+		//}
+
+		//ADJUST THE SLOT IF ITS GONE OUT OF BOUNDS
+		//If the hotbar is in use
+		if (mInvInUse == InvInUse::HOTBAR) {
+			if (mHotbarSelectorSlot.x < 0) {
+				mHotbarSelectorSlot.x = mHotbarSlots - 1;
+			}
+			else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
+				mHotbarSelectorSlot.x = 0;
+			}
+		}
+		//Otherwise the inventory or crafting are in use
+		else {
+			if (mHotbarSelectorSlot.x < -1) {
+				mHotbarSelectorSlot.x = mHotbarSlots - 1;
+				mPrevInvInUse = InvInUse::CRAFTING;
+				mInvInUse = InvInUse::INVENTORY;
+			}
+			else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
+				mHotbarSelectorSlot.x = -1;
+				mPrevInvInUse = InvInUse::INVENTORY;
+				mInvInUse = InvInUse::CRAFTING;
+			}
+		}
+
+		//If the hotbar was in use
+		if (mPrevInvInUse == InvInUse::HOTBAR) {
+			if (mHotbarSelectorPreviousSlot.x < 0) {
+				mHotbarSelectorPreviousSlot.x = mHotbarSlots - 1;
+			}
+			else if (mHotbarSelectorPreviousSlot.x >= mHotbarSlots) {
+				mHotbarSelectorPreviousSlot.x = 0;
+			}
+		}
+		//Otherwise the inventory or crafting are in use
+		else {
+			if (mHotbarSelectorSlot.x < -1) {
+				mHotbarSelectorSlot.x = mHotbarSlots - 1;
+				mPrevInvInUse = InvInUse::CRAFTING;
+				mInvInUse = InvInUse::INVENTORY;
+			}
+			else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
+				mHotbarSelectorPreviousSlot.x = -1;
+				mPrevInvInUse = InvInUse::INVENTORY;
+				mInvInUse = InvInUse::CRAFTING;
+			}
+		}
+
+		//SET THE TEXTURES
+		//Draw the selector in the new position
+		if (mInvInUse == InvInUse::HOTBAR) {
+			mInventorys[(size_t)mInvInUse]->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2);
+		}
+		else if (mInvInUse == InvInUse::INVENTORY) {
+			mInventorys[(size_t)mInvInUse]->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2 + (mInventoryCols - mHotbarSelectorSlot.y) * mFacesPerRowInventory);
+		}
+		else {
+			mInventorys[(size_t)mInvInUse]->SetChar(mGUIElementTextureCharacters.at("selector"), mCraftingCols - mHotbarSelectorSlot.y);
+		}
+
+		//Remove the old selector
+		if (mPrevInvInUse == InvInUse::HOTBAR) {
+			mInventorys[(size_t)mPrevInvInUse]->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2);
+		}
+		else if (mPrevInvInUse == InvInUse::INVENTORY) {
+			mInventorys[(size_t)mPrevInvInUse]->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2 + (mInventoryCols - mHotbarSelectorPreviousSlot.y) * mFacesPerRowInventory);
+		}
+		else {
+			mInventorys[(size_t)mPrevInvInUse]->SetChar(mGUIElementTextureCharacters.at("empty"), mCraftingCols - mHotbarSelectorPreviousSlot.y);
+		}
+
+		mHotbarSelectorPreviousSlot = mHotbarSelectorSlot;
+		mInventorys[(size_t)mInvInUse]->SetDirtyFlag();
+		mInventorys[(size_t)mPrevInvInUse]->SetDirtyFlag();
+
+	}
+
+	//Update the hotbar items
+	if (mInventory.GetHotbarDirty()) {
+		std::string items = "";
+		for each (invItem i in mInventory.getHotbar()) {
+			items += i.mTextureReference;
+			items += mGUIElementTextureCharacters.at("empty");
+		}
+		mUI_HotbarItems->SetString(items, 0, 0);
+		mUI_HotbarItems->SetDirtyFlag();
+	}
+
+	//Update the hotbar items
+	if (mInventory.GetInventoryDirty()) {
+		std::string items = "";
+		int i = 0;
+		char empty = mGUIElementTextureCharacters.at("empty");
+		for each (invItem item in mInventory.getHotbar()) {
+			items += item.mTextureReference;
+			items += empty;
+			i++;
+			//Fill in the Y gap;
+			if (i >= mFacesPerRowInventory) {
+				items += empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty;
+			}
+		}
+		mUI_InventoryItems->SetString(items, 0, 0);
+		mUI_InventoryItems->SetDirtyFlag();
+	}	
+
+	//Update available crafting recipies
+
+	if (mInventoryOpen) {
+		std::string craftables = mCrafting.GetCraftables();
+		mUI_CraftingItems->SetString(craftables, 0, 0);
+	}
+
+}
+
+void CubeGame::ToggleInventory() {
+	mInventoryOpen = !mInventoryOpen;
+
+	mUI_Inventory->GetRI()->active = mInventoryOpen;
+	mUI_Inventory->SetDirtyFlag();
+	mUI_InventoryItems->GetRI()->active = mInventoryOpen;
+	mUI_InventoryItems->SetDirtyFlag();
+	mUI_InventorySelector->GetRI()->active = mInventoryOpen;
+	mUI_InventorySelector->SetDirtyFlag();
+	mUI_CraftingItems->GetRI()->active = mInventoryOpen;
+	mUI_CraftingItems->SetDirtyFlag();
+	mUI_CraftingSelector->GetRI()->active = mInventoryOpen;
+	mUI_CraftingSelector->SetDirtyFlag();
+
+	mUI_Crosshair->GetRI()->active = !mInventoryOpen;
+	mUI_Crosshair->SetDirtyFlag();
+
+	if (mHotbarSelectorSlot.x == -1) mHotbarSelectorSlot.x = 0;
+	mHotbarSelectorSlot.y = 0;
+}
+
+void CubeGame::ShowDebug() {
+	
+	if (mShowDebugInfo == 1) {
+		XMFLOAT3 pos = mPlayer->GetBoundingBox().Center;
+		SetUIString(("x:" + std::to_string(pos.x)), 0, 0, TextLayers::DEBUG);
+		SetUIString(("y:" + std::to_string(pos.y)), 1, 0, TextLayers::DEBUG);
+		SetUIString(("z:" + std::to_string(pos.z)), 2, 0, TextLayers::DEBUG);
+
+		std::shared_ptr<WorldManager::Chunk> c = mWorldMgr.GetChunkFromWorldCoords(pos);
+		WorldManager::Pos cPos = c->GetPos();
+		SetUIString(("chunk x:" + std::to_string(cPos.x)), 4, 0, TextLayers::DEBUG);
+		SetUIString(("chunk y:" + std::to_string(cPos.y)), 5, 0, TextLayers::DEBUG);
+		SetUIString(("chunk z:" + std::to_string(cPos.z)), 6, 0, TextLayers::DEBUG);
+		int i = c->GetID();
+		if (i < 10)
+			SetUIString(("chunk id:" + std::to_string(i) + "x"), 7, 0, TextLayers::DEBUG);
+		else
+			SetUIString(("chunk id:" + std::to_string(i)), 7, 0, TextLayers::DEBUG);
+	}
+	else if (mShowDebugInfo == 2) {
+		SetUIString("1 to unfocus mouse", 0, 0, TextLayers::DEBUG);
+		SetUIString("2 to respawn", 1, 0, TextLayers::DEBUG);
+		SetUIString("3 to toggle debug text", 2, 0, TextLayers::DEBUG);
+	}
+}
+
+void CubeGame::UpdateUIBuffers() {
+	mUI_Text->UpdateBuffer();
+	mUI_HotbarItemSelector->UpdateBuffer();
+	mUI_HotbarItems->UpdateBuffer();
+	mUI_InventorySelector->UpdateBuffer();
+	mUI_InventoryItems->UpdateBuffer();
+	mUI_CraftingItems->UpdateBuffer();
+	mUI_CraftingSelector->UpdateBuffer();
+}
 
 void CubeGame::AnimateMaterials(const GameTimer& gt)
 {
@@ -581,40 +1146,44 @@ void CubeGame::UpdateObjectCBs(const GameTimer& gt)
 	}
 
 	auto currInstanceCB = mCurrFrameResource->InstanceCB.get();
+	BoundingFrustum cameraFrust = mPlayer->GetCam()->GetFrustum();
+	
+
 
 	//Loop through each render item
 	for (int i = 0; i < mRitemIntances->size(); i++) {
-		auto instData = mRitemIntances->at(i);
-		instData->InstanceCount = 0;
-
+		auto rItem = mRitemIntances->at(i);
+		rItem->InstanceCount = 0;
 		//Loop through each instance of the render item
-		for (int j = 0; j < (int)instData->Instances.size(); j++) {
-			std::shared_ptr<InstanceData> idata = instData->Instances.at(j);
+//#pragma omp parallel for
+		for (int j = 0; j < (int)rItem->Instances.size(); j++) {
+			std::shared_ptr<InstanceData> idata = rItem->Instances.at(j);
 
 			if (idata->Active) {
-			//if (idata->NumFramesDirty > 0 && idata->Active) {
 
-				XMMATRIX world = XMLoadFloat4x4(&idata->World);
+				//if (cameraFrust.Contains(idata->mBoundingBox) == DirectX::DISJOINT) {
 
-				InstanceConstants newIData;
-				XMStoreFloat4x4(&newIData.World, XMMatrixTranspose(world));
-				newIData.MaterialIndex = idata->MaterialIndex;
+					XMMATRIX world = XMLoadFloat4x4(&idata->World);
 
-				currInstanceCB->CopyData(instData->InstanceCount, newIData);
-				instData->InstanceCount++;
+					InstanceConstants newIData;
+					XMStoreFloat4x4(&newIData.World, XMMatrixTranspose(world));
+					newIData.MaterialIndex = idata->MaterialIndex;
 
-				idata->NumFramesDirty--;
+					currInstanceCB->CopyData(rItem->InstanceCount, newIData);
+					rItem->InstanceCount++;
+
+					idata->NumFramesDirty--;
+				//}
 			}
-			
 		}
 	}
 }
 
-void CubeGame::UpdateMaterialCBs(const GameTimer& gt)
+void CubeGame::UpdateMaterialCBs()
 {
 	auto currMaterialCB = mCurrFrameResource->MaterialCB.get();
 
-	for(std::unordered_map<std::string, std::shared_ptr<Material>>::iterator it = GameData::sMaterials->begin(); it != GameData::sMaterials->end(); it++)
+	for(std::map<std::string, std::shared_ptr<Material>>::iterator it = GameData::sMaterials->begin(); it != GameData::sMaterials->end(); it++)
 	{
 		// Only update the cbuffer data if the constants have changed.  If the cbuffer
 		// data changes, it needs to be updated for each FrameResource.
@@ -825,14 +1394,25 @@ void CubeGame::BuildDescriptorHeaps() {
 
 	hDescriptor.Offset(1, cbvSrvDescriptorSize);
 	CreateTextureSRV("tex_blockSelect", hDescriptor);
+
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_gui_elements", hDescriptor);
+	
+	hDescriptor.Offset(1, cbvSrvDescriptorSize);
+	CreateTextureSRV("tex_gui_menus", hDescriptor);
 }
 
 void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 2;
-	std::string geoHolderNames[numb] = { "geo_shape", "geo_ui" };// , "geo_ui", "geo_sky"};
+	const int numb = 11;
+	std::string geoHolderNames[numb] = { 
+		"geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , 
+		"geo_ui_hotbar", "geo_ui_hotbarItems", "geo_ui_hotbarItemSelector" , 
+		"geo_ui_inventory", "geo_ui_inventoryItems", "geo_ui_inventoryHover",
+		"geo_ui_crafting", "geo_ui_craftingSelector"
+	};
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
 
@@ -849,8 +1429,26 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[0].push_back("mesh_sky");
 
 	//UI Geos
-	meshDatas[1].push_back(mAllUIs->at("Text")->CreateUIPlane2D(1.95f, 1.95f, mUIRows, mUICols));
-	meshNames[1].push_back("mesh_mainGUI");
+	meshDatas[1].push_back(mUI_Text->CreateUIPlane2D(1.95f, 1.95f, mGUITextRows, mGUITextCols));
+	meshNames[1].push_back("mesh_gui_text1");
+	meshDatas[2].push_back(mUI_Crosshair->CreateUIPlane2D(1.95f, 1.95f, mGUIElementRows, mGUIElementCols));
+	meshNames[2].push_back("mesh_gui_crosshair");
+	meshDatas[3].push_back(mUI_Hotbar->CreateUIPlane2D(0.7f, 0.15f, 1, 1));
+	meshNames[3].push_back("mesh_gui_hotbar");
+	meshDatas[4].push_back(mUI_HotbarItems->CreateUIPlane2DWithSpaces(1.225f, 0.12f, 1, mHotbarSlots, 0.15f, 0.0f));
+	meshNames[4].push_back("mesh_gui_hotbarItems");
+	meshDatas[5].push_back(mUI_HotbarItemSelector->CreateUIPlane2DWithSpaces(1.225f, 0.12f, 1, mHotbarSlots, 0.15f, 0.0f));
+	meshNames[5].push_back("mesh_gui_hotbarItemSelector");
+	meshDatas[6].push_back(mUI_Inventory->CreateUIPlane2D(0.9f, 0.6f, 1, 1));
+	meshNames[6].push_back("mesh_gui_inventory");
+	meshDatas[7].push_back(mUI_InventoryItems->CreateUIPlane2DWithSpaces(1.12f, 2.f, mInventoryCols, mInventoryRows, 0.13f, 0.13f));
+	meshNames[7].push_back("mesh_gui_inventoryItems");
+	meshDatas[8].push_back(mUI_InventorySelector->CreateUIPlane2DWithSpaces(1.12f, 2.f, mInventoryCols, mInventoryRows, 0.13f, 0.13f));
+	meshNames[8].push_back("mesh_gui_inventoryHover");
+	meshDatas[9].push_back(mUI_CraftingItems->CreateUIPlane2D(0.46f, 1.07f, mCraftingRows, mCraftingCols));
+	meshNames[9].push_back("mesh_gui_crafting");
+	meshDatas[10].push_back(mUI_CraftingSelector->CreateUIPlane2D(0.26f, 1.07f, mCraftingRows, 1));
+	meshNames[10].push_back("mesh_gui_craftingSelector");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1039,7 +1637,7 @@ void CubeGame::BuildPSOs()
 
 void CubeGame::BuildFrameResources()
 {
-	UINT totalExtraRI = 5; // maxEntityCount + maxUICount;		//Render items which have not yet been created
+	UINT totalExtraRI = mMaxNumberOfItemEntities + mMaxUICount; // maxEntityCount		//Render items which have not yet been created
 	UINT totalRI = (UINT)(mRitemLayer[(int)GameData::RenderLayer::Main]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::UserInterface]->size() 
 		+ mRitemLayer[(int)GameData::RenderLayer::Sky]->size()
@@ -1050,8 +1648,6 @@ void CubeGame::BuildFrameResources()
 
     for(int i = 0; i < GameData::sNumFrameResources; ++i)
     {
-		/*mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-			1, totalRI, (UINT)sMaterials->size(), totalBlocks));*/
 		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
 			1, totalRI, (UINT)GameData::sMaterials->size(), totalBlocks));
     }
@@ -1076,6 +1672,7 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_iron_ore", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 6.f,0 });
 	CreateMaterial("mat_oak_log", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 7.f,0 }, { x * 8.f,0 }, { x * 8.f,0 });
 	CreateMaterial("mat_oak_leaf", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 9.f,0 });
+	CreateMaterial("mat_bedrock", 1, { 0.4311f, 0.1955f, 0.1288f, 1.f }, { x * 10.f,0 });
 
 	CreateMaterial("mat_sky", 2, { 1.0f, 1.0f, 1.0f }, { 0.f, 0.f });
 
@@ -1086,6 +1683,9 @@ void CubeGame::BuildMaterials()
 	CreateMaterial("mat_blockSelect4", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 4, 0.f });
 	CreateMaterial("mat_blockSelect5", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 5, 0.f });
 	CreateMaterial("mat_blockSelect6", 3, { 1.0f, 1.0f, 1.0f, 1.0f }, { x2 * 6, 0.f });
+
+	CreateMaterial("mat_gui_elements", 4, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
+	CreateMaterial("mat_gui_menus", 5, { 1.0f, 1.0f, 1.0f , 0.5f }, { 0.f, 0.f });
 }
 
 void CubeGame::CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform) {
@@ -1118,11 +1718,10 @@ void CubeGame::BuildGameObjects()
 {
 	//Get geometries
 	auto geo = mGeometries->at("geo_shape").get();
-	auto ui = mGeometries->at("geo_ui").get();
 
 	//Player-------------------------
 	auto playerRI = std::make_shared<RenderItem>(geo, "mesh_player", GameData::sMaterials->at("mat_player").get(), XMMatrixTranslation(1.0f, 200.0f, 1.0f));	//Make a render item
-	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI));						//Make the Player
+	mPlayer = std::make_shared<Player>(std::make_shared<GameObject>(playerRI), &mInventory);						//Make the Player
 	GameObject::sAllGObjs->push_back(mPlayer);
 	Entity::sAllEntities->push_back(mPlayer);												//Add the player to the enities list
 	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mPlayer->GetRI());			//Add the players render item to the main list
@@ -1132,9 +1731,79 @@ void CubeGame::BuildGameObjects()
 	mRitemLayer[(int)GameData::RenderLayer::Sky]->push_back(skyRI);
 
 	//UI----------------------------
-	auto gui1 = std::make_shared<RenderItem>(ui, "mesh_mainGUI", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
-	mUI_Text->Init(gui1, mCommandList);
+	//Text
+	auto text = std::make_shared<RenderItem>(mGeometries->at("geo_ui_text1").get(), "mesh_gui_text1", GameData::sMaterials->at("mat_font").get(), XMMatrixIdentity());
+	mUI_Text->Init(text, mCommandList);
 	mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Text->GetRI());
+
+	//Crosshair
+	std::shared_ptr<RenderItem> crosshair = std::make_shared<RenderItem>(mGeometries->at("geo_ui_crosshair").get(), "mesh_gui_crosshair", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixIdentity());
+	mUI_Crosshair->Init(crosshair, mCommandList);
+	mUI_Crosshair->SetTexture((mGUIElementCols * (mGUIElementRows / 2) + (mGUIElementCols / 2)), mGUIElementTexturePositions["crosshair"], mGUIElementTextureSize);
+	mUI_Crosshair->UpdateBuffer();
+
+	//Hotbar
+	float hotbarXOffset = -0.33f;
+	float hotbarYOffset = -0.8f;
+	std::shared_ptr<RenderItem> hotbar = std::make_shared<RenderItem>(mGeometries->at("geo_ui_hotbar").get(), "mesh_gui_hotbar", GameData::sMaterials->at("mat_gui_menus").get(), XMMatrixTranslation(hotbarXOffset, hotbarYOffset, 0.f));
+	mUI_Hotbar->Init(hotbar, mCommandList);
+	DirectX::XMFLOAT4 p = mGUIElementTexturePositionsAndSizes["hotbar"];
+	mUI_Hotbar->SetWholeTexture({ p.x, p.y }, {p.z, p.w});
+	mUI_Hotbar->UpdateBuffer();
+
+	hotbarXOffset += 0.29f;
+	hotbarYOffset -= 0.0175f;
+	//Hotbar items
+	std::shared_ptr<RenderItem> hotbarItems = std::make_shared<RenderItem>(mGeometries->at("geo_ui_hotbarItems").get(), "mesh_gui_hotbarItems", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(hotbarXOffset, hotbarYOffset, 0.f));
+	mUI_HotbarItems->Init(hotbarItems, mCommandList);
+	mUI_HotbarItems->SwapSizes();
+
+	//Hotbar item selector
+	std::shared_ptr<RenderItem> hotbarItemSelector = std::make_shared<RenderItem>(mGeometries->at("geo_ui_hotbarItemSelector").get(), "mesh_gui_hotbarItemSelector", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(hotbarXOffset, hotbarYOffset, 0.f));
+	mUI_HotbarItemSelector->Init(hotbarItemSelector, mCommandList);
+	mUI_HotbarItemSelector->SwapSizes();
+
+	//Set the initial texture
+	std::string selectorChar = "";
+	selectorChar += mGUIElementTextureCharacters.at("selector");
+	mUI_HotbarItemSelector->SetString(selectorChar, 0, 0);
+	mUI_HotbarItemSelector->UpdateBuffer();
+
+	//Inventory
+	float inventoryXOffset = -0.43f;
+	float inventoryYOffset = 0.35f;
+	std::shared_ptr<RenderItem> inventory = std::make_shared<RenderItem>(mGeometries->at("geo_ui_inventory").get(), "mesh_gui_inventory", GameData::sMaterials->at("mat_gui_menus").get(), XMMatrixTranslation(inventoryXOffset, inventoryYOffset, 0.f));
+	inventory->active = false;
+	mUI_Inventory->Init(inventory, mCommandList);
+	p = mGUIElementTexturePositionsAndSizes["inventory"];
+	mUI_Inventory->SetWholeTexture({ p.x, p.y }, { p.z, p.w });
+	mUI_Inventory->UpdateBuffer();
+
+	inventoryXOffset += 0.66f;
+	inventoryYOffset -= 0.73f;
+	//Inventory items
+	std::shared_ptr<RenderItem> inventoryItems = std::make_shared<RenderItem>(mGeometries->at("geo_ui_inventoryItems").get(), "mesh_gui_inventoryItems", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(inventoryXOffset, inventoryYOffset, 0.f));
+	inventoryItems->active = false;
+	mUI_InventoryItems->Init(inventoryItems, mCommandList);
+	mUI_InventoryItems->SwapSizes();
+
+	//Inventory hover
+	std::shared_ptr<RenderItem> inventorySelector = std::make_shared<RenderItem>(mGeometries->at("geo_ui_inventoryHover").get(), "mesh_gui_inventoryHover", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(inventoryXOffset, inventoryYOffset, 0.f));
+	inventorySelector->active = false;
+	mUI_InventorySelector->Init(inventorySelector, mCommandList);
+	mUI_InventorySelector->SwapSizes();
+
+	//Crafting
+	auto crafting = std::make_shared<RenderItem>(mGeometries->at("geo_ui_crafting").get(), "mesh_gui_crafting", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(-0.63f, 0.085f, 0.f));
+	crafting->active = false;
+	mUI_CraftingItems->Init(crafting, mCommandList);
+	mUI_CraftingItems->SwapSizes();
+	auto craftingSelector = std::make_shared<RenderItem>(mGeometries->at("geo_ui_craftingSelector").get(), "mesh_gui_craftingSelector", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(-0.74f, 0.085f, 0.f));
+	craftingSelector->active = false;
+	mUI_CraftingSelector->Init(craftingSelector, mCommandList);
+	mUI_CraftingSelector->SwapSizes();
+
+	//End of UI----------------------------
 
 	//Block selector---------------
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", GameData::sMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
@@ -1146,10 +1815,13 @@ void CubeGame::BuildGameObjects()
 	auto blockRI = std::make_shared<RenderItemInstance>(geo, "mesh_cube", GameData::sMaterials->at("mat_grass").get());
 	mRitemIntances->push_back(blockRI);
 	Block::sBlockInstance = blockRI;
-
 	mWorldMgr.Init(mMaterialIndexes);
+
+}
+
+void CubeGame::GenerateWorld() {
 	mWorldMgr.CreateWorld();
-	mWorldMgr.LoadFirstChunks(mPlayerSpawnX, mPlayerSpawnY, mPlayerSpawnZ);
+	mWorldMgr.LoadFirstChunks(mSpawnPoint);
 }
 
 void CubeGame::GenerateListOfActiveItems() {
@@ -1265,4 +1937,20 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CubeGame::GetStaticSamplers()
 		pointWrap, pointClamp,
 		linearWrap, linearClamp,
 		anisotropicWrap, anisotropicClamp };
+}
+
+void CubeGame::changeState(GameStates newState)
+{
+	currentState = newState;
+	mUI_Text->ResetVerticies();
+	mUI_Text->SetDirtyFlag();
+}
+
+invItem CubeGame::GetItemInHand() {
+	if (mInventory.getHotbar().size() > mHotbarSelectorSlot.x) {
+		return mInventory.getHotbar().at(mHotbarSelectorSlot.x);
+	}
+	else {
+		return invItem{"BLANK", 0, 0, 0, 'a'};
+	}
 }

@@ -11,9 +11,6 @@
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 
-enum EPos { tfl = 0, tfr = 1, tbl = 2, tbr = 3, bfl = 4, bfr = 5, bbl = 6, bbr = 7, size = 8 };
-//enum Face { top = 0, bottom = 1, front = 2, back = 3, left = 4, right = 5};
-
 class GameObject {
 public:
     static std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> sAllGObjs;
@@ -23,7 +20,7 @@ public:
     GameObject(std::shared_ptr<RenderItem> rI);
     GameObject(std::shared_ptr<GameObject> gobj);
     GameObject();
-    void CreateBoundingBox();
+
 
     bool operator==(GameObject& obj) { return GetID() == obj.GetID(); };
 
@@ -32,8 +29,7 @@ public:
     virtual void SetActive(bool val);
     int GetID() { return mID; };
     bool GetApplyGravity() { return mApplyGravity; };
-    virtual std::array<XMFLOAT3, 8> GetCoords();
-    virtual BoundingBox GetBoundingBox() { return mBoundingBox; };
+    virtual BoundingBox GetBoundingBox() { return mRI->mBoundingBox; };
     std::shared_ptr<RenderItem> GetRI() { return mRI; };
     virtual void SetPosition(XMFLOAT3 pos);
 
@@ -55,11 +51,6 @@ protected:
     bool mDirty = false;
 
     std::shared_ptr<RenderItem> mRI = nullptr;
-
-    BoundingBox mBoundingBox;    //Contains the center point and the size
-
-
-
 };
 
 class Entity : public GameObject {
@@ -97,11 +88,18 @@ public:
     static std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> sAllItemEntities;
 
     //Constructor
-    ItemEntity(std::shared_ptr<GameObject> gobj);
+    ItemEntity(std::shared_ptr<GameObject> gobj, char texRef);
 
     void Update(const float dTime) override;
 
+    void AddStack();
+    int GetStackAmount();
+    char GetItemTexture() { return mItemTextureReference; };
+
     void Pickup();
+private:
+    int stackedAmount = 1;
+    char mItemTextureReference;
 };
 
 class Block : public GameObject{
@@ -123,16 +121,13 @@ public:
 
     void SetActive(bool val)override;
     void SetRIDirty() override { mInstanceData->NumFramesDirty++; mDirty = false; };
+    BoundingBox GetBoundingBox()override { return mInstanceData->mBoundingBox; };
 
-    std::array<XMFLOAT3, 8> GetCoords() override;
     void SetPosition(XMFLOAT3 pos) override;
     void Translate(const float dTime, float x, float y, float z) override;
 
     void ChangeMaterial(std::string newMaterial);
 
-
-
-    
 private:
     std::shared_ptr<InstanceData> mInstanceData;
     int mInstanceIndex = -1;

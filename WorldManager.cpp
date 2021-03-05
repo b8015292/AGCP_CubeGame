@@ -1,8 +1,11 @@
 #include "WorldManager.h"
 
+#include <ctime>
+
 PerlinNoise WorldManager::sNoise = PerlinNoise();
 std::shared_ptr<std::unordered_map<std::string, int>> WorldManager::sMaterialIndexes = nullptr;
 int WorldManager::sChunkMaxID = 0;
+std::vector<WorldManager::Pos> WorldManager::sTreeStartPositions;
 
 //************************************************************************
 //						Chunk
@@ -20,8 +23,7 @@ WorldManager::Chunk::Chunk(Pos pos) {
 void WorldManager::Chunk::Init(Pos pos) {
 	mPosition = pos;
 
-	std::vector<Pos> trunkLocations;
-	std::vector<Pos> leafLocations;
+	int treeLocationHeight = -1;
 
 	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
 	{
@@ -32,96 +34,57 @@ void WorldManager::Chunk::Init(Pos pos) {
 
 
 			for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
-				float oreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
-				float ironoreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
+				//Generate different noises for coal and iron, so they are grouped together
+				float coalOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
+				float ironOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
 
 				float x = pos.x * (float)WorldManager::sChunkDimension + (float)worldX;
 				float y = pos.y * (float)WorldManager::sChunkDimension + (float)worldY;
 				float z = pos.z * (float)WorldManager::sChunkDimension + (float)worldZ;
 
+				//By checking the y values of the world, we can determine what sort of block it should be
 				if (worldY + pos.y * WorldManager::sChunkDimension < noise) {
-					if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
-						if (oreNoise > 0.69 && oreNoise < 0.75) {
-							CreateCube("mat_coal_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
-						}
-						else if (ironoreNoise < 0.25) {
-							CreateCube("mat_iron_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
+					if (worldY + pos.y * WorldManager::sChunkDimension > 0){
+						if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
+							if (coalOreNoise > 0.69 && coalOreNoise < 0.75) {
+								CreateCube("mat_coal_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
+							}
+							else if (ironOreNoise < 0.25) {
+								CreateCube("mat_iron_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
+							}
+							else {
+								CreateCube("mat_stone", { x, y, z }, true, mBlocks, mInstanceDatas);
+							}
 						}
 						else {
-							CreateCube("mat_stone", { x, y, z }, true, mBlocks, mInstanceDatas);
+							CreateCube("mat_dirt", { x, y, z }, true, mBlocks, mInstanceDatas);
 						}
 					}
 					else {
-						CreateCube("mat_dirt", { x, y, z }, true, mBlocks, mInstanceDatas);
+						CreateCube("mat_bedrock", { x, y, z }, true, mBlocks, mInstanceDatas);
 					}
 				}
 				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
 					CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
-
-					//Create Tree
-					float treeNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 40);
-					if (treeNoise > 0.81) {
-						for (int i = 1; i <= 5; i++) {
-							trunkLocations.push_back({ (int)x, (int)y + i, (int)z });
-						}
-						for (int leafX = x - 2; leafX <= x + 2; leafX++) {
-							for (int leafZ = z - 2; leafZ <= z + 2; leafZ++) {
-								//if (leafX != x && leafZ != z) {
-									leafLocations.push_back({ leafX, (int)y + 4, leafZ });
-									leafLocations.push_back({ leafX, (int)y + 5, leafZ });
-								//}
-							}
-						}
-						for (int leafX = x - 1; leafX <= x + 1; leafX++) {
-							for (int leafZ = z - 1; leafZ <= z + 1; leafZ++) {
-								leafLocations.push_back({ leafX, (int)y + 6, leafZ });
-							}
-						}
-						leafLocations.push_back({ (int)x + 1, (int)y + 7, (int)z });
-						leafLocations.push_back({ (int)x, (int)y + 7, (int) z + 1 });
-						leafLocations.push_back({ (int)x - 1, (int)y + 7, (int)z });
-						leafLocations.push_back({ (int)x, (int)y + 7, (int)z - 1 });
-						leafLocations.push_back({ (int)x, (int)y + 7, (int)z });
+					//As this is the highest block at this x and z coordinate, then a tree can spawn here
+					if (worldX == WorldManager::sChunkDimension / 2 && worldZ == WorldManager::sChunkDimension / 2) {
+						treeLocationHeight = y + 1;
 					}
-
 				}
-				else {	//Blocks above the noise wave are not active upon creation
-					bool containsTrunkOrLeaves = false;
-					for (Pos pos : trunkLocations) {
-						if (x == pos.z && y == pos.y && z == pos.z) {
-							containsTrunkOrLeaves = true;
-							break;
-						}
-					}
-					if (!containsTrunkOrLeaves) {
-						for (Pos pos : leafLocations) {
-							if (x == pos.z && y == pos.y && z == pos.z) {
-								containsTrunkOrLeaves = true;
-								break;
-							}
-						}
-					}
-					if (!containsTrunkOrLeaves) {
-						CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
-					}
+				else {
+					CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
 				}
 			}
 		}
+		//As we have seeded the rand function already, this will return the same value each time that seed is used.
+		int trees = rand() % 100;
+
+		//If the treeLocationHeight is 0 or less then this chunk has no grass in it
+		if (treeLocationHeight >= 0 && trees > 90) {
+			sTreeStartPositions.push_back({ pos.x * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2), treeLocationHeight, pos.z * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2) });
+		}
+
 	}
-	
-	//Create trees
-	for (Pos pos : trunkLocations) {
-		
-		CreateCube("mat_oak_log", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
-	}
-	for (Pos pos : leafLocations) {
-		CreateCube("mat_oak_leaf", { (float)pos.x, (float)pos.y, (float)pos.z }, true, mBlocks, mInstanceDatas);
-	}
-							/*std::wostringstream woss;
-						woss << treeNoise;
-						OutputDebugString(woss.str().c_str());
-	
-	*/
 }
 
 WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
@@ -135,6 +98,11 @@ WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
 }
 
 
+std::shared_ptr<Block> WorldManager::Chunk::GetBlock(Pos pos) {
+	return GetBlocks()->at((size_t)(pos.y + (pos.x * sChunkDimension) + (pos.z * sChunkDimension * sChunkDimension)));
+}
+
+
 //************************************************************************
 //						World Manager
 //************************************************************************
@@ -142,9 +110,10 @@ WorldManager::Chunk& WorldManager::Chunk::operator=(Chunk& c) {
 
 WorldManager::WorldManager(){
 	//Seed the noise
-	srand(time_t(NULL));
+	srand(std::time(NULL));
 	unsigned int seed = rand() % 10000;//237;
 	sNoise = PerlinNoise(seed);
+	srand(sNoise.GetSeed());
 
 	//std::srand(std::time(nullptr));
 	//noise = PerlinNoise(std::rand());
@@ -159,26 +128,148 @@ void WorldManager::Init(std::shared_ptr<std::unordered_map<std::string, int>> ma
 	WorldManager::sMaterialIndexes = mats;
 
 	mChangeInPlayerPos = Pos();
-	mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
-	mChunksToLoad = mChunkRowsToLoad * mChunkRowsToLoad * mChunkRowsToLoad;
 	mWorldSizes.x = mMaxLength;
 	mWorldSizes.y = mMaxHeight;
 	mWorldSizes.z = mMaxLength;
 }
 
 void WorldManager::CreateWorld() {
+	const size_t threads = 1;//6;
+	std::vector<std::shared_ptr<Chunk>> lists[threads];
+
+//#pragma omp parallel for num_threads(threads)
 	for (int z = 0; z < mMaxLength; z++) {
+		//int thread = omp_get_thread_num();
 		for (int y = 0; y < mMaxHeight; y++) {
 			for (int x = 0; x < mMaxLength; x++) {
-				mChunks.push_back(std::make_shared<Chunk>(Pos(x, y, z)));
+				//lists[thread].push_back(std::make_shared<Chunk>(Pos(x, y, z)));
+				lists[0].push_back(std::make_shared<Chunk>(Pos(x, y, z)));
 			}
 		}
 	}
+
+	for (size_t i = 0; i < threads; i++) {
+		mChunks.insert(mChunks.end(), lists[i].begin(), lists[i].end());
+	}
+
+
+
+	PopulateMapWithTrees();
+}
+
+void WorldManager::PopulateMapWithTrees() {
+	const int trunkHeight = 5;
+	const int foliageWidth = 2;
+	const int foliageHeight = 1;
+	const int totalHeight = trunkHeight + foliageHeight;
+
+	//Create all the trees
+	for each (Pos p in sTreeStartPositions) {
+		std::shared_ptr<Chunk> mainChunk = GetChunkFromWorldCoords({ (float)p.x, (float)p.y, (float)p.z });
+		std::shared_ptr<Chunk> aboveChunk;
+
+		Pos stumpCoords = GetChunkCoordsFromWorldCoods(p);
+		Pos currCoords = stumpCoords;
+
+		//If the tree is in part of the chunk above it, then we need a reference to this chunk
+		if ((p.y + totalHeight) >= sChunkDimension) {
+			aboveChunk = GetChunkFromWorldCoords({ (float)p.x, (float)(p.y + totalHeight), (float)p.z });
+		}
+		
+		bool above = false;
+		std::shared_ptr<Chunk> chunkToUse = mainChunk;
+
+		//Create the trunk
+		for (int i = 0; i < trunkHeight; i++) {
+
+			//If the trunk goes into the other chunk, we need to change the chunk we are modifying so we are changing the right blocks
+			if (!above && p.y + i >= sChunkDimension) {
+				chunkToUse = aboveChunk;
+				currCoords.y = 0; 
+				above = true;
+			}
+
+			SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_log", true);
+			currCoords.y ++;
+		}
+
+		//From here, we loop through coordinates to create the pattern of leaves for the trees
+		//Each time we modify the y coordinate, we must check if we have changed chunk once again.
+		currCoords.y = stumpCoords.y + trunkHeight - 3;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
+		else {
+			//As the first set of leaves are below the height of the trunk, we might need to swap back to the original chunk
+			chunkToUse = mainChunk;
+		}
+
+		for (currCoords.x = stumpCoords.x - foliageWidth; currCoords.x <= stumpCoords.x + foliageWidth; currCoords.x++) {
+			for (currCoords.z = stumpCoords.z - foliageWidth; currCoords.z <= stumpCoords.z + foliageWidth; currCoords.z++) {
+				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
+					SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+				}
+			}
+		}
+		currCoords.y++;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
+		for (currCoords.x = stumpCoords.x - foliageWidth; currCoords.x <= stumpCoords.x + foliageWidth; currCoords.x++) {
+			for (currCoords.z = stumpCoords.z - foliageWidth; currCoords.z <= stumpCoords.z + foliageWidth; currCoords.z++) {
+				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
+					SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+				}
+			}
+		}
+		currCoords.y++;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
+		for (currCoords.x = stumpCoords.x - foliageWidth / 2; currCoords.x <= stumpCoords.x + foliageWidth / 2; currCoords.x++) {
+			for (currCoords.z = stumpCoords.z - foliageWidth / 2; currCoords.z <= stumpCoords.z + foliageWidth / 2; currCoords.z++) {
+				if (!(currCoords.x == stumpCoords.x && currCoords.z == stumpCoords.z)) {
+					SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+				}
+			}
+		}
+
+		currCoords.y++;
+		if (currCoords.y >= sChunkDimension) {
+			chunkToUse = aboveChunk;
+			currCoords.y = 0;
+		}
+		currCoords.x = stumpCoords.x + 1;
+		currCoords.z = stumpCoords.z;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x;
+		currCoords.z = stumpCoords.z + 1;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x - 1;
+		currCoords.z = stumpCoords.z;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x;
+		currCoords.z = stumpCoords.z - 1;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+		currCoords.x = stumpCoords.x;
+		currCoords.z = stumpCoords.z;
+		SetBlockType(chunkToUse->GetBlock(currCoords), "mat_oak_leaf", true);
+	}
+}
+
+WorldManager::Pos WorldManager::GetChunkCoordsFromWorldCoods(WorldManager::Pos p) {
+	p.x -= (int)floorf(p.x / sChunkDimension) * sChunkDimension;
+	p.y -= (int)floorf(p.y / sChunkDimension) * sChunkDimension;
+	p.z -= (int)floorf(p.z / sChunkDimension) * sChunkDimension;
+	return p;
 }
 
 void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances) {
 	//Creates a render item, then uses it to create a Block. Then adds it to the needed lists
-	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName));
+	auto idata = std::make_shared<InstanceData>(XMMatrixTranslation(pos.x, pos.y, pos.z), sMaterialIndexes->at(materialName), materialName, Block::sBlockInstance->mBoundingBox);
 	blockInstances->push_back(idata);
 	
 	//Create the block directly inside the block list
@@ -186,11 +277,41 @@ void WorldManager::CreateCube(std::string materialName, XMFLOAT3 pos, bool activ
 	blocks->at(blocks->size()- 1)->SetActive(active);
 }
 
+void WorldManager::SetBlockType(std::shared_ptr<Block> block, std::string materialName, bool active) {
+	std::shared_ptr<InstanceData> id = block->GetInstanceData();
+	id->MaterialName = materialName;
+	id->MaterialIndex = sMaterialIndexes->at(materialName);
+	block->SetActive(active);
+}
+
 std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunk(int x, int y, int z) {
 	return mChunks.at((size_t)x + (y * mMaxLength) + (z * mMaxHeight * mMaxLength));
 	//return mChunks.at((size_t)x + (z * mMaxHeight * mMaxLength));
 }
 
+void WorldManager::SetChunkActive(std::shared_ptr<Chunk> chunk, bool active) {
+	if (active) {
+		//If there are no available indexes, add it to the end.
+		if (mAvailableActiveChunkIndexes.size() == 0) {
+			chunk->SetActiveIndex(mActiveChunks.size());
+			mActiveChunks.push_back(chunk);
+		}
+		else {
+			//If there are available indexes, swap the deactivated chunk with this one.
+			size_t newIndex = mAvailableActiveChunkIndexes.at(mAvailableActiveChunkIndexes.size() - 1);
+			mAvailableActiveChunkIndexes.pop_back();
+			chunk->SetActiveIndex(newIndex);
+			mActiveChunks.at(newIndex) = chunk;
+			
+		}
+	}
+	else {
+		//Deactivate the chunk and add its indexs to the available list
+		mAvailableActiveChunkIndexes.push_back(chunk->GetActiveIndex());
+	}
+
+	chunk->SetAcitve(active);
+}
 bool WorldManager::IsChunkCoordValid(int x, int y, int z) {
 	if (x >= mMaxLength || y >= mMaxHeight || z >= mMaxLength
 		|| x < 0 || y < 0 || z < 0)
@@ -207,19 +328,51 @@ void WorldManager::LoadChunk(int x, int y, int z) {
 	if (chunk->GetAcitve())return;
 
 	//Set the chunk to active and set its starting indexes
-	chunk->SetAcitve(true);
-	chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
-	
+	SetChunkActive(chunk, true);
+	if(!mCreatedWorld)
+		chunk->SetStartIndexes(Block::sAllBlocks->size(), GameObject::sAllGObjs->size(), Block::sBlockInstance->Instances.size());
+
 	//Get the vectors to insert
 	std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocksToInsert = chunk->GetBlocks();
 	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> instances = chunk->GetInstanceDatas();
-	const size_t instanceStart = chunk->GetInstanceStartIndex();
-	UINT count = (UINT)Block::sBlockInstance->Instances.size();
 
-	//Insert the chunk into the lists
-	Block::sAllBlocks->insert(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
-	GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), blocksToInsert->begin(), blocksToInsert->end());
-	Block::sBlockInstance->Instances.insert(Block::sBlockInstance->Instances.begin() + instanceStart, instances->begin(), instances->end());
+	//Get the start indexes
+	size_t blockStart;
+	size_t instanceStart;
+	size_t gObjStart;
+
+	if (mCreatedWorld) {
+		//If the world exists, replace deactivated elements
+		blockStart = mAvailableBlockStartIndexes.at(mAvailableBlockStartIndexes.size() - 1);
+		instanceStart = mAvailableBlockInstanceStartIndexes.at(mAvailableBlockInstanceStartIndexes.size() - 1);
+		gObjStart = mAvailableGObjStartIndexes.at(mAvailableGObjStartIndexes.size() - 1);
+
+		mAvailableBlockStartIndexes.pop_back();
+		mAvailableBlockInstanceStartIndexes.pop_back();
+		mAvailableGObjStartIndexes.pop_back();
+
+		//Delete the old values
+		Block::sAllBlocks->erase(Block::sAllBlocks->begin() + blockStart, Block::sAllBlocks->begin() + blockStart + sChunkSize);
+		GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + gObjStart, GameObject::sAllGObjs->begin() + gObjStart + sChunkSize);
+		Block::sBlockInstance->Instances.erase(Block::sBlockInstance->Instances.begin() + instanceStart, Block::sBlockInstance->Instances.begin() + instanceStart + sChunkSize);
+		chunk->SetStartIndexes(blockStart, gObjStart, instanceStart);
+
+		//Insert the new values
+		Block::sAllBlocks->insert(Block::sAllBlocks->begin() + blockStart, blocksToInsert->begin(), blocksToInsert->end());
+		GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + gObjStart, blocksToInsert->begin(), blocksToInsert->end());
+		Block::sBlockInstance->Instances.insert(Block::sBlockInstance->Instances.begin() + instanceStart, instances->begin(), instances->end());
+	}
+	else {
+		//If the world doesn't exist, insert them
+		blockStart = chunk->GetBlockStartIndex();
+		instanceStart = chunk->GetInstanceStartIndex();
+		gObjStart = chunk->GetGObjStartIndex();
+
+		//Insert the chunk into the lists
+		Block::sAllBlocks->insert(Block::sAllBlocks->begin() + blockStart, blocksToInsert->begin(), blocksToInsert->end());
+		GameObject::sAllGObjs->insert(GameObject::sAllGObjs->begin() + gObjStart, blocksToInsert->begin(), blocksToInsert->end());
+		Block::sBlockInstance->Instances.insert(Block::sBlockInstance->Instances.begin() + instanceStart, instances->begin(), instances->end());
+	}
 
 	//Set the render items object CB index so it can be found and updated by the GPU
 	if (mCreatedWorld) {
@@ -243,7 +396,7 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 	if(!chunk->GetAcitve()) return;
 		
 	//Deactivate the chunk
-	chunk->SetAcitve(false);
+	SetChunkActive(chunk, false);
 
 	Block::sAllBlocks->erase(Block::sAllBlocks->begin() + chunk->GetBlockStartIndex(), Block::sAllBlocks->begin() + chunk->GetBlockStartIndex() + sChunkSize );
 	GameObject::sAllGObjs->erase(GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex(), GameObject::sAllGObjs->begin() + chunk->GetGObjStartIndex() + sChunkSize);
@@ -251,11 +404,12 @@ void WorldManager::UnloadChunk(int x, int y, int z) {
 		Block::sBlockInstance->Instances.begin() + chunk->GetInstanceStartIndex() + sChunkSize);
 
 	chunk->SetStartIndexes(-1, -1, -1);
+	
 }
 
 void WorldManager::SwapChunk(Pos old, Pos neew) {
 	if (!IsChunkCoordValid(old.x, old.y, old.z) || !IsChunkCoordValid(neew.x, neew.y, neew.z))
-		return;
+ 		return;
 
 	//Get the chunks
 	std::shared_ptr<Chunk> oldChunk = GetChunk(old.x, old.y, old.z);
@@ -267,12 +421,12 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 
 	//If the previous chunk wasnt loaded, then load it instead of swapping
 	if (!oldChunk->GetAcitve()) {
-		LoadChunk(neew.x, neew.y, neew.z);
+   		LoadChunk(neew.x, neew.y, neew.z);
 		return;
 	}
 
-	oldChunk->SetAcitve(false);
-	newChunk->SetAcitve(true);
+	SetChunkActive(oldChunk, false);
+	SetChunkActive(newChunk, true);
 
 	//Get the block instance datas to swap
 	std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> oldInstances = oldChunk->GetInstanceDatas();
@@ -292,6 +446,19 @@ void WorldManager::SwapChunk(Pos old, Pos neew) {
 	//Set the new iterators
 	newChunk->SetStartIndexes(oldChunk->GetBlockStartIndex(), oldChunk->GetGObjStartIndex(), oldChunk->GetInstanceStartIndex());
 	oldChunk->SetStartIndexes(-1, -1, -1);
+}
+
+void WorldManager::UnloadAllChunks() {
+	//for each (std::shared_ptr<Chunk> chunk in mActiveChunks) {
+	for (int i = mActiveChunks.size() - 1; i >= 0; i--) {
+		std::shared_ptr<Chunk> chunk = mActiveChunks.at(i);
+
+		mAvailableBlockStartIndexes.push_back(chunk->GetBlockStartIndex());
+		mAvailableBlockInstanceStartIndexes.push_back(chunk->GetInstanceStartIndex());
+		mAvailableGObjStartIndexes.push_back(chunk->GetGObjStartIndex());
+
+		SetChunkActive(chunk, false);
+	}
 }
 
 std::shared_ptr<Block> WorldManager::GetBlock(DirectX::XMFLOAT3 pos) {
@@ -316,7 +483,7 @@ int WorldManager::GetPlayerChunkIndex(DirectX::XMFLOAT3 pos) {
 	return x + (z * mMaxLength);
 }
 
-std::shared_ptr<WorldManager::Chunk> WorldManager::GetPlayerChunk(DirectX::XMFLOAT3 pos){
+std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunkFromWorldCoords(DirectX::XMFLOAT3 pos){
 	int x = (int)floorf(pos.x / sChunkDimension);
 	int y = (int)floorf(pos.y / sChunkDimension);
 	int z = (int)floorf(pos.z / sChunkDimension);
@@ -331,9 +498,9 @@ WorldManager::Pos WorldManager::GetPlayerChunkCoords(DirectX::XMFLOAT3 pos) {
 	return Pos((int)floorf(pos.x / sChunkDimension), (int)floorf(pos.y / sChunkDimension), (int)floorf(pos.z / sChunkDimension));
 }
 
-void WorldManager::LoadFirstChunks(float playerX, float playerY, float playerZ) {
+void WorldManager::LoadFirstChunks(DirectX::XMFLOAT3 pos) {
 
-	mPlayerPos = GetPlayerChunk({ playerX, playerY, playerZ})->GetPos();
+	mPlayerPos = GetChunkFromWorldCoords(pos)->GetPos();
 
 	Pos start(mPlayerPos.x - mLoadedChunksAroundCurrentChunk, mPlayerPos.y - mLoadedChunksAroundCurrentChunk, mPlayerPos.z - mLoadedChunksAroundCurrentChunk);
 	for (int i = 0; i < mChunkRowsToLoad; i++) {
@@ -347,6 +514,15 @@ void WorldManager::LoadFirstChunks(float playerX, float playerY, float playerZ) 
 	mCreatedWorld = true;
 }
 
+void WorldManager::RelocatePlayer(DirectX::XMFLOAT3 newPos) {
+	UnloadAllChunks();
+	LoadFirstChunks(newPos);
+
+	Pos playerChunkPos = GetPlayerChunkCoords(newPos);
+	mPlayerPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
+	mPlayerAtEdge = Pos();
+}
+
 void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
 	//Check if the playeys current chunk is valid
 	Pos playerChunkPos = GetPlayerChunkCoords(worldPos);
@@ -357,78 +533,75 @@ void WorldManager::UpdatePlayerPosition(DirectX::XMFLOAT3 worldPos) {
 	Pos newPos = GetChunk(playerChunkPos.x, playerChunkPos.y, playerChunkPos.z)->GetPos();
 	if (mPlayerPos != newPos) {
 
-		bool run = true;		//Use to check if an update needs to occure. E.g. if the player is at the edge of the map
-		int changeAxis = -1;
-
 		//Calculate the change
 		mChangeInPlayerPos.x = newPos.x - mPlayerPos.x;
 		mChangeInPlayerPos.y = newPos.y - mPlayerPos.y;
 		mChangeInPlayerPos.z = newPos.z - mPlayerPos.z;
 
-		if (mChangeInPlayerPos.x != 0) changeAxis = 0;
-		else if (mChangeInPlayerPos.y != 0) changeAxis = 1;
-		else changeAxis = 2;
+		//Loop each axis, but only check it if it has changed
+		for (int changeAxis = 0; changeAxis < 3; changeAxis++) {
+			if (mChangeInPlayerPos[changeAxis] != 0) {
 
+				bool run = true;
 
+				//Get the position the player has just left
+				int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[changeAxis]) + mPlayerPos[changeAxis];
+				//Get the position the player is about to enter
+				int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[changeAxis]) + newPos[changeAxis];
 
-		//Get the position the player has just left
-		int oldAxis = (mLoadedChunksAroundCurrentChunk * -mChangeInPlayerPos[changeAxis]) + mPlayerPos[changeAxis];
-		//Get the position the player is about to enter
-		int newAxis = (mLoadedChunksAroundCurrentChunk * mChangeInPlayerPos[changeAxis]) + newPos[changeAxis];
+				//If the new position is outside of the world, dont swap any chunks
+				if (newAxis < mLoadedChunksAroundCurrentChunk) {
+					mPlayerAtEdge[changeAxis] = 1;
+					mPlayerPos = newPos;
+					run = false;
 
-		//Used as start and end iterators of the for loop
-		int startSubAxis1 = -mLoadedChunksAroundCurrentChunk;
-		int endSubAxis1 = mLoadedChunksAroundCurrentChunk;
-		int startSubAxis2 = -mLoadedChunksAroundCurrentChunk;
-		int endSubAxis2 = mLoadedChunksAroundCurrentChunk;
-
-
-		//If the new position is outside of the world, dont swap any chunks
-		if (newAxis < 0) {
-			mPlayerAtEdge[changeAxis] = 1;
-			run = false;
-		}
-		else if (((newAxis == 0 || newAxis == 2) && newAxis >= mMaxLength) || (newAxis == 1 && newAxis >= mMaxHeight)) {
-			mPlayerAtEdge[changeAxis] = -1;
-			run = false;
-		}
-		else {
-			mPlayerAtEdge[changeAxis] = 0;
-		}
-
-		//Adjust the iterators if other axis are next to the edge. If confused, check Pos[] operator
-		if (mPlayerAtEdge[changeAxis + 1] != 0) {
-			startSubAxis1 += mPlayerAtEdge[changeAxis + 1];
-			endSubAxis1 += mPlayerAtEdge[changeAxis + 1];
-		}
-		if (mPlayerAtEdge[changeAxis + 2] != 0) {
-			startSubAxis2 += mPlayerAtEdge[changeAxis + 2];
-			endSubAxis2 += mPlayerAtEdge[changeAxis + 2];
-		}
-
-
-		if (run) {
-			//Swaps the old and new Chunks with a constant X and iteratres through each Z. If confused, check Pos[] operator
-			for (int i = startSubAxis1; i <= endSubAxis1; i++) {
-				for (int j = startSubAxis2; j <= endSubAxis2; j++) {
-					Pos old;
-					Pos neew;
-
-					old[changeAxis] = oldAxis;
-					old[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
-					old[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
-
-					neew[changeAxis] = newAxis;
-					neew[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
-					neew[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
-
-					SwapChunk(old, neew);
 				}
+				else if (newAxis >= mWorldSizes[changeAxis]) {
+					mPlayerAtEdge[changeAxis] = -1;
+					mPlayerPos = newPos;
+					run = false;
+				}
+				else {
+					//If the player was previously at the edge, dont swap chunks
+					if (mPlayerAtEdge[changeAxis]) {
+						run = false;
+					}
+					mPlayerAtEdge[changeAxis] = 0;
+				}
+
+				if (run) {
+					//Used as start and end iterators of the for loop
+					int startSubAxis1 = -mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 1];
+					int endSubAxis1 = mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 1];
+					int startSubAxis2 = -mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 2];
+					int endSubAxis2 = mLoadedChunksAroundCurrentChunk + mPlayerAtEdge[changeAxis + 2];
+
+					Pos oldChunk;
+					oldChunk[changeAxis] = oldAxis;
+					Pos newChunk;
+					newChunk[changeAxis] = newAxis;
+
+					//Swaps the old and new Chunks with a constant X and iteratres through each Z. If confused, check Pos[] operator
+					for (int i = startSubAxis1; i <= endSubAxis1; i++) {
+						for (int j = startSubAxis2; j <= endSubAxis2; j++) {
+
+							oldChunk[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
+							oldChunk[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
+
+							newChunk[changeAxis + 1] = i + mPlayerPos[changeAxis + 1];
+							newChunk[changeAxis + 2] = j + mPlayerPos[changeAxis + 2];
+
+							SwapChunk(oldChunk, newChunk);
+						}
+
+					}
+				}
+				
+				mPlayerPos[changeAxis] += mChangeInPlayerPos[changeAxis];
 			}
-
 		}
-
 		mPlayerPos = newPos;
+		mChangeInPlayerPos = Pos();
 	}
 
 

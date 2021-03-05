@@ -125,6 +125,9 @@ void Camera::SetLens(float fovY, float aspect, float zn, float zf)
 	XMMATRIX P = XMMatrixPerspectiveFovLH(mFovY, mAspect, mNearZ, mFarZ);
 	//store it in cached mProj
 	XMStoreFloat4x4(&mProj, P);
+
+	BoundingFrustum::CreateFromMatrix(mBoundingFrustum, P);
+	mBoundingFrustum.Near = 0.001f;
 }
 
 void Camera::LookAt(FXMVECTOR pos, FXMVECTOR target, FXMVECTOR worldUp)
@@ -306,6 +309,12 @@ void Camera::UpdateViewMatrix()
 		mView(3, 3) = 1.0f;
 
 		mViewDirty = false;
+
+		//Update the frustum
+		mBoundingFrustum.Origin = { P.m128_f32[0], P.m128_f32[1], P.m128_f32[2] };
+		mBoundingFrustum.Orientation = {R.m128_f32[0], R.m128_f32[1], R.m128_f32[2], R.m128_f32[3] };
+
+		//DirectX::Quaternion
 	}
 }
 

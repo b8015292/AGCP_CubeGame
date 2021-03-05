@@ -1,5 +1,7 @@
 #pragma once
 
+#include "omp.h"
+
 #include <algorithm>
 
 #include "Object.h"
@@ -57,12 +59,15 @@ public:
 		bool GetAcitve() { return mActive; };
 		Pos GetPos() { return mPosition; };
 		int GetID() { return mID; };
+		size_t GetActiveIndex() { return mActiveIndex; };
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetBlocks() { return mBlocks; };
 		std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> GetInstanceDatas() { return mInstanceDatas; };
 		std::shared_ptr<std::vector<std::shared_ptr<Block>>> GetActiveBlocks() { return mActiveBlocks; };
+		std::shared_ptr<Block> GetBlock(Pos pos);
 
 		//Setters
 		void SetAcitve(bool active) { mActive = active; };
+		void SetActiveIndex(size_t ind) { mActiveIndex = ind; };
 
 		//Iterators
 		//Get
@@ -85,6 +90,7 @@ public:
 		std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> mItemEntities;
 
 		int mID = -1;
+		size_t mActiveIndex = -1;
 
 		size_t mBlockStartIndex = -1;
 		size_t mGObjStartIndex = -1;
@@ -100,39 +106,46 @@ public:
 
 	void UpdatePlayerPosition(DirectX::XMFLOAT3 pos);
 
-	bool IsChunkCoordValid(int x, int y, int z);
-	void LoadChunk(int x, int y, int z);
-	void UnloadChunk(int x, int y, int z);
-	//Chunk 1 is currently active, to be swapped with chunk 2
-	void SwapChunk(Pos old, Pos neew);
-
 	int GetChunkSize() { return sChunkSize; };
 	int GetNumberOfChunksToLoad() { return mChunksToLoad; };
 
 	int GetTotalAmountOfBlocks();
 	int GetPlayerChunkIndex(DirectX::XMFLOAT3 pos);
 	Pos GetPlayerChunkCoords(DirectX::XMFLOAT3 pos);
-	std::shared_ptr<Chunk> GetPlayerChunk(DirectX::XMFLOAT3 pos);
-	void LoadFirstChunks(float playerX, float playerY, float playerZ);
+	std::shared_ptr<Chunk> GetChunkFromWorldCoords(DirectX::XMFLOAT3 pos);
+	void LoadFirstChunks(DirectX::XMFLOAT3 pos);
 
-	//Returns an index (in Block::sAllBlocks) used by a given block 
+	void RelocatePlayer(DirectX::XMFLOAT3 newPos);
+
 	std::shared_ptr<Block> GetBlock(DirectX::XMFLOAT3 pos);
 
 	//DEBUG
 	void PrintChunkOrder();
 
 private:
-	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
+	bool IsChunkCoordValid(int x, int y, int z);
+	void LoadChunk(int x, int y, int z);
+	void UnloadChunk(int x, int y, int z);
+	void SwapChunk(Pos old, Pos neew);
+	void UnloadAllChunks();
 
+	void PopulateMapWithTrees();
+
+	static void CreateCube(std::string materialName, XMFLOAT3 pos, bool active, std::shared_ptr<std::vector<std::shared_ptr<Block>>> blocks, std::shared_ptr<std::vector<std::shared_ptr<InstanceData>>> blockInstances);
+	static void SetBlockType(std::shared_ptr<Block> block, std::string materialName, bool active);
 
 	//Get the chunk from its chunk-coordiantes
 	std::shared_ptr<Chunk> GetChunk(int x, int y, int z);
+	void SetChunkActive(std::shared_ptr<Chunk> chunk, bool active);
+	WorldManager::Pos GetChunkCoordsFromWorldCoods(WorldManager::Pos);
 
 private:
 	static std::shared_ptr<std::unordered_map<std::string, int>> sMaterialIndexes;
 
 	static PerlinNoise sNoise;
 	std::vector<std::shared_ptr<Chunk>> mChunks;
+	std::vector<std::shared_ptr<Chunk>> mActiveChunks;
+
 
 	//The length, depth and height of a chunk
 	static const int sChunkDimension = 8;
@@ -146,8 +159,9 @@ private:
 	const int mMaxLength = 6;
 
 	int mLoadedChunksAroundCurrentChunk = 1; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
-	int mChunksToLoad = -1;
-	int mChunkRowsToLoad = -1;
+	int mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;
+	int mChunksToLoad = mChunkRowsToLoad * mChunkRowsToLoad * mChunkRowsToLoad;
+
 
 	bool mCreatedWorld = false;
 	//If a variable is +/- 1 then player is at the +/- edge of the map by that axis
@@ -158,6 +172,12 @@ private:
 	Pos mPlayerPos;
 	Pos mChangeInPlayerPos;
 
+	std::vector<size_t> mAvailableActiveChunkIndexes;
+	std::vector<size_t> mAvailableBlockStartIndexes;
+	std::vector<size_t> mAvailableGObjStartIndexes;
+	std::vector<size_t> mAvailableBlockInstanceStartIndexes;
+
+	static std::vector<Pos> sTreeStartPositions;
 
 	//DEBUG
 	std::string mChunkOrder = "";

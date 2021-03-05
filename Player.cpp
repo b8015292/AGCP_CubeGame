@@ -1,7 +1,15 @@
 #include "Player.h"
 
-Player::Player(std::shared_ptr<GameObject> gobj) : Entity(gobj), mPlayerHealth(100), mPlayerDamage(1) {
+Player::Player(std::shared_ptr<GameObject> gobj, Inventory* inv) : Entity(gobj), mPlayerHealth(100), mPlayerDamage(1) {
 	mRotate90 = XMMatrixRotationY(XMConvertToRadians(90.f));
+
+	mInventory = inv;
+
+	mNextBoxes[Dir::look].Extents = mRI->mBoundingBox.Extents;
+	mNextBoxes[Dir::lookStrafe].Extents = mRI->mBoundingBox.Extents;
+	mNextBoxes[Dir::lookBoth].Extents = mRI->mBoundingBox.Extents;
+	mNextBoxes[Dir::axisForward].Extents = mRI->mBoundingBox.Extents;
+	mNextBoxes[Dir::axisSide].Extents = mRI->mBoundingBox.Extents;
 }
 
 void Player::SetRIDirty() {
@@ -13,74 +21,95 @@ void Player::SetRIDirty() {
 void Player::Update(const float dTime) {
 	if (!GetActive()) return;
 
-	//Apply gravity
-	if (mApplyGravity)
-	{
-		//Create a bounding box in the next location in the Y axis to check ceiling collision
-		BoundingBox positiveOffset;
-		BoundingBox negativeOffset;
-		//Create an added offset to each side of the cube so player can jump while against an edge
-		mBoundingBox.Transform(negativeOffset, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
-		mBoundingBox.Transform(positiveOffset, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
+	if (mStarted) {
+		//Apply gravity
+		if (mApplyGravity)
+		{
+			//Create a bounding box in the next location in the Y axis to check ceiling collision
+			BoundingBox positiveOffset;
+			BoundingBox negativeOffset;
+			//Create an added offset to each side of the cube so player can jump while against an edge
+			mRI->mBoundingBox.Transform(negativeOffset, DirectX::XMMatrixTranslation(-0.2f, mVel.y * dTime, -0.2f));
+			mRI->mBoundingBox.Transform(positiveOffset, DirectX::XMMatrixTranslation(0.2f, mVel.y * dTime, 0.2f));
 
-		if (!(CheckIfCollidingAtBox(negativeOffset) && CheckIfCollidingAtBox(positiveOffset))) {
-			AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
-		}
-		else {
-			mVel.y = 0.0f;
-			mJumped = false;
+			if (!(CheckIfCollidingAtBox(negativeOffset) && CheckIfCollidingAtBox(positiveOffset))) {
+				AddVelocity(0, dTime * (GameData::sGrav * 4), 0);
+			}
+			else {
+				mVel.y = 0.0f;
+				mJumped = false;
+			}
+
+			if (mVel.y != 0) {
+				Translate(dTime, 0, mVel.y, 0);
+				mCamera.Translate(0, mVel.y * dTime, 0);
+				SetDirtyFlag();
+			}
 		}
 
-		if (mVel.y != 0) {
-			Translate(dTime, 0, mVel.y, 0);
-			mCamera.Translate(0, mVel.y * dTime, 0);
+		//Walk around
+		if (mStrafing || mWalking) {
+			if (mStrafing && mWalking) {
+				mDiagonal = true;
+				//mStrafing *= 0.75f;
+				//mWalking *= 0.75f;
+			}
+
+			CheckCollisions(dTime);
+			if ((mWalking && mCanMove[Dir::look]) || (mStrafing && mCanMove[Dir::lookStrafe]) || (mWalking && mStrafing && mCanMove[Dir::lookBoth])) {
+				MoveInLook(dTime);
+			}
+			else if (mCanMove[Dir::axisForward] || mCanMove[Dir::axisSide]) {
+				MoveInAxis(dTime);
+			}
+
 			SetDirtyFlag();
 		}
-	}
 
-	//Walk around
-	if (mStrafing || mWalking) {
-		if (mStrafing && mWalking) {
-			mDiagonal = true;
-			//mStrafing *= 0.75f;
-			//mWalking *= 0.75f;
+		if (mSetJump) {
+			Jump();
+			SetDirtyFlag();
 		}
 
-		CheckCollisions(dTime);
-		if ((mWalking && mCanMove[Dir::look]) || (mStrafing && mCanMove[Dir::lookStrafe]) || (mWalking && mStrafing && mCanMove[Dir::lookBoth])) {
-			MoveInLook(dTime);
+		//Check if the player can pickup an item
+		for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
+			if (entity->GetActive() == true) {
+				XMFLOAT3 entityCenter = entity->GetBoundingBox().Center;
+				XMFLOAT3 difference = XMFLOAT3{ GetBoundingBox().Center.x - entityCenter.x, GetBoundingBox().Center.y - entityCenter.y, GetBoundingBox().Center.z - entityCenter.z };
+				float distance = sqrtf((difference.x * difference.x) + (difference.y * difference.y) + (difference.z * difference.z));
+
+				if (distance <= 1) {
+					Item item(entity->GetRI()->Mat->Name.substr(4), ItemType::MISC, 50, 0, 0, entity->GetItemTexture());
+					int amount = entity->GetStackAmount();
+					mInventory->addItem(item, amount);
+					entity->Pickup();
+				}
+			}
 		}
-		else if (mCanMove[Dir::axisForward] || mCanMove[Dir::axisSide]) {
-			MoveInAxis(dTime);
+
+		//Set camera look
+		if (mPitch) {
+			Pitch(mPitch);
+			SetDirtyFlag();
+		}
+		if (mYaw) {
+			RotateY(mYaw);
+			SetDirtyFlag();
 		}
 
-		SetDirtyFlag();
-	}
+		//Reset movement variables
+		mDiagonal = false;
+		mSetJump = false;
+		mStrafing = 0.f;
+		mWalking = 0.f;
+		mPitch = 0.f;
+		mYaw = 0.f;
 
-	if (mSetJump) {
-		Jump();
-		SetDirtyFlag();
+		if (mDirty) {
+			SetRIDirty();
+			mUpdateWorldPos = true;
+		}
 	}
-
-	//Set camera look
-	if (mPitch) {
-		Pitch(mPitch);
-		SetDirtyFlag();
-	}
-	if (mYaw) {
-		RotateY(mYaw);
-		SetDirtyFlag();
-	}
-
-	//Reset movement variables
-	mDiagonal = false;
-	mSetJump = false;
-	mStrafing = 0.f;
-	mWalking = 0.f;
-	mPitch = 0.f;
-	mYaw = 0.f;
-
-	if(mDirty) SetRIDirty();
 }
 
 void Player::Jump() {
@@ -95,6 +124,8 @@ void Player::SetMovement(float x, float z, bool jumping) {
 	mStrafing = x;
 	mWalking = z;
 	mSetJump = jumping;
+
+	mStarted = true;
 }
 
 void Player::SetRotation(float x, float y) {
@@ -178,14 +209,20 @@ void Player::CheckCollisions(float dTime) {
 	mMoveVectors[Dir::axisSide] = aSide * deltaMove;
 	//mMoveVectors[Dir::axisStrafe] = -aStrafe * deltaMove;
 
-	//Apply the next positions to bounding boxes
-	float yOffset = 0.2f;	//Used to ensure the player doesn't clip the floor
-	mBoundingBox.Transform(mNextBoxes[Dir::look], DirectX::XMMatrixTranslation(mMoveVectors[Dir::look].m128_f32[0], yOffset, mMoveVectors[Dir::look].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::lookStrafe], DirectX::XMMatrixTranslation(mMoveVectors[Dir::lookStrafe].m128_f32[0], yOffset, mMoveVectors[Dir::lookStrafe].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::lookBoth], DirectX::XMMatrixTranslation(mMoveVectors[Dir::lookBoth].m128_f32[0], yOffset, mMoveVectors[Dir::lookBoth].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::axisForward], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisForward].m128_f32[0], yOffset, mMoveVectors[Dir::axisForward].m128_f32[2]));
-	mBoundingBox.Transform(mNextBoxes[Dir::axisSide], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisSide].m128_f32[0], yOffset, mMoveVectors[Dir::axisSide].m128_f32[2]));
-	//mBoundingBox.Transform(mNextBoxes[Dir::axisStrafe], DirectX::XMMatrixTranslation(mMoveVectors[Dir::axisStrafe].m128_f32[0], yOffset, mMoveVectors[Dir::axisStrafe].m128_f32[2]));
+	float yOffset = 0.2f;
+	mMoveVectors[Dir::look].m128_f32[1] = yOffset;
+	mMoveVectors[Dir::lookStrafe].m128_f32[1] = yOffset;
+	mMoveVectors[Dir::lookBoth].m128_f32[1] = yOffset;
+	mMoveVectors[Dir::axisForward].m128_f32[1] = yOffset;
+	mMoveVectors[Dir::axisSide].m128_f32[1] = yOffset;
+
+
+	DirectX::XMFLOAT3 pos = mRI->mBoundingBox.Center;
+	mNextBoxes[Dir::look].Center = GameData::AddFloat3AndVector(pos, mMoveVectors[Dir::look]);
+	mNextBoxes[Dir::lookStrafe].Center = GameData::AddFloat3AndVector(pos, mMoveVectors[Dir::lookStrafe]);
+	mNextBoxes[Dir::lookBoth].Center = GameData::AddFloat3AndVector(pos, mMoveVectors[Dir::lookBoth]);
+	mNextBoxes[Dir::axisForward].Center = GameData::AddFloat3AndVector(pos, mMoveVectors[Dir::axisForward]);
+	mNextBoxes[Dir::axisSide].Center = GameData::AddFloat3AndVector(pos, mMoveVectors[Dir::axisSide]);
 
 	//Rest the value
 	mCanMove[Dir::look] = true;
@@ -193,17 +230,18 @@ void Player::CheckCollisions(float dTime) {
 	mCanMove[Dir::lookBoth] = true;
 	mCanMove[Dir::axisForward] = true;
 	mCanMove[Dir::axisSide] = true;
-	//mCanMove[Dir::axisStrafe] = true;
 
 	int collisions = 0;
-	for (int i = 0; i < sAllGObjs->size(); i++) {
+	int i, j;
+#pragma omp parallel for private(j)
+	for (i = 0; i < sAllGObjs->size(); i++) {
 		//If the IDs arent the same, the block is active, and it is colliding
 		std::shared_ptr<GameObject> go = sAllGObjs->at(i);
 		if (mID != go->GetID()) {
 			if (go->GetActive()) {
 
 				//Checks the current GObjs against all possible future boxes
-				for (int j = 0; j < Dir::count; j++) {
+				for (j = 0; j < Dir::count; j++) {
 
 					//Dont double check the same box
 					if (mCanMove[j] == true) {
@@ -282,7 +320,7 @@ bool Player::Walk(float d, float dTime) {
 	//Create a bounding box in the position that the player is about to walk to. Increasing the Y slightly so it doesn't clip the floor
 	XMMATRIX translation = DirectX::XMMatrixTranslation(look.m128_f32[0], 0.2f, look.m128_f32[2]);
 	BoundingBox nextBoxX;
-	mBoundingBox.Transform(nextBoxX, translation);
+	mRI->mBoundingBox.Transform(nextBoxX, translation);
 
 	//If there is no collision, move the player and camera
 	if (!CheckIfCollidingAtBox(nextBoxX)) {
@@ -320,8 +358,10 @@ void Player::RotateY(float dx) {
 
 void Player::SetPosition(XMFLOAT3 newPos) {
 	mCamera.SetPosition(newPos);
-	mBoundingBox.Center = newPos;
-	mBoundingBox.Center.y -= mCameraOffsetY;
+	mCamera.UpdateViewMatrix();
+
+	mRI->mBoundingBox.Center = newPos;
+	mRI->mBoundingBox.Center.y -= mCameraOffsetY;
 }
 
 void Player::increasePlayerHealth(int amount)

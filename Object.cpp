@@ -5,6 +5,7 @@ int GameObject::sMaxID = 0;
 
 std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> GameObject::sAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 std::shared_ptr<std::vector<std::shared_ptr<Entity>>> Entity::sAllEntities = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
+std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> ItemEntity::sAllItemEntities = std::make_shared<std::vector<std::shared_ptr<ItemEntity>>>();
 std::shared_ptr<std::vector<std::shared_ptr<Block>>> Block::sAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
 std::shared_ptr<RenderItemInstance> Block::sBlockInstance = std::make_shared<RenderItemInstance>();
 
@@ -16,8 +17,6 @@ GameObject::GameObject(std::shared_ptr<RenderItem> rI) {
 	mRI = rI;
 
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
-
-	CreateBoundingBox();
 }
 
 GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
@@ -28,65 +27,48 @@ GameObject::GameObject(std::shared_ptr<GameObject> gobj) : mRI(gobj->GetRI()){
 GameObject::GameObject(){// : mRI() {
 }
 
-void GameObject::CreateBoundingBox() {
-	std::array<XMFLOAT3, 8> coords = GetCoords();
-
-	XMFLOAT3 topFrontRight = coords[EPos::tfr];
-	XMFLOAT3 backBottomLeft = coords[EPos::bbl];
-
-	float xDist = topFrontRight.x - backBottomLeft.x;
-	float yDist = topFrontRight.y - backBottomLeft.y;
-	float zDist = topFrontRight.z - backBottomLeft.z;
-
-	XMFLOAT3 origin = { topFrontRight.x - (xDist / 2), topFrontRight.y - (yDist / 2), topFrontRight.z - (zDist / 2) };
-	XMFLOAT3 extents = { xDist / 2, yDist / 2, zDist / 2 };
-
-	BoundingBox box = BoundingBox(origin, extents);
-	mBoundingBox = box;
-}
-
 void GameObject::SetActive(bool val) {
 	mActive = val;
 	mRI->active = val;
 	SetDirtyFlag();
 }
-
-std::array<XMFLOAT3, 8> GameObject::GetCoords() {
-	//Define constants
-	const UINT vertsPerObj = 24;
-	const UINT vertsNeeded = 8;
-	const UINT numbOfVerts = vertsPerObj * (UINT)(mRI->Geo->DrawArgs.size());
-	const UINT vbByteSize = numbOfVerts * sizeof(GeometryGenerator::Vertex);
-
-	//Where the verticies for this item start in the buffer
-	const int vertStart = mRI->BaseVertexLocation;
-
-	//A pointer to the buffer of vertices
-	ComPtr<ID3DBlob> verticesBlob = mRI->Geo->VertexBufferCPU;
-
-	//Move the data from the buffer onto a vector we can view/manipulate
-	std::vector<GeometryGenerator::Vertex> vs(numbOfVerts);
-	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
-
-	//Get the items world transformation matrix
-	XMMATRIX transform;
-	GameData::StoreFloat4x4InMatrix(transform, mRI->World);
-
-	//Transform each vertex by its world matrix
-	for (int i = vertStart; i < (vertStart + (int)vertsNeeded); i++) {
-
-		XMVECTOR temp = XMLoadFloat3(&vs.at(i).Pos);;
-		temp = XMVector3TransformCoord(temp, transform);
-
-		XMStoreFloat3(&vs.at(i).Pos, temp);
-	}
-
-	////Store all the proper positions in a struct
-	//Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
-	std::array<XMFLOAT3, 8> c = { vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos };
-
-	return c;
-}
+//
+//std::array<XMFLOAT3, 8> GameObject::GetCoords() {
+//	//Define constants
+//	const UINT vertsPerObj = 24;
+//	const UINT vertsNeeded = 8;
+//	const UINT numbOfVerts = vertsPerObj * (UINT)(mRI->Geo->DrawArgs.size());
+//	const UINT vbByteSize = numbOfVerts * sizeof(GeometryGenerator::Vertex);
+//
+//	//Where the verticies for this item start in the buffer
+//	const int vertStart = mRI->BaseVertexLocation;
+//
+//	//A pointer to the buffer of vertices
+//	ComPtr<ID3DBlob> verticesBlob = mRI->Geo->VertexBufferCPU;
+//
+//	//Move the data from the buffer onto a vector we can view/manipulate
+//	std::vector<GeometryGenerator::Vertex> vs(numbOfVerts);
+//	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
+//
+//	//Get the items world transformation matrix
+//	XMMATRIX transform;
+//	GameData::StoreFloat4x4InMatrix(transform, mRI->World);
+//
+//	//Transform each vertex by its world matrix
+//	for (int i = vertStart; i < (vertStart + (int)vertsNeeded); i++) {
+//
+//		XMVECTOR temp = XMLoadFloat3(&vs.at(i).Pos);;
+//		temp = XMVector3TransformCoord(temp, transform);
+//
+//		XMStoreFloat3(&vs.at(i).Pos, temp);
+//	}
+//
+//	////Store all the proper positions in a struct
+//	//Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
+//	std::array<XMFLOAT3, 8> c = { vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos };
+//
+//	return c;
+//}
 
 void GameObject::Translate(const float dTime, float x, float y, float z) {
 	//Gets the translation matrix (scaled by delta time)
@@ -103,8 +85,7 @@ void GameObject::Translate(const float dTime, float x, float y, float z) {
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
 
 	//Translate the bounding box
-	mBoundingBox.Transform(mBoundingBox, translateMatrix);
-
+	mRI->mBoundingBox.Transform(mRI->mBoundingBox, translateMatrix);
 
 	SetDirtyFlag();
 }
@@ -128,14 +109,9 @@ void GameObject::Rotate(const float dTime, XMVECTOR axis, float angle) {
 
 	//Multiplies the two matricies together
 	DirectX::XMMATRIX newWorldMatrix = XMMatrixMultiply(oldWorldMatrix, finalMatrix);
-	//newWorldMatrix = XMMatrixMultiply(newWorldMatrix, translateMatrix);
-	//newWorldMatrix = XMMatrixMultiply(newWorldMatrix, translateBackMatrix);
 
 	//Stores the new matrix, and marks the object as dirty
 	XMStoreFloat4x4(&mRI->World, newWorldMatrix);
-
-	//Translate the bounding box
-	//mBoundingBox.Transform(mBoundingBox, finalMatrix);
 
 	SetDirtyFlag();
 }
@@ -147,7 +123,7 @@ void GameObject::SetPosition(XMFLOAT3 pos) {
 	XMStoreFloat4x4(&mRI->World, translateMatrix);
 	SetDirtyFlag();
 
-	CreateBoundingBox();
+	mRI->mBoundingBox.Center = pos;
 }
 
 //************************************************************************************************************
@@ -176,7 +152,7 @@ void Entity::Update(const float dTime) {
 	//Create a bounding box in the next location
 	DirectX::FXMMATRIX translate = DirectX::XMMatrixTranslation(mVel.x * dTime, mVel.y * dTime, mVel.z * dTime);
 	BoundingBox nextBox;
-	mBoundingBox.Transform(nextBox, translate);
+	mRI->mBoundingBox.Transform(nextBox, translate);
 
 	//Check if the next location is colliding
 	if (CheckIfCollidingAtBox(nextBox)) {
@@ -249,10 +225,10 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 
 
 
-ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
+ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj, char texRef) : Entity(gobj) {
 	//sBlockInstance->Instances.push_back(idata);
-
-	CreateBoundingBox();
+	
+	mItemTextureReference = texRef;
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 
@@ -263,7 +239,15 @@ void ItemEntity::Update(const float dTime) {
 }
 
 void ItemEntity::Pickup() {
+	SetActive(false);
+	stackedAmount = 1;
+}
 
+void ItemEntity::AddStack() {
+	stackedAmount++;
+}
+int ItemEntity::GetStackAmount() {
+	return stackedAmount;
 }
 
 
@@ -276,9 +260,11 @@ void ItemEntity::Pickup() {
 Block::Block(std::shared_ptr<InstanceData> idata) {
 	mInstanceData = idata;
 
+	
 	//sBlockInstance->Instances.push_back(idata);
 
-	CreateBoundingBox();
+	//mRI->CreateBoundingBox();
+	
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 
@@ -377,44 +363,6 @@ void Block::SetActive(bool val) {
 	SetDirtyFlag();
 }
 
-std::array<XMFLOAT3, 8> Block::GetCoords() {
-	//Define constants
-	const UINT vertsPerObj = 24;
-	const UINT vertsNeeded = 8;
-	const UINT numbOfVerts = vertsPerObj * (UINT)(sBlockInstance->Geo->DrawArgs.size());
-	const UINT vbByteSize = numbOfVerts * sizeof(GeometryGenerator::Vertex);
-
-	//Where the verticies for this item start in the buffer
-	const int vertStart = sBlockInstance->BaseVertexLocation;
-	
-	//A pointer to the buffer of vertices
-	
-	ComPtr<ID3DBlob> verticesBlob = sBlockInstance->Geo->VertexBufferCPU;
-
-	//Move the data from the buffer onto a vector we can view/manipulate
-	std::vector<GeometryGenerator::Vertex> vs(numbOfVerts);
-	CopyMemory(vs.data(), verticesBlob->GetBufferPointer(), vbByteSize);
-
-	//Get the items world transformation matrix
-	XMMATRIX transform;
-	GameData::StoreFloat4x4InMatrix(transform, mInstanceData->World);
-
-	//Transform each vertex by its world matrix
-	for (int i = vertStart; i < (vertStart + (int)vertsNeeded); i++) {
-
-		XMVECTOR temp = XMLoadFloat3(&vs.at(i).Pos);;
-		temp = XMVector3TransformCoord(temp, transform);
-
-		XMStoreFloat3(&vs.at(i).Pos, temp);
-	}
-
-	////Store all the proper positions in a struct
-	//Collision::ColCube c(vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos);
-	std::array<XMFLOAT3, 8> c = { vs[vertStart + 7].Pos, vs[vertStart + 6].Pos, vs[vertStart + 1].Pos, vs[vertStart + 2].Pos, vs[vertStart + 4].Pos, vs[vertStart + 5].Pos, vs[vertStart].Pos, vs[vertStart + 3].Pos };
-
-	return c;
-}
-
 void Block::SetPosition(XMFLOAT3 pos) {
 	DirectX::XMMATRIX translateMatrix = DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 
@@ -422,7 +370,7 @@ void Block::SetPosition(XMFLOAT3 pos) {
 	XMStoreFloat4x4(&mInstanceData->World, translateMatrix);
 	SetDirtyFlag();
 
-	CreateBoundingBox();
+	mRI->UpdateBoundingBox();
 }
 
 void Block::Translate(const float dTime, float x, float y, float z) {
@@ -441,7 +389,7 @@ void Block::Translate(const float dTime, float x, float y, float z) {
 	mRI->NumFramesDirty++;
 
 	//Translate the bounding box
-	mBoundingBox.Transform(mBoundingBox, translateMatrix);
+	mRI->mBoundingBox.Transform(mRI->mBoundingBox, translateMatrix);
 }
 
 void Block::ChangeMaterial(std::string newMaterial) {

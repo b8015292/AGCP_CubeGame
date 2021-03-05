@@ -8,9 +8,11 @@
 #include "Object.h"
 #include "Text.h"
 #include "WorldManager.h"
-#include "Inventory.h"
+#include "Crafting.h"
 #include "Player.h"
 #include "LivingEntity.h"
+#include "Raycast.h"
+#include "PerlinNoise.h"
 
 #include "omp.h"
 
@@ -25,6 +27,15 @@ using namespace DirectX::PackedVector;
 
 const int gNumFrameResources = GameData::sNumFrameResources;
 
+enum class GameStates
+{
+    STARTUP,
+    MAINMENU,
+    LOADWORLD,
+    PLAYGAME,
+    PAUSE
+};
+
 class CubeGame : public D3DApp
 {
 public:
@@ -34,6 +45,8 @@ public:
     ~CubeGame();
 
     virtual bool Initialize()override;
+
+    enum class TextLayers { DEBUG, ITEM, COUNT };
 
 private:
     //Initialization
@@ -51,14 +64,16 @@ private:
     virtual void OnMouseDown(WPARAM btnState, int x, int y)override;
     virtual void OnMouseUp(WPARAM btnState, int x, int y)override;
     virtual void OnMouseMove(WPARAM btnState, int x, int y)override;
+    virtual void OnMouseScroll(WPARAM btnState, int x, int y)override;
     void OnKeyboardInput(const GameTimer& gt);
 
-    //Updateing
+    //Updating
     virtual void Update(const GameTimer& gt)override;
     void AnimateMaterials(const GameTimer& gt);
     void UpdateObjectCBs(const GameTimer& gt);
-    void UpdateMaterialCBs(const GameTimer& gt);
+    void UpdateMaterialCBs();
     void UpdateMainPassCB(const GameTimer& gt);
+    void changeState(GameStates newState);
 
     //Drawing
     virtual void Draw(const GameTimer& gt)override;
@@ -85,16 +100,27 @@ private:
     void CreateMaterial(std::string name, int textureIndex, DirectX::XMVECTORF32 color, DirectX::XMFLOAT2 texTransform, DirectX::XMFLOAT2 texTransformTop, DirectX::XMFLOAT2 texTransformBottom);
     //Makes a cube
     //void CreateCube(std::string materialName, XMFLOAT3 pos);
+    void GenerateWorld();
 
     //Sets a string on the GUI
-    void SetUIString(std::string str, int lineNo, int col); 
+    void SetUIString(std::string str, int lineNo, int col, TextLayers layer);
+    void UpdateHotbar();
+    void UpdateInventory();
+    void ToggleInventory();
+    void ShowDebug();
+    void UpdateUIBuffers();
 
     //Block stuff
     void UpdateBlockSelector();
     void MineSelectedBlock(const float dTime);
     void DestroySelectedBlock();
 
+    void RespawnPlayer();
+
 private:
+    GameStates currentState;
+    bool actionComplete = false;
+
     //Each frame resource has its own copy of the pass constant, materials and objects
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrFrameResource = nullptr;
@@ -128,21 +154,13 @@ private:
     WorldManager mWorldMgr;
 
     std::shared_ptr<Player> mPlayer;
-    float mPlayerSpawnX = 12;
-    float mPlayerSpawnY = 10;
-    float mPlayerSpawnZ = 12;
+    DirectX::XMFLOAT3 mSpawnPoint{ 12, 10, 12 };
     bool mPlayerChangedView = false;
     bool mPlayerMoved = false;
 
     //Camera variables
     const float mBackPlane = 1000.0f;
     const float mFrontPlane = 0.0001f;
-
-    //User interface
-    std::shared_ptr<Text> mUI_Text;
-    Font fnt;
-    const int mUIRows = 26;
-    const int mUICols = 26;
 
     //Mouse input
     bool mCursorInUse = false;
@@ -156,8 +174,8 @@ private:
     //Block textures
     const int mBlockTexSize = 32;
     const int mBlockTexRows = 1;
-    const int mBlockTexCols = 10;
-    const std::string mBlockTexNames[10] = { "null", "dirt", "grassSide", "grass", "stone", "coal_ore", "iron_ore", "oak_log_side", "oak_log_top", "oak_leaf"};
+    const int mBlockTexCols = 11;
+    const std::string mBlockTexNames[11] = { "null", "dirt", "grassSide", "grass", "stone", "coal_ore", "iron_ore", "oak_log_side", "oak_log_top", "oak_leaf", "bedrock"};
     std::unordered_map<std::string, DirectX::XMFLOAT2> mBlockTexturePositions;
 
     //Block Break
@@ -171,6 +189,87 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+    //ItemEntity Info
+    const UINT mItemStackDistance = 2;
+
+    //User interface
+    //Text
+    std::shared_ptr<Text> mUI_Text;
+    Font fnt;
+    const int mGUITextRows = 26;
+    const int mGUITextCols = 26;
+
+    //Crosshairs
+    std::shared_ptr<UI> mUI_Crosshair;
+    std::shared_ptr<UI> mUI_Hotbar;
+    std::shared_ptr<Text> mUI_HotbarItems;
+    std::shared_ptr<Text> mUI_HotbarItemSelector;
+    std::shared_ptr<UI> mUI_Inventory;
+    std::shared_ptr<Text> mUI_InventoryItems;
+    std::shared_ptr<Text> mUI_InventorySelector;
+    std::shared_ptr<Text> mUI_CraftingItems;
+    std::shared_ptr<Text> mUI_CraftingSelector;
+
+    //GUI textures
+    const int mGUIElTexSize = 31;
+    const int mGUIElTexRows = 4;
+    const int mGUIElTexCols = 7;
+    const std::string mGUIElTexNames[28] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "+", "=", 
+                                                "itm_stick", "itm_grass", "itm_dirt", "selector", "itm_sword_stone", "itm_pickaxe_wood", "itm_pickaxe_stone",    
+                                                "itm_stone", "itm_coal_ore", "itm_iron_ore", "itm_oak_log", "itm_pickaxe_iron", "itm_sword_iron", "itm_iron",
+                                                "itm_oak_leaf", "itm_sword_wood", "null", "null", "null", "null", "null"};
+    std::unordered_map<std::string, char> mGUIElementTextureCharacters;
+    std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
+    DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
+    const int mGUIElementRows = 15;
+    const int mGUIElementCols = 15;
+
+    //GUI menu
+    //X and Y are the position, Z and W are the size.
+    std::unordered_map<std::string, DirectX::XMFLOAT4> mGUIElementTexturePositionsAndSizes;
+    DirectX::XMFLOAT2 mGUIMenuFileSize{ 325.f, 195.f };
+    std::vector<DirectX::XMFLOAT2> mHotbarSlotPositions;
+    const int mHotbarSlots = 7;
+    DirectX::XMFLOAT2 mHotbarSelectorSlot{0.f, 0.f};
+    DirectX::XMFLOAT2 mHotbarSelectorPreviousSlot{0.f, 0.f};
+
+    const int mInventoryRows = 7;
+    const int mInventoryCols = 5;
+    const int mInventorySize = mInventoryRows * mInventoryCols;
+    const int mFacesPerRowInventory = (mInventoryRows * 2 - 1) * 2;
+
+
+    const int mCraftingCols = 5;
+    const int mCraftingRows = 8;
+    const float mCraftingRowHeight = 1.f / mCraftingRows;
+    bool mInCrafting = false;
+    const int mFacesPerRowCrafting = (mCraftingCols * 2 - 1);
+
+    class InvInUse {
+    public:
+        static const int HOTBAR = 0;
+        static const int INVENTORY = 1;
+        static const int CRAFTING = 2;
+    };
+    std::shared_ptr<Text> mInventorys[3];
+    int mInvInUse = 0;
+    int mPrevInvInUse = 0;
+
+    //Frame resource values
+    const UINT mMaxNumberOfItemEntities = 10;
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, crafting, crafting selector
+    const UINT mMaxUICount = 9;     
+
+    Inventory mInventory;
+    crafting mCrafting;
+
+    bool mInventoryOpen = false;
+    bool mSelectorOnHotbar = true;
+
+    invItem GetItemInHand();
+
+    //Debug
+    int mShowDebugInfo = 2;
 
     //audio interface
     SoundSystemClass mSound;

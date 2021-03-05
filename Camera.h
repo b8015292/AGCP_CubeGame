@@ -4,6 +4,7 @@
 #define CAMERA_H
 
 #include "Common/d3dUtil.h"
+#include "GameData.h"
 
 
 class Camera
@@ -42,6 +43,7 @@ public:
 
 	// Set frustum.
 	void SetLens(float fovY, float aspect, float zn, float zf);
+	DirectX::BoundingFrustum GetFrustum() { return mBoundingFrustum; };
 
 	// Define camera space via LookAt parameters.
 	void LookAt(DirectX::FXMVECTOR pos, DirectX::FXMVECTOR target, DirectX::FXMVECTOR worldUp);
@@ -96,6 +98,8 @@ private:
 	// Cache View/Proj matrices.
 	DirectX::XMFLOAT4X4 mView = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 mProj = MathHelper::Identity4x4();
+
+	DirectX::BoundingFrustum mBoundingFrustum;
 };
 
 #endif // CAMERA_H
