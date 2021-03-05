@@ -80,7 +80,7 @@ void SoundSystemClass::Initialise()
 	mChannels.reserve(100);
 }
 
-void SoundSystemClass::CreateSound(SoundClass* pSound, const char* pFile)
+void SoundSystemClass::CreateSound(SoundClass *pSound, const char* pFile)
 {
 	mpSystem->createSound(pFile, FMOD_HARDWARE, 0, pSound);
 }

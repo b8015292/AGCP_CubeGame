@@ -40,9 +40,9 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
-	//mSound.ReleaseSound(BackingTrack);
-	//mSound.ReleaseSound(Walk);
-	//mSound.ReleaseSound(Hit);
+	BackingTrack->release();
+	Walk->release();
+	Hit->release();
 
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
