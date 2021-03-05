@@ -595,6 +595,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
 	bool keyEDown = GetAsyncKeyState('E') & 0x8000;
 	bool keyCDown = GetAsyncKeyState('C') & 0x8000;
+	bool keyQDown = GetAsyncKeyState('Q') & 0x8000;
 	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
 	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown && !keyEDown && !keyCDown)
 	{
