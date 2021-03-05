@@ -1860,7 +1860,7 @@ void CubeGame::BuildGameObjects()
 	auto selectorRI = std::make_shared<RenderItem>(geo, "mesh_blockSelector", GameData::sMaterials->at("mat_blockSelect").get(), XMMatrixTranslation(0.f, 0.f, 0.f));
 	mBlockSelector = std::make_shared<GameObject>(selectorRI);
 	GameObject::sAllGObjs->push_back(mBlockSelector);
-	//mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
+	mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(mBlockSelector->GetRI());
 
 	//World-------------------------
 	auto blockRI = std::make_shared<RenderItemInstance>(geo, "mesh_cube", GameData::sMaterials->at("mat_grass").get());
