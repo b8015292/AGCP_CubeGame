@@ -292,6 +292,24 @@ struct Texture
 }
 #endif
 
+#ifndef DBOUT
+#define DBOUT( s )            \
+{                             \
+   std::ostringstream os_;    \
+   os_ << s << "\n";                   \
+   OutputDebugString( os_.str().c_str() );  \
+}
+#endif
+
+#ifndef WDBOUT
+#define WDBOUT(s)				\
+{								\
+   std::wostringstream os_;		\
+   os_ << s << L"\n";				       \
+   OutputDebugStringW( os_.str().c_str() );  \
+}
+#endif
+
 #ifndef ReleaseCom
 #define ReleaseCom(x) { if(x){ x->Release(); x = 0; } }
 #endif

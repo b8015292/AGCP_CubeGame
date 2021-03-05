@@ -40,6 +40,10 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
+	mSound.ReleaseSound(BackingTrack);
+	mSound.ReleaseSound(Walk);
+	mSound.ReleaseSound(Hit);
+
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
         FlushCommandQueue();
@@ -96,6 +100,14 @@ bool CubeGame::Initialize()
 
     // Wait until initialization is complete.
     FlushCommandQueue();
+
+	//SetUIString("A", 0, 0);
+
+	//initiate sounds
+	mSound.CreateSound(&BackingTrack, "Data/music/backingTrack.wav");
+	mSound.CreateSound(&Walk, "Data/sfx/Walk.wav");
+	mSound.CreateSound(&Hit, "Data/sfx/Hit.wav");
+	mSound.Play(BackingTrack, true, 1);
 
     return true;
 }
@@ -255,7 +267,10 @@ void CubeGame::OnResize()
 
 void CubeGame::Update(const GameTimer& gt)
 {
+
 	OnKeyboardInput(gt);
+	bool mSoundPlaying = mSound.IsPlaying(2);
+	WDBOUT(mSoundPlaying);
 
 	// Cycle through the circular frame resource array.
 	mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % GameData::sNumFrameResources;
@@ -577,6 +592,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	case GameStates::PLAYGAME:
 		if (!mInventoryOpen) {
 			if (keyWDown || keySDown || keyADown || keyDDown || keySpaceDown) {
+
+				bool playWalkSound = true;
+
 				if (keyWDown) {
 					playerZ = 1.f;
 				}
@@ -596,6 +614,15 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 				if (keySpaceDown) {
 
 					playerJump = true;
+					playWalkSound = false;
+				}
+
+				if(playWalkSound)
+				{
+					//playsound
+					mSound.Play(Walk, false, 2);
+					//bool mSoundPlaying = mSound.IsPlaying(2);
+					//WDBOUT(mSoundPlaying);
 				}
 
 				mPlayerChangedView = true;
@@ -725,6 +752,9 @@ void CubeGame::UpdateBlockSelector() {
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {
+	
+	mSound.Play(Hit, false, 3);
+
 	mCurrentBlockDurability -= dTime;	// dTime * mineingRate; (different tools mine quicker)
 	mBlockSelectorTimer += dTime;
 
