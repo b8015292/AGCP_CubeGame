@@ -225,9 +225,10 @@ bool Entity::CheckIfCollidingAtBox(BoundingBox nextPos) {
 
 
 
-ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj) : Entity(gobj) {
+ItemEntity::ItemEntity(std::shared_ptr<GameObject> gobj, char texRef) : Entity(gobj) {
 	//sBlockInstance->Instances.push_back(idata);
 	
+	mItemTextureReference = texRef;
 	if (mID == 0) mID = ++sMaxID;	//Incase an entity is being made from a preconstructed GObj
 }
 
