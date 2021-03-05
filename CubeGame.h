@@ -210,11 +210,12 @@ private:
 
     //GUI textures
     const int mGUIElTexSize = 31;
-    const int mGUIElTexRows = 3;
+    const int mGUIElTexRows = 4;
     const int mGUIElTexCols = 7;
-    const std::string mGUIElTexNames[21] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "+", "=", 
-                                                "stick", "item_grass", "item_dirt", "selector", "item_sword_stone", "item_pickaxe", "item_pickaxe_stone",    
-                                                "item_stone", "item_coal", "item_iron_ore", "item_sword_wood", "item_pickaxe_iron", "item_sword_iron", "item_iron" };
+    const std::string mGUIElTexNames[28] = {    "heartFull", "heartHalf", "heartEmpty", "crosshair", "empty", "+", "=", 
+                                                "itm_stick", "itm_grass", "itm_dirt", "selector", "itm_sword_stone", "itm_pickaxe_wood", "itm_pickaxe_stone",    
+                                                "itm_stone", "itm_coal_ore", "itm_iron_ore", "itm_oak_log", "itm_pickaxe_iron", "itm_sword_iron", "itm_iron",
+                                                "itm_oak_leaf", "itm_sword_wood", "null", "null", "null", "null", "null"};
     std::unordered_map<std::string, char> mGUIElementTextureCharacters;
     std::unordered_map<std::string, DirectX::XMFLOAT2> mGUIElementTexturePositions;
     DirectX::XMFLOAT2 mGUIElementTextureSize = {1.f / (float)mGUIElTexCols, 1.f / (float) mGUIElTexRows};
@@ -235,8 +236,22 @@ private:
     const int mInventorySize = mInventoryRows * mInventoryCols;
     const int mFacesPerRowInventory = (mInventoryRows * 2 - 1) * 2;
 
+
     const int mCraftingCols = 5;
     const int mCraftingRows = 8;
+    const float mCraftingRowHeight = 1.f / mCraftingRows;
+    bool mInCrafting = false;
+    const int mFacesPerRowCrafting = (mCraftingCols * 2 - 1);
+
+    class InvInUse {
+    public:
+        static const int HOTBAR = 0;
+        static const int INVENTORY = 1;
+        static const int CRAFTING = 2;
+    };
+    std::shared_ptr<Text> mInventorys[3];
+    int mInvInUse = 0;
+    int mPrevInvInUse = 0;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;

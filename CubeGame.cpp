@@ -34,7 +34,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
 }
 
 CubeGame::CubeGame(HINSTANCE hInstance)
-    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory, mGUIElementTextureCharacters)
+    : D3DApp(hInstance), currentState(GameStates::STARTUP), mInventory(mHotbarSlots), mCrafting(mInventory)
 {
 }
 
@@ -47,8 +47,8 @@ CubeGame::~CubeGame()
 
 bool CubeGame::Initialize()
 {
-    if(!D3DApp::Initialize())
-        return false;
+	if (!D3DApp::Initialize())
+		return false;
 
 	GameData::sRunning = true;
 
@@ -56,14 +56,12 @@ bool CubeGame::Initialize()
 	mGeometries = std::make_shared<std::unordered_map<std::string, std::shared_ptr<MeshGeometry>>>();
 	//sMaterials = std::make_shared<std::unordered_map<std::string, std::shared_ptr<Material>>>();
 	mMaterialIndexes = std::make_shared<std::unordered_map<std::string, int>>();
-	for(int i = 0; i < (int)GameData::RenderLayer::Count; i++)
+	for (int i = 0; i < (int)GameData::RenderLayer::Count; i++)
 		mRitemLayer[i] = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 
 	mActiveRItems = std::make_shared<std::vector<std::shared_ptr<RenderItem>>>();
 	mRitemIntances = std::make_shared<std::vector<std::shared_ptr<RenderItemInstance>>>();
 
-	//std::srand(std::time(nullptr));
-	////noise = PerlinNoise(std::rand());
 
     // Reset the command list to prep for initialization commands.
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
@@ -150,9 +148,18 @@ void CubeGame::BuildUserInterfaces() {
 	mUI_InventoryItems = std::make_shared<Text>();
 	std::pair<std::string, std::shared_ptr<Text>> inventoryItems("InventoryItems ", mUI_InventoryItems);
 	mAllUIs->insert(inventoryItems);
+
+	//Crafting
 	mUI_CraftingItems = std::make_shared<Text>();
-	std::pair<std::string, std::shared_ptr<Text>> crafting("ItemText ", mUI_CraftingItems);
+	std::pair<std::string, std::shared_ptr<Text>> crafting("Crafting ", mUI_CraftingItems);
 	mAllUIs->insert(crafting);
+	mUI_CraftingSelector = std::make_shared<Text>();
+	std::pair<std::string, std::shared_ptr<Text>> craftingSelector("CraftingSelector", mUI_CraftingSelector);
+	mAllUIs->insert(craftingSelector);
+
+	mInventorys[0] = mUI_HotbarItemSelector;
+	mInventorys[1] = mUI_InventorySelector;
+	mInventorys[2] = mUI_CraftingSelector;
 }
 
 void CubeGame::MakeTexture(std::string name, std::string path) {
@@ -212,6 +219,9 @@ void CubeGame::LoadTextures() {
 	*mUI_InventoryItems->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_InventorySelector->GetFont() = *mUI_HotbarItems->GetFont();
 	*mUI_CraftingItems->GetFont() = *mUI_HotbarItems->GetFont();
+	*mUI_CraftingSelector->GetFont() = *mUI_HotbarItems->GetFont();
+
+	mCrafting.SetTexChars(mGUIElementTextureCharacters);
 }
 
 void CubeGame::SplitTextureMapIntoPositions(std::unordered_map<std::string, DirectX::XMFLOAT2>& out, const int texSize, const int rows, const int cols, const std::string texNames[]) {
@@ -498,15 +508,16 @@ void CubeGame::OnMouseDown(WPARAM btnState, int x, int y)
 {
     mLastMousePos.x = x;
     mLastMousePos.y = y;
+	if (!mInventoryOpen) {
+		if ((btnState & MK_LBUTTON) != 0) {
+			mLeftMouseDown = true;
+			mCursorInUse = true;
+		}
 
-	if ((btnState & MK_LBUTTON) != 0) {
-		mLeftMouseDown = true;
-		mCursorInUse = true;
-	}
-
-	if ((btnState & MK_RBUTTON) != 0) {
-		mRightMouseDown = true;
-		mCursorInUse = true;
+		if ((btnState & MK_RBUTTON) != 0) {
+			mRightMouseDown = true;
+			mCursorInUse = true;
+		}
 	}
 }
 
@@ -523,7 +534,7 @@ void CubeGame::OnMouseUp(WPARAM btnState, int x, int y)
 
 void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 {
-    if(mCursorInUse)
+    if(mCursorInUse && !mInventoryOpen)
     {
         // Make each pixel correspond to a quarter of a degree.
         float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
@@ -540,7 +551,7 @@ void CubeGame::OnMouseMove(WPARAM btnState, int x, int y)
 void CubeGame::OnMouseScroll(WPARAM btnState, int x, int y) {
 	//Each turn on the wheel equates to 120.
 	int inc = GET_WHEEL_DELTA_WPARAM(btnState) / 120;
-	mHotbarSelectorSlot.x = mHotbarSelectorSlot.x + inc;
+	mHotbarSelectorSlot.x = mHotbarSelectorSlot.x - inc;
 }
  
 void CubeGame::OnKeyboardInput(const GameTimer& gt)
@@ -659,6 +670,7 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 		//Add the GUI to the game
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingItems->GetRI());
+		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_CraftingSelector->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Crosshair->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItemSelector->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_HotbarItems->GetRI());
@@ -777,10 +789,18 @@ void CubeGame::DestroySelectedBlock() {
 		
 		if (!foundInactiveEntity) {
 			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
+				//Use the material to determine the item type
+				std::string prevMat = mPreviousSelectedBlock->GetInstanceData()->MaterialName;
+				//if(prevMat == "")
+				prevMat[0] = 'i';
+				prevMat[1] = 't';
+				prevMat[2] = 'm';
+
+
 				//Create a brand new entity with the correct material data and position
 				auto geo = mGeometries->at("geo_shape").get();
 				auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
-				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
+				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI), mGUIElementTextureCharacters.at(prevMat));
 				GameObject::sAllGObjs->push_back(itemEntity);
 				ItemEntity::sAllEntities->push_back(itemEntity);
 				ItemEntity::sAllItemEntities->push_back(itemEntity);
@@ -815,90 +835,178 @@ void CubeGame::RespawnPlayer() {
 }
 
 void CubeGame::UpdateHotbar() {
+
 	//Update the selector on change in X
-	if (mHotbarSelectorSlot.x != mHotbarSelectorPreviousSlot.x) {
-		if (mHotbarSelectorSlot.x < 0) {
-			mHotbarSelectorSlot.x = mHotbarSlots + mHotbarSelectorSlot.x;
-		}
-		else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
-			mHotbarSelectorSlot.x = mHotbarSelectorSlot.x - mHotbarSlots;
-		}
+	if (mHotbarSelectorSlot.x != mHotbarSelectorPreviousSlot.x || mHotbarSelectorSlot.y != mHotbarSelectorPreviousSlot.y) {
 
-		std::shared_ptr<Text> inUse;
-		//If it is on the hotbar
-		if (mHotbarSelectorSlot.y == 0) {
-			inUse = mUI_HotbarItemSelector;
-		} //else it is on the inventory
+		//HANDLE CHANGE IN Y
+		//If in the hotbar or inventory
+		if (mHotbarSelectorSlot.x != -1) {
+			if (mHotbarSelectorSlot.y < 0) mHotbarSelectorSlot.y = mInventoryCols;
+			else if (mHotbarSelectorSlot.y > mInventoryCols) mHotbarSelectorSlot.y = 0;
+		}
+		//if in the crafting screen
 		else {
-			inUse = mUI_InventorySelector;
+			if (mHotbarSelectorSlot.y < mInventoryCols - mCraftingRows) mHotbarSelectorSlot.y = mCraftingRows;
+			else if (mHotbarSelectorSlot.y >= mCraftingRows - 2) {
+				mHotbarSelectorSlot.x = 0;
+				mHotbarSelectorSlot.y = 0;
+			}
 		}
 
-		int y = mHotbarSelectorSlot.y * 2;
-		//If the inventory is selected
-		if (mHotbarSelectorSlot.y != 0) {
-			y = (mInventoryCols - mHotbarSelectorSlot.y) * mFacesPerRowInventory;
-		}
-
-		int py = mHotbarSelectorPreviousSlot.y * 2;
-		//If the inventory is selected
-		if (mHotbarSelectorSlot.y != 0) {
-			py = (mInventoryCols - mHotbarSelectorPreviousSlot.y) * mFacesPerRowInventory;
-		}
-
-		inUse->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2 + py);
-		inUse->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2 + y);
-		inUse->SetDirtyFlag();
-
-		mHotbarSelectorPreviousSlot.x = mHotbarSelectorSlot.x;
-	}
-	//Update the selector in the Y
-	if (mHotbarSelectorSlot.y != mHotbarSelectorPreviousSlot.y) {
-		if (mHotbarSelectorSlot.y < 0) mHotbarSelectorSlot.y = 0;
-		else if (mHotbarSelectorSlot.y > mInventoryCols) mHotbarSelectorSlot.y = mInventoryCols;
-
-		std::shared_ptr<Text> inUse;
-		std::shared_ptr<Text> previous;
-
-		//If switching between hotbar and inventory. Enable and disable the relative selector
-		if (mHotbarSelectorSlot.y == 0 || mHotbarSelectorPreviousSlot.y == 0) {
-			if (mHotbarSelectorSlot.y == 0) {
-				inUse = mUI_HotbarItemSelector;
-				previous = mUI_InventorySelector;
+		//GET THE MENUS
+		//Get which menu is in use
+		if (mHotbarSelectorSlot.x != -1) {
+			if (mHotbarSelectorSlot.y == 0){//  && mHotbarSelectorPreviousSlot.x != -1) {
+				mInvInUse = InvInUse::HOTBAR;
 			}
 			else {
-				inUse = mUI_InventorySelector;
-				previous = mUI_HotbarItemSelector;
-			}
+				if (mHotbarSelectorPreviousSlot.x == -1 && mHotbarSelectorPreviousSlot.y < 1) {
+					mHotbarSelectorSlot.y = 1;
+				}
 
-			previous->GetRI()->active = false;
-			previous->ResetVerticies();
-			previous->SetDirtyFlag();
-			inUse->GetRI()->active = true;
+				mInvInUse = InvInUse::INVENTORY;
+			}
 		}
 		else {
-			inUse = mUI_InventorySelector;
-			previous = mUI_InventorySelector;
+			//
+			if (mHotbarSelectorSlot.y == 0 && mHotbarSelectorPreviousSlot.y == 0) {
+				mInvInUse = InvInUse::HOTBAR;
+			}
+			else if (mHotbarSelectorSlot.y > mInventoryCols - mCraftingRows) {
+				mInvInUse = InvInUse::CRAFTING;
+			}
+			else {
+				mHotbarSelectorSlot.y = 0;
+				mHotbarSelectorSlot.x = 0;
+				mInvInUse = InvInUse::HOTBAR;
+			}
+
 		}
 
-		int y = mHotbarSelectorSlot.y * 2;
-		//If the inventory is selected
-		if (mHotbarSelectorSlot.y != 0) {
-			y = (mInventoryCols - mHotbarSelectorSlot.y) * mFacesPerRowInventory;
+		//Get which menu was previously in use
+		if (mHotbarSelectorPreviousSlot.x != -1) {
+			if (mHotbarSelectorPreviousSlot.y == 0) {
+				mPrevInvInUse = InvInUse::HOTBAR;
+			}
+			else {
+				mPrevInvInUse = InvInUse::INVENTORY;
+			}
+		}
+		else {
+			if (mHotbarSelectorPreviousSlot.y > mInventoryCols - mCraftingRows) {
+				mPrevInvInUse = InvInUse::CRAFTING;
+			}
+			else {
+				mHotbarSelectorPreviousSlot.y = 0;
+				mHotbarSelectorPreviousSlot.x = 0;
+				mPrevInvInUse = InvInUse::HOTBAR;
+			}
 		}
 
-		int py = mHotbarSelectorPreviousSlot.y * 2;
-		//If the inventory is selected
-		if (mHotbarSelectorSlot.y != 0) {
-			py = (mInventoryCols - mHotbarSelectorPreviousSlot.y) * mFacesPerRowInventory;
+
+
+
+		//if (mHotbarSelectorSlot.y == 0) {
+		//	mInvInUse = InvInUse::HOTBAR;
+		//}
+		//else {
+		//	if (mHotbarSelectorSlot.x != -1) {
+		//		mInvInUse = InvInUse::INVENTORY;
+		//	}
+		//	else {
+		//		mInvInUse = InvInUse::CRAFTING;
+		//	}
+		//}
+
+		////Get which menu was previously in use
+		//if (mHotbarSelectorPreviousSlot.y == 0) {
+		//	mPrevInvInUse = InvInUse::HOTBAR;
+		//}
+		//else {
+		//	if (mHotbarSelectorPreviousSlot.x != -1) {
+		//		mPrevInvInUse = InvInUse::INVENTORY;
+		//	}
+		//	else {
+		//		mPrevInvInUse = InvInUse::CRAFTING;
+		//	}
+		//}
+
+		//ADJUST THE SLOT IF ITS GONE OUT OF BOUNDS
+		//If the hotbar is in use
+		if (mInvInUse == InvInUse::HOTBAR) {
+			if (mHotbarSelectorSlot.x < 0) {
+				mHotbarSelectorSlot.x = mHotbarSlots - 1;
+			}
+			else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
+				mHotbarSelectorSlot.x = 0;
+			}
+		}
+		//Otherwise the inventory or crafting are in use
+		else {
+			if (mHotbarSelectorSlot.x < -1) {
+				mHotbarSelectorSlot.x = mHotbarSlots - 1;
+				mPrevInvInUse = InvInUse::CRAFTING;
+				mInvInUse = InvInUse::INVENTORY;
+			}
+			else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
+				mHotbarSelectorSlot.x = -1;
+				mPrevInvInUse = InvInUse::INVENTORY;
+				mInvInUse = InvInUse::CRAFTING;
+			}
 		}
 
-		previous->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2 + py);
-		inUse->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2 + y);
-		inUse->SetDirtyFlag();
+		//If the hotbar was in use
+		if (mPrevInvInUse == InvInUse::HOTBAR) {
+			if (mHotbarSelectorPreviousSlot.x < 0) {
+				mHotbarSelectorPreviousSlot.x = mHotbarSlots - 1;
+			}
+			else if (mHotbarSelectorPreviousSlot.x >= mHotbarSlots) {
+				mHotbarSelectorPreviousSlot.x = 0;
+			}
+		}
+		//Otherwise the inventory or crafting are in use
+		else {
+			if (mHotbarSelectorSlot.x < -1) {
+				mHotbarSelectorSlot.x = mHotbarSlots - 1;
+				mPrevInvInUse = InvInUse::CRAFTING;
+				mInvInUse = InvInUse::INVENTORY;
+			}
+			else if (mHotbarSelectorSlot.x >= mHotbarSlots) {
+				mHotbarSelectorPreviousSlot.x = -1;
+				mPrevInvInUse = InvInUse::INVENTORY;
+				mInvInUse = InvInUse::CRAFTING;
+			}
+		}
 
-		mHotbarSelectorPreviousSlot.y = mHotbarSelectorSlot.y;
+		//SET THE TEXTURES
+		//Draw the selector in the new position
+		if (mInvInUse == InvInUse::HOTBAR) {
+			mInventorys[(size_t)mInvInUse]->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2);
+		}
+		else if (mInvInUse == InvInUse::INVENTORY) {
+			mInventorys[(size_t)mInvInUse]->SetChar(mGUIElementTextureCharacters.at("selector"), mHotbarSelectorSlot.x * 2 + (mInventoryCols - mHotbarSelectorSlot.y) * mFacesPerRowInventory);
+		}
+		else {
+			mInventorys[(size_t)mInvInUse]->SetChar(mGUIElementTextureCharacters.at("selector"), mCraftingCols - mHotbarSelectorSlot.y);
+		}
+
+		//Remove the old selector
+		if (mPrevInvInUse == InvInUse::HOTBAR) {
+			mInventorys[(size_t)mPrevInvInUse]->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2);
+		}
+		else if (mPrevInvInUse == InvInUse::INVENTORY) {
+			mInventorys[(size_t)mPrevInvInUse]->SetChar(mGUIElementTextureCharacters.at("empty"), mHotbarSelectorPreviousSlot.x * 2 + (mInventoryCols - mHotbarSelectorPreviousSlot.y) * mFacesPerRowInventory);
+		}
+		else {
+			mInventorys[(size_t)mPrevInvInUse]->SetChar(mGUIElementTextureCharacters.at("empty"), mCraftingCols - mHotbarSelectorPreviousSlot.y);
+		}
+
+		mHotbarSelectorPreviousSlot = mHotbarSelectorSlot;
+		mInventorys[(size_t)mInvInUse]->SetDirtyFlag();
+		mInventorys[(size_t)mPrevInvInUse]->SetDirtyFlag();
+
 	}
-
 
 	//Update the hotbar items
 	if (mInventory.GetHotbarDirty()) {
@@ -928,6 +1036,14 @@ void CubeGame::UpdateHotbar() {
 		mUI_InventoryItems->SetString(items, 0, 0);
 		mUI_InventoryItems->SetDirtyFlag();
 	}	
+
+	//Update available crafting recipies
+
+	if (mInventoryOpen) {
+		std::string craftables = mCrafting.GetCraftables();
+		mUI_CraftingItems->SetString(craftables, 0, 0);
+	}
+
 }
 
 void CubeGame::ToggleInventory() {
@@ -941,10 +1057,13 @@ void CubeGame::ToggleInventory() {
 	mUI_InventorySelector->SetDirtyFlag();
 	mUI_CraftingItems->GetRI()->active = mInventoryOpen;
 	mUI_CraftingItems->SetDirtyFlag();
+	mUI_CraftingSelector->GetRI()->active = mInventoryOpen;
+	mUI_CraftingSelector->SetDirtyFlag();
 
 	mUI_Crosshair->GetRI()->active = !mInventoryOpen;
 	mUI_Crosshair->SetDirtyFlag();
 
+	if (mHotbarSelectorSlot.x == -1) mHotbarSelectorSlot.x = 0;
 	mHotbarSelectorSlot.y = 0;
 }
 
@@ -981,6 +1100,7 @@ void CubeGame::UpdateUIBuffers() {
 	mUI_InventorySelector->UpdateBuffer();
 	mUI_InventoryItems->UpdateBuffer();
 	mUI_CraftingItems->UpdateBuffer();
+	mUI_CraftingSelector->UpdateBuffer();
 }
 
 void CubeGame::AnimateMaterials(const GameTimer& gt)
@@ -1271,12 +1391,12 @@ void CubeGame::BuildShapeGeometry()
 {
 	GeometryGenerator geoGen;
 
-	const int numb = 10;
+	const int numb = 11;
 	std::string geoHolderNames[numb] = { 
 		"geo_shape", "geo_ui_text1" , "geo_ui_crosshair" , 
 		"geo_ui_hotbar", "geo_ui_hotbarItems", "geo_ui_hotbarItemSelector" , 
 		"geo_ui_inventory", "geo_ui_inventoryItems", "geo_ui_inventoryHover",
-		"geo_ui_crafting"
+		"geo_ui_crafting", "geo_ui_craftingSelector"
 	};
 	std::vector<GeometryGenerator::MeshData> meshDatas[numb];
 	std::vector<std::string> meshNames[numb];
@@ -1312,6 +1432,8 @@ void CubeGame::BuildShapeGeometry()
 	meshNames[8].push_back("mesh_gui_inventoryHover");
 	meshDatas[9].push_back(mUI_CraftingItems->CreateUIPlane2D(0.46f, 1.07f, mCraftingRows, mCraftingCols));
 	meshNames[9].push_back("mesh_gui_crafting");
+	meshDatas[10].push_back(mUI_CraftingSelector->CreateUIPlane2D(0.26f, 1.07f, mCraftingRows, 1));
+	meshNames[10].push_back("mesh_gui_craftingSelector");
 
 	for (int md = 0; md < numb; md++) {
 		//Get the total number of vertices
@@ -1661,64 +1783,10 @@ void CubeGame::BuildGameObjects()
 	crafting->active = false;
 	mUI_CraftingItems->Init(crafting, mCommandList);
 	mUI_CraftingItems->SwapSizes();
-
-	char recipe[5] = {
-		mGUIElementTextureCharacters.at("item_coal"), mGUIElementTextureCharacters.at("+"),
-		mGUIElementTextureCharacters.at("item_iron_ore"), mGUIElementTextureCharacters.at("="),
-		mGUIElementTextureCharacters.at("item_iron")
-	};
-
-	std::string strRec = "";
-	for each (char c in recipe) {
-		strRec += c;
-	}
-
-	float h = 1.f / mCraftingRows;
-
-	mUI_CraftingItems->SetString(strRec, 0, 0);
-	mUI_CraftingItems->SetString(strRec, 0, h);
-	mUI_CraftingItems->SetString(strRec, 0, h * 2);
-	mUI_CraftingItems->SetString(strRec, 0, h * 3);
-	mUI_CraftingItems->SetString(strRec, 0, h * 4);
-	mUI_CraftingItems->SetString(strRec, 0, h * 5);
-	mUI_CraftingItems->SetString(strRec, 0, h * 6);
-	mUI_CraftingItems->SetString(strRec, 0, h * 7);
-	mUI_CraftingItems->SetDirtyFlag();
-
-	// INVENTORY TESTING AREA
-	//Sword tempSword(mCrafting.stoneTool, 'a');
-	//Pickaxe tempPick(mCrafting.woodTool, 'b');
-	//DirtBlock dirtBlock('c');
-
-	//int numb(1);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//for(int i(0); i < 64; ++i) mInventory.addItem(dirtBlock, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-	//mInventory.addItem(tempPick, numb);
-	//mInventory.addItem(tempSword, numb);
-
-
-	//mInventory.removeItemFromHotbarClick(1, false);
-	//mInventory.hotbarToInv(5, true);
-	//mInventory.invToHotbar(7, true);
-	//mInventory.removeItemCraft("dirtBlock", 5);
-
-	//int tempIntNum5(0);
-	//++tempIntNum5;
-
-	//END OF INVENTORY TESTING AREA
-
+	auto craftingSelector = std::make_shared<RenderItem>(mGeometries->at("geo_ui_craftingSelector").get(), "mesh_gui_craftingSelector", GameData::sMaterials->at("mat_gui_elements").get(), XMMatrixTranslation(-0.74f, 0.085f, 0.f));
+	craftingSelector->active = false;
+	mUI_CraftingSelector->Init(craftingSelector, mCommandList);
+	mUI_CraftingSelector->SwapSizes();
 
 	//End of UI----------------------------
 
