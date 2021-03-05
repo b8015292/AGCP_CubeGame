@@ -1973,3 +1973,9 @@ invItem CubeGame::GetItemInHand() {
 
 	return invItem{ "BLANK", 0, 0, 0, 'a' };
 }
+
+void CubeGame::CraftSelected() {
+	if (mHotbarSelectorSlot.x = -1) {
+
+	}
+}

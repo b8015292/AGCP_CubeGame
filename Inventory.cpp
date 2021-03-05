@@ -15,6 +15,8 @@ void Inventory::invToHotbar(int spaceToMove, bool all)
 {
 	bool complete = false;
 
+
+
 	if (mHotbar.size() != 0)
 	{
 		std::for_each(mHotbar.begin(), mHotbar.end(), [&](invItem& item)

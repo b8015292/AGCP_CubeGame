@@ -267,6 +267,7 @@ private:
     bool mSelectorOnHotbar = true;
 
     invItem GetItemInHand();
+    void CraftSelected();
 
     //Debug
     int mShowDebugInfo = 2;
