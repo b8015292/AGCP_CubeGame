@@ -41,7 +41,7 @@ public:
 		//canCraftWoodShovel, canCraftStoneShovel,
 		//canCraftIronShovel;
 	//Misc that can be crafted
-	bool canCraftSticks;// , canCraftTorch;
+	bool canCraftSticks, canCraftIron;// , canCraftTorch;
 
 	ToolType woodTool;
 	ToolType stoneTool;
@@ -52,7 +52,7 @@ private:
 	Inventory* mInv;
 	std::unordered_map<std::string, char> mGUIElementTextureCharacters;
 	//Temporary variables to store amount of items for crafting
-	int tWood, tStone, tIron, tSticks, tCoal;
+	int tWood, tStone, tIron, tSticks, tCoal, tIronOre;
 
 	//int tWoodSpot, tStoneSpot, tIronSpot, tSticksSpot, tCoalSpot;
 };
