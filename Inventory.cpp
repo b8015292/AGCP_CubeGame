@@ -15,12 +15,13 @@ void Inventory::invToHotbar(int spaceToMove, bool all)
 {
 	bool complete = false;
 
-
-
-	if (mHotbar.size() != 0)
+	if (mHotbar.size() != 0 && mInventory.size() != 0)
 	{
-		std::for_each(mHotbar.begin(), mHotbar.end(), [&](invItem& item)
-			{
+		mHotbarDirty = true;
+		mInventoryDirty = true;
+		for (int i = 0; i < mHotbar.size(); i++)
+		{
+			invItem item = mHotbar.at(i);
 				if ((item.name == mInventory[spaceToMove].name) && (item.maxStackSize != item.stackSize) && !complete)
 				{
 					mHotbarDirty = true;
@@ -50,7 +51,8 @@ void Inventory::invToHotbar(int spaceToMove, bool all)
 						}
 					}
 				}
-			});
+		}
+
 		if (!fullHotbar() && !complete)
 		{
 			mHotbarDirty = true;
@@ -61,8 +63,10 @@ void Inventory::invToHotbar(int spaceToMove, bool all)
 			complete = true;
 		}
 	}
-	else
+	else if (mInventory.size() != 0)
 	{
+		mHotbarDirty = true;
+		mInventoryDirty = true;
 		mHotbarDirty = true;
 		mInventoryDirty = true;
 		mHotbar.push_back(mInventory[spaceToMove]);
@@ -70,9 +74,6 @@ void Inventory::invToHotbar(int spaceToMove, bool all)
 		removeItemFromInvClick(spaceToMove, all);
 		complete = true;
 	}
-
-	mHotbarDirty = true;
-	mInventoryDirty = true;
 }
 void Inventory::hotbarToInv(int spaceToMove, bool all)
 {
@@ -80,40 +81,43 @@ void Inventory::hotbarToInv(int spaceToMove, bool all)
 
 	//check if space is null
 
-	if (mInventory.size() != 0)
+	if (mHotbar.size() != 0 && mInventory.size() != 0)
 	{
-		std::for_each(mInventory.begin(), mInventory.end(), [&](invItem& item)
+		mHotbarDirty = true;
+		mInventoryDirty = true;
+		for (int i = 0; i < mInventory.size(); ++i)
+		{
+			invItem item = mInventory.at(i);
+			if ((item.name == mHotbar[spaceToMove].name) && (item.maxStackSize != item.stackSize) && !complete)
 			{
-				if ((item.name == mHotbar[spaceToMove].name) && (item.maxStackSize != item.stackSize) && !complete)
+				mHotbarDirty = true;
+				mInventoryDirty = true;
+				int spaceLeft = item.maxStackSize - item.stackSize;
+				if (all)
 				{
-					mHotbarDirty = true;
-					mInventoryDirty = true;
-					int spaceLeft = item.maxStackSize - item.stackSize;
-					if (all)
+					if (spaceLeft >= mHotbar[spaceToMove].stackSize)
 					{
-						if (spaceLeft >= mHotbar[spaceToMove].stackSize)
-						{
-							item.stackSize += mHotbar[spaceToMove].stackSize;
-							complete = true;
-							removeItemFromHotbarClick(spaceToMove, all);
-						}
-						else
-						{
-							item.stackSize += spaceLeft;
-							mHotbar[spaceToMove].stackSize -= spaceLeft;
-						}
+						item.stackSize += mHotbar[spaceToMove].stackSize;
+						complete = true;
+						removeItemFromHotbarClick(spaceToMove, all);
 					}
 					else
 					{
-						if (spaceLeft >= 1)
-						{
-							++item.stackSize;
-							--mHotbar[spaceToMove].stackSize;
-							complete = true;
-						}
+						item.stackSize += spaceLeft;
+						mHotbar[spaceToMove].stackSize -= spaceLeft;
 					}
 				}
-			});
+				else
+				{
+					if (spaceLeft >= 1)
+					{
+						++item.stackSize;
+						--mHotbar[spaceToMove].stackSize;
+						complete = true;
+					}
+				}
+			}
+		}
 		if (!fullInventory() && !complete)
 		{
 			mHotbarDirty = true;
@@ -124,7 +128,7 @@ void Inventory::hotbarToInv(int spaceToMove, bool all)
 			complete = true;
 		}
 	}
-	else
+	else if(mHotbar.size() != 0)
 	{
 		mHotbarDirty = true;
 		mInventoryDirty = true;
@@ -133,9 +137,6 @@ void Inventory::hotbarToInv(int spaceToMove, bool all)
 		if (!all) mInventory[mInventory.size()].stackSize = 1;
 		complete = true;
 	}
-
-	mHotbarDirty = true;
-	mInventoryDirty = true;
 }
 void Inventory::addItem(Item newItem, int &amount)
 {
@@ -152,25 +153,26 @@ void Inventory::addItem(Item newItem, int &amount)
 	// Try to add new Item to the hotbar first
 	if (mHotbar.size() != 0)
 	{
-		std::for_each(mHotbar.begin(), mHotbar.end(), [&](invItem& item) 
+		for (int i = 0; i < mHotbar.size(); ++i)
+		{
+			invItem item = mHotbar.at(i);
+			if ((item.name == sNewItem.name) && (item.maxStackSize != item.stackSize) && !complete)
 			{
-				if ((item.name == sNewItem.name) && (item.maxStackSize != item.stackSize) && !complete)
-				{
-					mHotbarDirty = true;
-					int spaceLeft = item.maxStackSize - item.stackSize;
+				mHotbarDirty = true;
+				int spaceLeft = item.maxStackSize - item.stackSize;
 
-					if (spaceLeft >= sNewItem.stackSize)
-					{
-						item.stackSize += sNewItem.stackSize;
-						complete = true;
-					}
-					else
-					{
-						item.stackSize += spaceLeft;
-						sNewItem.stackSize -= spaceLeft;
-					}
+				if (spaceLeft >= sNewItem.stackSize)
+				{
+					item.stackSize += sNewItem.stackSize;
+					complete = true;
 				}
-			});
+				else
+				{
+					item.stackSize += spaceLeft;
+					sNewItem.stackSize -= spaceLeft;
+				}
+			}
+		}
 		if (!fullHotbar() && !complete)
 		{
 			mHotbarDirty = true;
@@ -186,25 +188,26 @@ void Inventory::addItem(Item newItem, int &amount)
 	// If the hotbar cannot take the item, then attempt to move the item to the inventory
 	if (mInventory.size() != 0 && !complete && !fullInventory())
 	{
-		std::for_each(mInventory.begin(), mInventory.end(), [&](invItem& item) 
+		for (int i = 0; i < mInventory.size(); ++i)
+		{
+			invItem item = mInventory.at(i);
+			if ((item.name == sNewItem.name) && (item.maxStackSize != item.stackSize) && !complete)
 			{
-				if ((item.name == sNewItem.name) && (item.maxStackSize != item.stackSize) && !complete)
-				{
-					mInventoryDirty = true;
-					int spaceLeft = item.maxStackSize - item.stackSize;
+				mInventoryDirty = true;
+				int spaceLeft = item.maxStackSize - item.stackSize;
 
-					if (spaceLeft >= sNewItem.stackSize)
-					{
-						item.stackSize += sNewItem.stackSize;
-						complete = true;
-					}
-					else
-					{
-						item.stackSize += spaceLeft;
-						sNewItem.stackSize -= spaceLeft;
-					}
+				if (spaceLeft >= sNewItem.stackSize)
+				{
+					item.stackSize += sNewItem.stackSize;
+					complete = true;
 				}
-			});
+				else
+				{
+					item.stackSize += spaceLeft;
+					sNewItem.stackSize -= spaceLeft;
+				}
+			}
+		}
 		if (!fullInventory() && !complete)
 		{
 			mInventoryDirty = true;
@@ -242,43 +245,40 @@ void Inventory::removeItemFromHotbarClick(int spaceToRemove, bool all)
 void Inventory::removeItemCraft(std::string itemName, int amount)
 {
 	bool complete = false;
-	int i = mInventory.size() - 1;
 
-	std::for_each(mInventory.rbegin(), mInventory.rend(), [&](invItem& item) 
+	for (int i = mInventory.size(); i > 0; --i)
+	{
+		invItem item = mInventory.at(i);
+		if ((item.name == itemName) && (amount != 0))
 		{
-			if ((item.name == itemName) && (amount != 0))
+			mInventoryDirty = true;
+			int temp = item.stackSize;
+			item.stackSize -= amount;
+			if (item.stackSize <= 0)
 			{
-				mInventoryDirty = true;
-				int temp = item.stackSize;
-				item.stackSize -= amount;
-				if (item.stackSize <= 0)
-				{
-					amount -= temp;
-					removeItemFromInvClick(i, true);
-				}
-				else amount = 0;
+				amount -= temp;
+				removeItemFromInvClick(i, true);
 			}
-			--i;
-		});
+			else amount = 0;
+		}
+	}
 
-	i = mHotbar.size() - 1;
-
-	std::for_each(mHotbar.rbegin(), mHotbar.rend(), [&](invItem& item)
+	for (int i = mHotbar.size(); i > 0; --i)
+	{
+		invItem item = mHotbar.at(i);
+		if ((item.name == itemName) && (amount != 0))
 		{
-			if ((item.name == itemName) && (amount != 0))
+			mHotbarDirty = true;
+			int temp = item.stackSize;
+			item.stackSize -= amount;
+			if (item.stackSize <= 0)
 			{
-				mHotbarDirty = true;
-				int temp = item.stackSize;
-				item.stackSize -= amount;
-				if (item.stackSize <= 0)
-				{
-					amount -= temp;
-					removeItemFromHotbarClick(i, true);
-				}
-				else amount = 0;
+				amount -= temp;
+				removeItemFromHotbarClick(i, true);
 			}
-			--i;
-		});
+			else amount = 0;
+		}
+	}
 }
 
 bool Inventory::stackIsFull(bool hotbar, int invSpace)

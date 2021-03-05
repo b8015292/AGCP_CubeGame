@@ -583,7 +583,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	bool keyDDown = GetAsyncKeyState('D') & 0x8000;
 	bool keyPDown = GetAsyncKeyState('P') & 0x8000;
 	bool keyEDown = GetAsyncKeyState('E') & 0x8000;
+	bool keyQDown = GetAsyncKeyState('Q') & 0x8000;
 	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
+	bool keyLeftShiftDown = GetAsyncKeyState(VK_LSHIFT) & 0x8000;
 	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown && !keyEDown)
 	{
 		actionComplete = false;
@@ -658,6 +660,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 					mInventory.invToHotbar(mHotbarSelectorSlot.x + (mInventoryCols - mHotbarSelectorSlot.y) * mInventoryRows, true);
 				}
 			
+				actionComplete = true;
+			}
+			if (keyQDown && (actionComplete == false)) {
+				if (mHotbarSelectorSlot.y == 0 && mHotbarSelectorSlot.x != -1) {
+					mInventory.removeItemFromHotbarClick(mHotbarSelectorSlot.x, false);
+				}
+				else if (mHotbarSelectorSlot.x != -1) {
+					mInventory.removeItemFromInvClick(mHotbarSelectorSlot.x + (mInventoryCols - mHotbarSelectorSlot.y) * mInventoryRows, false);
+				}
+
 				actionComplete = true;
 			}
 		}
