@@ -28,11 +28,19 @@ public:
 	void resetCrafting();
 	std::string GetCraftables();
 
+	void Craft(int selectedPos);
+
 	void craftSticks();
+	void craftIron();
 	void craftTorch();
 	void craftPick(ItemMaterial mat);
 	void craftShovel(ItemMaterial mat);
 	void craftSword(ItemMaterial mat);
+
+	std::vector<std::string> mCraftables;
+
+	//Misc that can be crafted
+	bool canCraftSticks, canCraftIron;// , canCraftTorch;
 
 	//Tools that can be crafted
 	bool canCraftWoodSword, canCraftStoneSword,
@@ -40,8 +48,8 @@ public:
 		canCraftStonePick, canCraftIronPick;// ,
 		//canCraftWoodShovel, canCraftStoneShovel,
 		//canCraftIronShovel;
-	//Misc that can be crafted
-	bool canCraftSticks, canCraftIron;// , canCraftTorch;
+
+	
 
 	ToolType woodTool;
 	ToolType stoneTool;

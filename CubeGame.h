@@ -155,7 +155,7 @@ private:
     WorldManager mWorldMgr;
 
     std::shared_ptr<Player> mPlayer;
-    DirectX::XMFLOAT3 mSpawnPoint{ 12, 10, 12 };
+    DirectX::XMFLOAT3 mSpawnPoint{ 50, 10, 50 };
     bool mPlayerChangedView = false;
     bool mPlayerMoved = false;
 
@@ -201,7 +201,9 @@ private:
     const int mGUITextCols = 26;
 
     //Crosshairs
-    std::shared_ptr<UI> mUI_ScreenImage;
+    std::shared_ptr<UI> mUI_Start;
+    std::shared_ptr<UI> mUI_Controls;
+
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
     std::shared_ptr<Text> mUI_HotbarItems;
@@ -258,9 +260,9 @@ private:
     int mPrevInvInUse = 0;
 
     //Frame resource values
-    const UINT mMaxNumberOfItemEntities = 10;
-    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, crafting, crafting selector
-    const UINT mMaxUICount = 9;     
+    const UINT mMaxNumberOfItemEntities = 50;
+    //Text, crosshair, hotbar, hotbar slots, hotbar selector, inventory, inv items, inv select, crafting, crafting selector, load screen
+    const UINT mMaxUICount = 11;     
 
     Inventory mInventory;
     crafting mCrafting;
