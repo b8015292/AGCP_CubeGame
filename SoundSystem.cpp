@@ -46,7 +46,7 @@ bool SoundSystemClass::InitFMOD()
 			goto shutdown_error;
 	}
 
-	// Initialize our Instance with 36 Channels
+	// Initialize our Instance with  Channels
 	result = mpSystem->init(100, FMOD_INIT_NORMAL, 0);
 	if (result == FMOD_ERR_OUTPUT_CREATEBUFFER)         /* Ok, the speaker mode selected isn't supported by this soundcard.  Switch it back to stereo... */
 	{
@@ -56,6 +56,8 @@ bool SoundSystemClass::InitFMOD()
 		if (mpSystem->init(100, FMOD_INIT_NORMAL, 0) != FMOD_OK) /* Replace with whatever channel count and flags you use! */
 			goto shutdown_error;
 	}
+
+	mpSystem->setHardwareChannels(0, 32, 0, 32);
 
 	return true;
 
@@ -112,7 +114,7 @@ bool SoundSystemClass::Play(SoundClass pSound, bool Loop, const unsigned int han
 		if(mChannels.at(i)._channelHandle == handle)
 		{
 			inChannel = true;
-			FMOD::Channel* pCh; //= mChannels.at(i)._pChannel;
+			FMOD::Channel* pCh = mChannels.at(i)._pChannel;
 			bool playing = IsPlaying(handle);
 			if (playing == false)
 			{
@@ -123,8 +125,7 @@ bool SoundSystemClass::Play(SoundClass pSound, bool Loop, const unsigned int han
 					pSound->setMode(FMOD_LOOP_NORMAL);
 					pSound->setLoopCount(-1);
 				}
-				if (mpSystem->playSound(FMOD_CHANNEL_FREE, pSound, false, &pCh) != FMOD_OK)
-					return false;
+				//specify FMOD_CHANNEL_REUSE to re-use the same channel multiple times
 				mChannels.at(i) = (ChannelData(pCh, handle));
 			}
 			break;

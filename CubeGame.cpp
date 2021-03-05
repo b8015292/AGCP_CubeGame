@@ -268,6 +268,8 @@ void CubeGame::Update(const GameTimer& gt)
 {
 
 	OnKeyboardInput(gt);
+	bool mSoundPlaying = mSound.IsPlaying(2);
+	WDBOUT(mSoundPlaying);
 
 	// Cycle through the circular frame resource array.
 	mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % GameData::sNumFrameResources;
@@ -590,6 +592,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	case GameStates::PLAYGAME:
 		if (!mInventoryOpen) {
 			if (keyWDown || keySDown || keyADown || keyDDown || keySpaceDown) {
+
+				bool playWalkSound = true;
+
 				if (keyWDown) {
 					playerZ = 1.f;
 				}
@@ -609,6 +614,16 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 				if (keySpaceDown) {
 
 					playerJump = true;
+					playWalkSound = false;
+				}
+
+				if(playWalkSound)
+				{
+					bool mSoundPlaying = mSound.IsPlaying(2);
+					//playsound
+					if(!mSoundPlaying)
+					mSound.Play(Walk, false, 2);
+					WDBOUT(mSoundPlaying);
 				}
 
 				mPlayerChangedView = true;
