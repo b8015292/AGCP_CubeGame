@@ -59,10 +59,24 @@ void Inventory::invToHotbar(int spaceToMove, bool all)
 			complete = true;
 		}
 	}
+	else
+	{
+		mHotbarDirty = true;
+		mInventoryDirty = true;
+		mHotbar.push_back(mInventory[spaceToMove]);
+		if (!all) mHotbar[mHotbar.size()].stackSize = 1;
+		removeItemFromInvClick(spaceToMove, all);
+		complete = true;
+	}
+
+	mHotbarDirty = true;
+	mInventoryDirty = true;
 }
 void Inventory::hotbarToInv(int spaceToMove, bool all)
 {
 	bool complete = false;
+
+	//check if space is null
 
 	if (mInventory.size() != 0)
 	{
@@ -108,6 +122,18 @@ void Inventory::hotbarToInv(int spaceToMove, bool all)
 			complete = true;
 		}
 	}
+	else
+	{
+		mHotbarDirty = true;
+		mInventoryDirty = true;
+		mInventory.push_back(mHotbar[spaceToMove]);
+		removeItemFromHotbarClick(spaceToMove, all);
+		if (!all) mInventory[mInventory.size()].stackSize = 1;
+		complete = true;
+	}
+
+	mHotbarDirty = true;
+	mInventoryDirty = true;
 }
 void Inventory::addItem(Item newItem, int &amount)
 {

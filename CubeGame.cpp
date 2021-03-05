@@ -572,7 +572,6 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		actionComplete = false;
 	}
 
-
 	switch (currentState)
 	{
 	case GameStates::PLAYGAME:
@@ -619,6 +618,17 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 			}
 			else if (keySDown && (actionComplete == false)) {
 				mHotbarSelectorSlot.y -= 1;
+				actionComplete = true;
+			}
+			//Swap
+			if (keySpaceDown && (actionComplete == false)) {
+				if (mHotbarSelectorSlot.y == 0 && mHotbarSelectorSlot.x != -1) {
+					mInventory.hotbarToInv(mHotbarSelectorSlot.x, true);
+				}
+				else if (mHotbarSelectorSlot.x != -1) {
+					mInventory.invToHotbar(mHotbarSelectorSlot.x + (mInventoryCols - mHotbarSelectorSlot.y) * mInventoryRows, true);
+				}
+			
 				actionComplete = true;
 			}
 		}
@@ -678,8 +688,6 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_InventorySelector->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_InventoryItems->GetRI());
 		mRitemLayer[(int)GameData::RenderLayer::UserInterface]->push_back(mUI_Inventory->GetRI());
-
-
 
 		//Once everything has loaded, switch to the playstate
 		changeState(GameStates::PLAYGAME);
@@ -902,34 +910,6 @@ void CubeGame::UpdateHotbar() {
 			}
 		}
 
-
-
-
-		//if (mHotbarSelectorSlot.y == 0) {
-		//	mInvInUse = InvInUse::HOTBAR;
-		//}
-		//else {
-		//	if (mHotbarSelectorSlot.x != -1) {
-		//		mInvInUse = InvInUse::INVENTORY;
-		//	}
-		//	else {
-		//		mInvInUse = InvInUse::CRAFTING;
-		//	}
-		//}
-
-		////Get which menu was previously in use
-		//if (mHotbarSelectorPreviousSlot.y == 0) {
-		//	mPrevInvInUse = InvInUse::HOTBAR;
-		//}
-		//else {
-		//	if (mHotbarSelectorPreviousSlot.x != -1) {
-		//		mPrevInvInUse = InvInUse::INVENTORY;
-		//	}
-		//	else {
-		//		mPrevInvInUse = InvInUse::CRAFTING;
-		//	}
-		//}
-
 		//ADJUST THE SLOT IF ITS GONE OUT OF BOUNDS
 		//If the hotbar is in use
 		if (mInvInUse == InvInUse::HOTBAR) {
@@ -1009,8 +989,12 @@ void CubeGame::UpdateHotbar() {
 	//Update the hotbar items
 	if (mInventory.GetHotbarDirty()) {
 		std::string items = "";
-		for each (invItem i in mInventory.getHotbar()) {
-			items += i.mTextureReference;
+		if(!mInventory.getHotbar().empty())
+			for each (invItem i in mInventory.getHotbar()) {
+				items += i.mTextureReference;
+				items += mGUIElementTextureCharacters.at("empty");
+			}
+		else {
 			items += mGUIElementTextureCharacters.at("empty");
 		}
 		mUI_HotbarItems->SetString(items, 0, 0);
@@ -1022,14 +1006,19 @@ void CubeGame::UpdateHotbar() {
 		std::string items = "";
 		int i = 0;
 		char empty = mGUIElementTextureCharacters.at("empty");
-		for each (invItem item in mInventory.getHotbar()) {
-			items += item.mTextureReference;
-			items += empty;
-			i++;
-			//Fill in the Y gap;
-			if (i >= mFacesPerRowInventory) {
-				items += empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty;
+		if (!mInventory.getInventory().empty()) {
+			for each (invItem item in mInventory.getInventory()) {
+				items += item.mTextureReference;
+				items += empty;
+				i++;
+				//Fill in the Y gap;
+				if (i >= mFacesPerRowInventory) {
+					items += empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty + empty;
+				}
 			}
+		}
+		else {
+			items += empty;
 		}
 		mUI_InventoryItems->SetString(items, 0, 0);
 		mUI_InventoryItems->SetDirtyFlag();
@@ -1930,10 +1919,27 @@ void CubeGame::changeState(GameStates newState)
 }
 
 invItem CubeGame::GetItemInHand() {
-	if (mInventory.getHotbar().size() > mHotbarSelectorSlot.x) {
-		return mInventory.getHotbar().at(mHotbarSelectorSlot.x);
+	if (!mInventoryOpen) {
+		if (mInventory.getHotbar().size() > mHotbarSelectorSlot.x) {
+			return mInventory.getHotbar().at(mHotbarSelectorSlot.x);
+		}
 	}
 	else {
-		return invItem{"BLANK", 0, 0, 0, 'a'};
+		//Hotbar
+		if (mHotbarSelectorSlot.y == 0 && mHotbarSelectorSlot.x != -1) {
+			if (mInventory.getHotbar().size() > mHotbarSelectorSlot.x) {
+				return mInventory.getHotbar().at(mHotbarSelectorSlot.x);
+			}
+		}
+		//Inventory
+		else {
+			if (mHotbarSelectorSlot.x != -1) {
+				if (mInventory.getInventory().size() > mHotbarSelectorSlot.x) {
+					return mInventory.getInventory().at(mHotbarSelectorSlot.x);
+				}
+			}
+		}
 	}
+
+	return invItem{ "BLANK", 0, 0, 0, 'a' };
 }
