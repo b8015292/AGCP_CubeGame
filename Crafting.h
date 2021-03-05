@@ -12,6 +12,10 @@ enum class ItemMaterial {
 	IRON
 };
 
+//ToolType woodTool(25, 5, "Wood");
+//ToolType stoneTool(50, 10, "Stone");
+//ToolType ironTool(100, 15, "Iron");
+
 class crafting 
 {
 public:
@@ -36,6 +40,10 @@ public:
 		canCraftIronShovel;
 	//Misc that can be crafted
 	bool canCraftSticks, canCraftTorch;
+
+	ToolType woodTool;
+	ToolType stoneTool;
+	ToolType ironTool;
 
 private:
 

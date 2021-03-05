@@ -23,11 +23,6 @@ WorldManager::Chunk::Chunk(Pos pos) {
 void WorldManager::Chunk::Init(Pos pos) {
 	mPosition = pos;
 
-	std::vector<Pos> trunkLocations;
-	std::vector<Pos> leafLocations;
-
-	float treeNoise = (float)WorldManager::sNoise.OctavePerlin(pos.x * 0.002, pos.y * 0.002, pos.z * 0.002, 15, 40);
-
 	int treeLocationHeight = -1;
 
 	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
@@ -41,19 +36,20 @@ void WorldManager::Chunk::Init(Pos pos) {
 			for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
 				//Generate different noises for coal and iron, so they are grouped together
 				float coalOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
-				float ironoreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
+				float ironOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
 
 				float x = pos.x * (float)WorldManager::sChunkDimension + (float)worldX;
 				float y = pos.y * (float)WorldManager::sChunkDimension + (float)worldY;
 				float z = pos.z * (float)WorldManager::sChunkDimension + (float)worldZ;
 
+				//By checking the y values of the world, we can determine what sort of block it should be
 				if (worldY + pos.y * WorldManager::sChunkDimension < noise) {
 					if (worldY + pos.y * WorldManager::sChunkDimension > 0){
 						if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
 							if (coalOreNoise > 0.69 && coalOreNoise < 0.75) {
 								CreateCube("mat_coal_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
 							}
-							else if (ironoreNoise < 0.25) {
+							else if (ironOreNoise < 0.25) {
 								CreateCube("mat_iron_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
 							}
 							else {
@@ -70,6 +66,7 @@ void WorldManager::Chunk::Init(Pos pos) {
 				}
 				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
 					CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
+					//As this is the highest block at this x and z coordinate, then a tree can spawn here
 					if (worldX == WorldManager::sChunkDimension / 2 && worldZ == WorldManager::sChunkDimension / 2) {
 						treeLocationHeight = y + 1;
 					}
@@ -79,8 +76,10 @@ void WorldManager::Chunk::Init(Pos pos) {
 				}
 			}
 		}
+		//As we have seeded the rand function already, this will return the same value each time that seed is used.
 		int trees = rand() % 100;
 
+		//If the treeLocationHeight is 0 or less then this chunk has no grass in it
 		if (treeLocationHeight >= 0 && trees > 90) {
 			sTreeStartPositions.push_back({ pos.x * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2), treeLocationHeight, pos.z * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2) });
 		}
@@ -164,15 +163,15 @@ void WorldManager::PopulateMapWithTrees() {
 	const int foliageHeight = 1;
 	const int totalHeight = trunkHeight + foliageHeight;
 
+	//Create all the trees
 	for each (Pos p in sTreeStartPositions) {
 		std::shared_ptr<Chunk> mainChunk = GetChunkFromWorldCoords({ (float)p.x, (float)p.y, (float)p.z });
 		std::shared_ptr<Chunk> aboveChunk;
-		std::shared_ptr<Chunk> sideChunk;
-		std::shared_ptr<Chunk> frontChunk;
 
 		Pos stumpCoords = GetChunkCoordsFromWorldCoods(p);
 		Pos currCoords = stumpCoords;
 
+		//If the tree is in part of the chunk above it, then we need a reference to this chunk
 		if ((p.y + totalHeight) >= sChunkDimension) {
 			aboveChunk = GetChunkFromWorldCoords({ (float)p.x, (float)(p.y + totalHeight), (float)p.z });
 		}
@@ -180,8 +179,10 @@ void WorldManager::PopulateMapWithTrees() {
 		bool above = false;
 		std::shared_ptr<Chunk> chunkToUse = mainChunk;
 
+		//Create the trunk
 		for (int i = 0; i < trunkHeight; i++) {
 
+			//If the trunk goes into the other chunk, we need to change the chunk we are modifying so we are changing the right blocks
 			if (!above && p.y + i >= sChunkDimension) {
 				chunkToUse = aboveChunk;
 				currCoords.y = 0; 
@@ -192,12 +193,15 @@ void WorldManager::PopulateMapWithTrees() {
 			currCoords.y ++;
 		}
 
+		//From here, we loop through coordinates to create the pattern of leaves for the trees
+		//Each time we modify the y coordinate, we must check if we have changed chunk once again.
 		currCoords.y = stumpCoords.y + trunkHeight - 3;
 		if (currCoords.y >= sChunkDimension) {
 			chunkToUse = aboveChunk;
 			currCoords.y = 0;
 		}
 		else {
+			//As the first set of leaves are below the height of the trunk, we might need to swap back to the original chunk
 			chunkToUse = mainChunk;
 		}
 

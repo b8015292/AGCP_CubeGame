@@ -5,8 +5,6 @@
 #include <ctime>
 
 #include "CubeGame.h"
-#include "Raycast.h"
-#include "PerlinNoise.h"
 
 bool GameData::sRunning = true;
 
@@ -304,10 +302,30 @@ void CubeGame::Update(const GameTimer& gt)
 				if (mRightMouseDownTimer >= mRightMouseDownTimerMax) {
 					mRightMouseDownTimer = 0.f;
 
-					std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
-					if (block != nullptr) {
-						block->SetActive(true);
-						mPlayerChangedView = true;
+					if (!mInventory.getHotbar().size() == 0) {
+						invItem itemInHand = GetItemInHand();
+						if (itemInHand.name != "BLANK") {
+							std::string materialName = "mat_" + itemInHand.name;
+							bool found = false;
+
+							for (auto material : *GameData::sMaterials) {
+								if (material.first == materialName) {
+									found = true;
+									break;
+								}
+							}
+
+							if (found) {
+								mInventory.removeItemFromHotbarClick(mHotbarSelectorSlot.x, false);
+
+								std::shared_ptr<Block> block = Raycast::GetBlockInfrontFirstBlockInRay(Block::sAllBlocks, mPlayer->GetCam()->GetPosition(), mPlayer->GetCam()->GetLook());
+								if (block != nullptr) {
+									block->SetActive(true);
+									block->ChangeMaterial(materialName);
+									mPlayerChangedView = true;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -737,6 +755,7 @@ void CubeGame::DestroySelectedBlock() {
 
 	bool stacked = false;
 
+	//Go through all existing entities to find if there is a nearby one of the same type which can be stacked
 	for (std::shared_ptr<ItemEntity> entity : *ItemEntity::sAllItemEntities) {
 		if (entity->GetActive() == true) {
 			if (entity->GetRI()->Mat->Name == mPreviousSelectedBlock->GetInstanceData()->MaterialName) {
@@ -765,8 +784,10 @@ void CubeGame::DestroySelectedBlock() {
 				entityToReplace = entity;
 			}
 		}
+		
 		if (!foundInactiveEntity) {
 			if (ItemEntity::sAllItemEntities->size() <= mMaxNumberOfItemEntities) {
+				//Create a brand new entity with the correct material data and position
 				auto geo = mGeometries->at("geo_shape").get();
 				auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
 				auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
@@ -776,10 +797,12 @@ void CubeGame::DestroySelectedBlock() {
 				mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
 			}
 			else {
+				//If we have reached the max number of item entities in the world, then just replace the first one created
 				entityToReplace = ItemEntity::sAllItemEntities->at(0);
 			}
 		}
 
+		//Entities are set inactive when picked up, so if we find an inactive one we can replace it instead of creating another new entity
 		if (entityToReplace != nullptr) {
 			entityToReplace->GetRI()->Mat = GameData::sMaterials->at(mPreviousSelectedBlock->GetInstanceData()->MaterialName).get();
 			entityToReplace->SetPosition(mPreviousSelectedBlock->GetBoundingBox().Center);
@@ -787,13 +810,10 @@ void CubeGame::DestroySelectedBlock() {
 		}
 	}
 
-
 	mPreviousSelectedBlock->SetActive(false);
 	mPreviousSelectedBlock = Block::sAllBlocks->at(0);
 	mBlockSelectorTextureCount = 0;
 	mBlockSelector->GetRI()->Mat = GameData::sMaterials->at("mat_blockSelect").get();
-
-
 
 	mPlayerChangedView = true;
 }
@@ -1778,6 +1798,40 @@ void CubeGame::BuildGameObjects()
 	mUI_CraftingItems->SetString(strRec, 0, mCraftingRowHeight * 7);
 	mUI_CraftingItems->SetDirtyFlag();
 
+	// INVENTORY TESTING AREA
+	//Sword tempSword(mCrafting.stoneTool, 'a');
+	//Pickaxe tempPick(mCrafting.woodTool, 'b');
+	//DirtBlock dirtBlock('c');
+
+	//int numb(1);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//for(int i(0); i < 64; ++i) mInventory.addItem(dirtBlock, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+	//mInventory.addItem(tempPick, numb);
+	//mInventory.addItem(tempSword, numb);
+
+
+	//mInventory.removeItemFromHotbarClick(1, false);
+	//mInventory.hotbarToInv(5, true);
+	//mInventory.invToHotbar(7, true);
+	//mInventory.removeItemCraft("dirtBlock", 5);
+
+	//int tempIntNum5(0);
+	//++tempIntNum5;
+
+	//END OF INVENTORY TESTING AREA
+
 
 	//End of UI----------------------------
 
@@ -1920,4 +1974,13 @@ void CubeGame::changeState(GameStates newState)
 	currentState = newState;
 	mUI_Text->ResetVerticies();
 	mUI_Text->SetDirtyFlag();
+}
+
+invItem CubeGame::GetItemInHand() {
+	if (mInventory.getHotbar().size() > mHotbarSelectorSlot.x) {
+		return mInventory.getHotbar().at(mHotbarSelectorSlot.x);
+	}
+	else {
+		return invItem{"BLANK", 0, 0, 0, 'a'};
+	}
 }
