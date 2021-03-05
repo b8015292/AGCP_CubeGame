@@ -233,8 +233,22 @@ private:
     const int mInventorySize = mInventoryRows * mInventoryCols;
     const int mFacesPerRowInventory = (mInventoryRows * 2 - 1) * 2;
 
+
     const int mCraftingCols = 5;
     const int mCraftingRows = 8;
+    const float mCraftingRowHeight = 1.f / mCraftingRows;
+    bool mInCrafting = false;
+    const int mFacesPerRowCrafting = (mCraftingCols * 2 - 1);
+
+    class InvInUse {
+    public:
+        static const int HOTBAR = 0;
+        static const int INVENTORY = 1;
+        static const int CRAFTING = 2;
+    };
+    std::shared_ptr<Text> mInventorys[3];
+    int mInvInUse = 0;
+    int mPrevInvInUse = 0;
 
     //Frame resource values
     const UINT mMaxNumberOfItemEntities = 10;
