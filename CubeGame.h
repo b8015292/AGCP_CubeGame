@@ -29,6 +29,7 @@ enum class GameStates
 {
     STARTUP,
     MAINMENU,
+    CONTROLS,
     LOADWORLD,
     PLAYGAME,
     PAUSE
@@ -198,6 +199,7 @@ private:
     const int mGUITextCols = 26;
 
     //Crosshairs
+    std::shared_ptr<UI> mUI_ScreenImage;
     std::shared_ptr<UI> mUI_Crosshair;
     std::shared_ptr<UI> mUI_Hotbar;
     std::shared_ptr<Text> mUI_HotbarItems;
