@@ -125,7 +125,7 @@ void Player::CheckCollisions(float dTime) {
 			}
 		}
 		else {
-			aForward = mAxisVectors[Axis::negZ];	
+			aForward = mAxisVectors[Axis::negZ];
 			if (camLook.m128_f32[0] > 0) {
 				aSide = mAxisVectors[Axis::posX];
 			}

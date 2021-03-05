@@ -42,6 +42,9 @@ CubeGame::CubeGame(HINSTANCE hInstance)
 
 CubeGame::~CubeGame()
 {
+	mSound.ReleaseSound(BackingTrack);
+	mSound.ReleaseSound(Walk);
+
 	GameData::sRunning = false;
     if(md3dDevice != nullptr)
         FlushCommandQueue();
@@ -96,6 +99,12 @@ bool CubeGame::Initialize()
     FlushCommandQueue();
 
 	//SetUIString("A", 0, 0);
+
+	//initiate sounds
+	mSound.CreateSound(&BackingTrack, "Data/music/backingTrack.wav");
+	mSound.CreateSound(&Walk, "Data/sfx/Walk.wav");
+	mSound.CreateSound(&Hit, "Data/sfx/Hit.wav");
+	mSound.Play(BackingTrack, true, 1);
 
     return true;
 }
@@ -180,6 +189,7 @@ void CubeGame::OnResize()
 
 void CubeGame::Update(const GameTimer& gt)
 {
+
 	OnKeyboardInput(gt);
 
 	// Cycle through the circular frame resource array.
@@ -445,6 +455,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	bool keySpace = GetAsyncKeyState(VK_SPACE) & 0x8000;
 
 	if (keyW || keyS || keyA || keyD || keySpace) {
+
+		bool playWalkSound = true;
+
 		if (keyW) {
 			playerZ = 1.f;
 		}
@@ -463,11 +476,20 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 		if (keySpace) {
 			playerJump = true;
+			playWalkSound = false;
 		}
 
 		mPlayerChangedView = true;
 		mPlayerMoved = true;
 		mPlayer->SetMovement(playerX, playerZ, playerJump);
+
+		if (playWalkSound)
+		{
+			//playsound
+			mSound.Play(Walk, false, 2);
+			bool mSoundPlaying = mSound.IsPlaying(2);
+			WDBOUT(mSoundPlaying);
+		}
 	}
 
 	//DEBUG
@@ -477,6 +499,9 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 }
 
 void CubeGame::MineSelectedBlock(const float dTime) {
+	
+	mSound.Play(Hit, false, 3);
+
 	mCurrentBlockDurability -= dTime;	// dTime * mineingRate; (different tools mine quicker)
 	mBlockSelectorTimer += dTime;
 
@@ -513,7 +538,7 @@ void CubeGame::MineSelectedBlock(const float dTime) {
 }
 void CubeGame::DestroySelectedBlock() {
 	auto geo = mGeometries->at("geo_shape").get();
-	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", mMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
+	auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_itemEntity", GameData::sMaterials->at("mat_dirt").get(), XMMatrixTranslation(mPreviousSelectedBlock->GetBoundingBox().Center.x, mPreviousSelectedBlock->GetBoundingBox().Center.y, mPreviousSelectedBlock->GetBoundingBox().Center.z));	//Make a render item
 	auto itemEntity = std::make_shared<ItemEntity>(std::make_shared<GameObject>(itemEntityRI));
 	GameObject::sAllGObjs->push_back(itemEntity);
 	ItemEntity::sAllEntities->push_back(itemEntity);

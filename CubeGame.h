@@ -14,8 +14,10 @@
 
 #include "omp.h"
 
+#include "SoundSystem.h"
+#include "Common/FileUtils.h"
+
 using Microsoft::WRL::ComPtr;
-//using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 #pragma comment(lib, "d3dcompiler.lib")
@@ -169,5 +171,12 @@ private:
     float mBlockTimerMax = -1;
     float mBlockSelectorTimer = 0;
     int mBlockSelectorTextureCount = 0;
+
+    //audio interface
+    SoundSystemClass mSound;
+    //FMOD::SOUND instances
+    SoundClass BackingTrack;
+    SoundClass Walk;
+    SoundClass Hit;
 
 };
