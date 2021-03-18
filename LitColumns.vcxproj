@@ -179,6 +179,8 @@
     <ClCompile Include="Common\GameTimer.cpp" />
     <ClCompile Include="Common\MathHelper.cpp" />
     <ClCompile Include="Crafting.cpp" />
+    <ClCompile Include="DGPathfinding.cpp" />
+    <ClCompile Include="DunGen.cpp" />
     <ClCompile Include="FrameResource.cpp" />
     <ClCompile Include="GameData.cpp" />
     <ClCompile Include="CubeGame.cpp" />
@@ -206,6 +208,8 @@
     <ClInclude Include="Common\UploadBuffer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Crafting.h" />
+    <ClInclude Include="DGPathfinding.h" />
+    <ClInclude Include="DunGen.h" />
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="GameData.h" />
     <ClInclude Include="CubeGame.h" />

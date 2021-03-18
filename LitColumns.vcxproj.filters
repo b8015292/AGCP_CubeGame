@@ -28,6 +28,12 @@
     <Filter Include="GameData\Audio">
       <UniqueIdentifier>{de5de707-f309-4c73-88e2-fc6ca29cfa6d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GameData\Header Files\AI">
+      <UniqueIdentifier>{347933b7-073c-45cb-9375-703e85759522}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameData\Source Files\AI">
+      <UniqueIdentifier>{94442dc9-d7fd-4f30-830d-1988e5e2d757}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FrameResource.cpp">
@@ -95,6 +101,12 @@
     </ClCompile>
     <ClCompile Include="SoundSystem.cpp">
       <Filter>GameData\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="DunGen.cpp">
+      <Filter>GameData\Source Files\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="DGPathfinding.cpp">
+      <Filter>GameData\Source Files\AI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -238,6 +250,15 @@
     </ClInclude>
     <ClInclude Include="Inventory.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DunGen.h">
+      <Filter>GameData\Header Files\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="DGPathfinding.h">
+      <Filter>GameData\Header Files\AI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

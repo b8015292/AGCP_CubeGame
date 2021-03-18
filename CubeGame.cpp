@@ -107,7 +107,7 @@ bool CubeGame::Initialize()
 	mSound.CreateSound(&BackingTrack, "Data/music/backingTrack.wav");
 	mSound.CreateSound(&Walk, "Data/sfx/Walk.wav");
 	mSound.CreateSound(&Hit, "Data/sfx/Hit.wav");
-	mSound.Play(BackingTrack, true, 1);
+	//mSound.Play(BackingTrack, true, 1);
 
     return true;
 }
@@ -1873,6 +1873,11 @@ void CubeGame::BuildGameObjects()
 void CubeGame::GenerateWorld() {
 	mWorldMgr.CreateWorld();
 	mWorldMgr.LoadFirstChunks(mSpawnPoint);
+
+	//DunGen
+	DunGen dun(std::make_shared<WorldManager>(mWorldMgr));
+	dun.test();
+
 }
 
 void CubeGame::GenerateListOfActiveItems() {
