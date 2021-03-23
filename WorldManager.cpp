@@ -721,3 +721,8 @@ void WorldManager::PrintChunkOrder() {
 int WorldManager::GetTotalAmountOfBlocks() {
 	return mChunksToLoad * sChunkSize;
 }
+
+
+WorldManager::Pos WorldManager::GetWorldSize() {
+	return { sChunkSize * mMaxLength, sChunkSize * mMaxHeight, sChunkSize * mMaxLength };
+}

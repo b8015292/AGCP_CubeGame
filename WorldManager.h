@@ -119,9 +119,14 @@ public:
 
 	std::shared_ptr<Block> GetBlock(DirectX::XMFLOAT3 pos);
 
+	Pos GetWorldSize();
+
 	//DEBUG
 	void PrintChunkOrder();
 
+
+	//The length, depth and height of a chunk
+	static const int sChunkDimension = 8;
 private:
 	bool IsChunkCoordValid(int x, int y, int z);
 	void LoadChunk(int x, int y, int z);
@@ -147,8 +152,7 @@ private:
 	std::vector<std::shared_ptr<Chunk>> mActiveChunks;
 
 
-	//The length, depth and height of a chunk
-	static const int sChunkDimension = 8;
+	
 	//The number of cubes in a chunk
 	static const int sChunkSize = sChunkDimension * sChunkDimension * sChunkDimension;
 	//The unqiue ID for chunks

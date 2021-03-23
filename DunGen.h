@@ -3,23 +3,10 @@
 #include "WorldManager.h"
 #include "DGPathfinding.h"
 
-struct Vec3I {
+struct TempChunk {
 public:
-	Vec3I() = default;
-	Vec3I(int x, int y, int z);
-	Vec3I(float x, float y, float z);
-
-	Vec3I& operator+(const Vec3I&);
-	Vec3I& operator-(const Vec3I&);
-	Vec3I& operator+=(const Vec3I&);
-	Vec3I& operator-=(const Vec3I&);
-
-	bool operator==(const Vec3I&);
-	bool operator!=(const Vec3I&);
-
-	int x = 0;
-	int y = 0;
-	int z = 0;
+	std::shared_ptr<WorldManager::Chunk> chunk;
+	std::vector<Vec3I> positions;
 };
 
 class DunGen {
@@ -30,13 +17,19 @@ public:
 
 private:
 	std::shared_ptr<WorldManager> mWorldMgr;
+	DGPathfinding mPathFinding;
 
 	Vec3I mStartPoint;
 	Vec3I mEndPoint;
-	std::vector<Node> mMainPath;
+	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z] = { false };
 
+	std::vector<std::vector<Vec3I>> mPaths;
+	std::vector<TempChunk> mSplitPath;
 
 	void GenerateStartAndEnd();
 	void GenerateObsticales();
 	void GenerateDungeon();
+	void SplitPathsIntoChunks();
+
+	void FillFloor();
 };

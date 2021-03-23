@@ -50,41 +50,54 @@ bool Vec3I::operator!=(const Vec3I& v) {
 
 DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr) {
 	mWorldMgr = wrlmgr;
+
 	GenerateStartAndEnd();
 	GenerateObsticales();
 	GenerateDungeon();
+
+	FillFloor();
+
 }
 
 void DunGen::GenerateStartAndEnd() {
-	mStartPoint.x = 7;
+	mStartPoint.x = 40;
 	mStartPoint.y = 7;
-	mStartPoint.z = 7;
+	mStartPoint.z = 40;
 
-	mEndPoint.x = 11;
-	mEndPoint.z = 7;
+	mEndPoint.x = 43;
 	mEndPoint.y = 7;
+	mEndPoint.z = 43;
 }
 
-void DunGen::GenerateObsticales() {
 
+void DunGen::GenerateObsticales() {
+	//mObstacles[8][7][7] = true;
+	//mObstacles[8][6][7] = true;
+	//mObstacles[8][8][7] = true;
 }
 
 void DunGen::GenerateDungeon() {
+	mPathFinding.Init(mWorldMgr, mObstacles);
+	mPaths.push_back(mPathFinding.AStar(mStartPoint, mEndPoint));
+}
 
-	Node start;
-	start.x = mStartPoint.x;
-	start.y = mStartPoint.y;
-	start.z = mStartPoint.z;
+void DunGen::SplitPathsIntoChunks() {
 
-	Node end;
-	end.x = mEndPoint.x;
-	end.y = mEndPoint.y;
-	end.z = mEndPoint.z;
+}
 
-	DGPathfinding pf(mWorldMgr);
-	mMainPath = pf.AStar(start, end);
+void DunGen::FillFloor() {
+	for each (std::vector<Vec3I> vec in mPaths) {
+		for each (Vec3I pos in vec) {
+ 			std::shared_ptr<WorldManager::Chunk> chunk = mWorldMgr->GetChunkFromWorldCoords({ (float)pos.x, (float)pos.y, (float)pos.z });
+			WorldManager::Pos chunkPos = chunk->GetPos();
 
+			WorldManager::Pos coordsInChunkSpace(pos.x - chunkPos.x * WorldManager::sChunkDimension, pos.y - chunkPos.y * WorldManager::sChunkDimension, pos.z - chunkPos.z * WorldManager::sChunkDimension);
 
+			std::shared_ptr<Block> block = chunk->GetBlock(coordsInChunkSpace);
+			block->SetActive(true);
+			block->ChangeMaterial("mat_oak_log");
+		}
+	}
 }
 
 void DunGen::test() {
