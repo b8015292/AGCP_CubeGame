@@ -14,10 +14,14 @@
 #define MAX_AR_Y 12
 #define MAX_AR_Z 12
 
-const float floatmax = 3.402823466e+38F;
+//const int intmax = 32767;
+//const float floatmax = 3.402823466e+38F;
 //const size_t MAX_AR_X = 12;
 //const size_t MAX_AR_Y = 12;
 //const size_t MAX_AR_Z = 12;
+
+const int intmax = 2147483647;
+const float floatmax = 3.40282e+38F;
 
 struct Vec3I {
 public:
@@ -56,9 +60,9 @@ public:
 	int parentZ = -1;
 
 	//float gCost = FLT_MAX;
-	float gCost = floatmax;
-	float hCost = floatmax;
-	float fCost = floatmax;
+	int gCost = intmax;
+	int hCost = intmax;
+	int fCost = intmax;
 
 	void SetNode(size_t ix, size_t iy, size_t iz, int nx, int ny, int nz, size_t pix, size_t piy, size_t piz, int npx, int npy, int npz, int ngc = FLT_MAX, int nhc = FLT_MAX, int nfc = FLT_MAX) {
 		indexX = ix;
@@ -82,7 +86,7 @@ public:
 		indexY = iy;
 		indexZ = iz;
 	}
-	void SetCoords(int nx, int ny, int nz ){
+	void SetCoords(int nx, int ny, int nz) {
 		x = nx;
 		y = ny;
 		z = nz;
@@ -123,7 +127,7 @@ private:
 	bool IsValidIndex(size_t x, size_t y, size_t z);
 	bool IsValidWorldCoord(Vec3I pos);
 	bool IsDestination(int x, int y, int z, Node destination);
-	double CalculateH(int x, int y, int z, Node destination);
+	int CalculateH(int x, int y, int z, Node destination);
 
 	std::vector<Vec3I> MakePath(std::array<std::array<std::array<Node, MAX_AR_Z>, MAX_AR_Y>, MAX_AR_X> map, Node destination);
 

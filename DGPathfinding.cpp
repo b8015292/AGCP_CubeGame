@@ -69,9 +69,9 @@ bool DGPathfinding::IsDestination(int x, int y, int z, Node destination)
 	return false;
 }
 
-double DGPathfinding::CalculateH(int x, int y, int z, Node destination)
+int DGPathfinding::CalculateH(int x, int y, int z, Node destination)
 {
-	double H = sqrt((x - destination.x) * (x - destination.x) + (y - destination.y) * (y - destination.y) + (z - destination.z) * (z - destination.z));
+	int H = sqrt((x - destination.x) * (x - destination.x) + (y - destination.y) * (y - destination.y) + (z - destination.z) * (z - destination.z));
 	return H;
 }
 
@@ -200,7 +200,7 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 			size_t currX = (size_t)(pos.x + dir.x);
 			size_t currY = (size_t)(pos.y + dir.y);
 			size_t currZ = (size_t)(pos.z + dir.z);
-			double gNew, hNew, fNew;
+			int gNew, hNew, fNew;
 
 			//Check if the neighbor is valid
 			if (IsValidIndex(currX, currY, currZ)) {
@@ -220,12 +220,12 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 				else if (closedList[currX][currY][currZ] == false)
 				{
 					//Calculate the new costs
-					gNew = node.gCost + 1.0;
+					gNew = node.gCost + 1;
 					hNew = CalculateH((int)currX, (int)currY, (int)currZ, destination);
 					fNew = gNew + hNew;
 
 					// Check if this path is better than the one already present. If it is, add it to the open list and keep iterating the while loop
-					if (allMap[currX][currY][currZ].fCost == floatmax || allMap[currX][currY][currZ].fCost == FLT_MAX || allMap[currX][currY][currZ].fCost > fNew)
+					if (allMap[currX][currY][currZ].fCost == intmax || allMap[currX][currY][currZ].fCost > fNew)
 					{
 						// Update the details of this neighbour node
 						allMap[currX][currY][currZ].SetCosts(gNew, hNew, fNew);
