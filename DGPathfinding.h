@@ -60,11 +60,11 @@ public:
 	int parentZ = -1;
 
 	//float gCost = FLT_MAX;
-	int gCost = intmax;
-	int hCost = intmax;
-	int fCost = intmax;
+	float gCost = floatmax;
+	float hCost = floatmax;
+	float fCost = floatmax;
 
-	void SetNode(size_t ix, size_t iy, size_t iz, int nx, int ny, int nz, size_t pix, size_t piy, size_t piz, int npx, int npy, int npz, int ngc = FLT_MAX, int nhc = FLT_MAX, int nfc = FLT_MAX) {
+	void SetNode(size_t ix, size_t iy, size_t iz, int nx, int ny, int nz, size_t pix, size_t piy, size_t piz, int npx, int npy, int npz, float ngc = floatmax, float nhc = floatmax, float nfc = floatmax) {
 		indexX = ix;
 		indexY = iy;
 		indexZ = iz;
@@ -99,7 +99,7 @@ public:
 		parentIndexY = piy;
 		parentIndexZ = piz;
 	}
-	void SetCosts(int ngc, int nhc, int nfc) {
+	void SetCosts(float ngc, float nhc, float nfc) {
 		gCost = ngc;
 		hCost = nhc;
 		fCost = nfc;

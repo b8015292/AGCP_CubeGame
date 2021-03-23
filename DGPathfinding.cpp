@@ -225,7 +225,7 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 					fNew = gNew + hNew;
 
 					// Check if this path is better than the one already present. If it is, add it to the open list and keep iterating the while loop
-					if (allMap[currX][currY][currZ].fCost == intmax || allMap[currX][currY][currZ].fCost > fNew)
+					if (allMap[currX][currY][currZ].fCost == floatmax || allMap[currX][currY][currZ].fCost > fNew)
 					{
 						// Update the details of this neighbour node
 						allMap[currX][currY][currZ].SetCosts(gNew, hNew, fNew);
