@@ -133,6 +133,7 @@ private:
 
 	void CreateBounds(Vec3I start, Vec3I destination);
 
+	std::array<std::array<std::array<Node, MAX_AR_Z>, MAX_AR_Y>, MAX_AR_X> mPath;
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z];
 	Vec3I mBoundsMax;
 	Vec3I mBoundsMin;

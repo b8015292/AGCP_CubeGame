@@ -127,6 +127,7 @@ public:
 
 	//The length, depth and height of a chunk
 	static const int sChunkDimension = 8;
+	static bool sGenerateLandscape;
 private:
 	bool IsChunkCoordValid(int x, int y, int z);
 	void LoadChunk(int x, int y, int z);

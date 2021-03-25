@@ -6,6 +6,7 @@ PerlinNoise WorldManager::sNoise = PerlinNoise();
 std::shared_ptr<std::unordered_map<std::string, int>> WorldManager::sMaterialIndexes = nullptr;
 int WorldManager::sChunkMaxID = 0;
 std::vector<WorldManager::Pos> WorldManager::sTreeStartPositions;
+bool WorldManager::sGenerateLandscape = false;
 
 //************************************************************************
 //						Chunk
@@ -23,67 +24,87 @@ WorldManager::Chunk::Chunk(Pos pos) {
 void WorldManager::Chunk::Init(Pos pos) {
 	mPosition = pos;
 
-	int treeLocationHeight = -1;
+	if (!sGenerateLandscape) {
 
-	for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
-	{
-		for (float worldX = 0; worldX < (float)WorldManager::sChunkDimension; ++worldX)
+		for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
 		{
-			int minTerrainHeight = 0;
-			float noise = minTerrainHeight + roundf(10.0f * (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 0.8, 6, 20));
+			for (float worldX = 0; worldX < (float)WorldManager::sChunkDimension; ++worldX)
+			{
+				for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
+					float x = pos.x * (float)WorldManager::sChunkDimension + (float)worldX;
+					float y = pos.y * (float)WorldManager::sChunkDimension + (float)worldY;
+					float z = pos.z * (float)WorldManager::sChunkDimension + (float)worldZ;
 
-
-			for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
-				//Generate different noises for coal and iron, so they are grouped together
-				float coalOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
-				float ironOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
-
-				float x = pos.x * (float)WorldManager::sChunkDimension + (float)worldX;
-				float y = pos.y * (float)WorldManager::sChunkDimension + (float)worldY;
-				float z = pos.z * (float)WorldManager::sChunkDimension + (float)worldZ;
-
-				//By checking the y values of the world, we can determine what sort of block it should be
-				if (worldY + pos.y * WorldManager::sChunkDimension < noise) {
-					if (worldY + pos.y * WorldManager::sChunkDimension > 0){
-						if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
-							if (coalOreNoise > 0.69 && coalOreNoise < 0.75) {
-								CreateCube("mat_coal_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
-							}
-							else if (ironOreNoise < 0.25) {
-								CreateCube("mat_iron_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
-							}
-							else {
-								CreateCube("mat_stone", { x, y, z }, true, mBlocks, mInstanceDatas);
-							}
-						}
-						else {
-							CreateCube("mat_dirt", { x, y, z }, true, mBlocks, mInstanceDatas);
-						}
-					}
-					else {
-						CreateCube("mat_bedrock", { x, y, z }, true, mBlocks, mInstanceDatas);
-					}
-				}
-				else if(worldY + pos.y * WorldManager::sChunkDimension == noise){
-					CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
-					//As this is the highest block at this x and z coordinate, then a tree can spawn here
-					if (worldX == WorldManager::sChunkDimension / 2 && worldZ == WorldManager::sChunkDimension / 2) {
-						treeLocationHeight = y + 1;
-					}
-				}
-				else {
-					CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
+					CreateCube("mat_dirt", { x, y, z }, false, mBlocks, mInstanceDatas);
 				}
 			}
 		}
-		//As we have seeded the rand function already, this will return the same value each time that seed is used.
-		int trees = rand() % 100;
 
-		//If the treeLocationHeight is 0 or less then this chunk has no grass in it
-		if (treeLocationHeight >= 0 && trees > 90) {
-			sTreeStartPositions.push_back({ pos.x * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2), treeLocationHeight, pos.z * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2) });
+
+	}
+	else {
+		int treeLocationHeight = -1;
+
+		for (float worldZ = 0; worldZ < (float)WorldManager::sChunkDimension; ++worldZ)
+		{
+			for (float worldX = 0; worldX < (float)WorldManager::sChunkDimension; ++worldX)
+			{
+				int minTerrainHeight = 0;
+				float noise = minTerrainHeight + roundf(10.0f * (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 0.8, 6, 20));
+
+
+				for (float worldY = 0; worldY < (float)WorldManager::sChunkDimension; ++worldY) {
+					//Generate different noises for coal and iron, so they are grouped together
+					float coalOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 8, 20);
+					float ironOreNoise = (float)WorldManager::sNoise.OctavePerlin(((double)worldX + (pos.x * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldY + (pos.y * (double)WorldManager::sChunkDimension)) * 0.002f, (double)(worldZ + (pos.z * (double)WorldManager::sChunkDimension)) * 0.002f, 15, 20);
+
+					float x = pos.x * (float)WorldManager::sChunkDimension + (float)worldX;
+					float y = pos.y * (float)WorldManager::sChunkDimension + (float)worldY;
+					float z = pos.z * (float)WorldManager::sChunkDimension + (float)worldZ;
+
+					//By checking the y values of the world, we can determine what sort of block it should be
+					if (worldY + pos.y * WorldManager::sChunkDimension < noise) {
+						if (worldY + pos.y * WorldManager::sChunkDimension > 0) {
+							if (worldY + pos.y * WorldManager::sChunkDimension < noise - 3) {
+								if (coalOreNoise > 0.69 && coalOreNoise < 0.75) {
+									CreateCube("mat_coal_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
+								}
+								else if (ironOreNoise < 0.25) {
+									CreateCube("mat_iron_ore", { x, y, z }, true, mBlocks, mInstanceDatas);
+								}
+								else {
+									CreateCube("mat_stone", { x, y, z }, true, mBlocks, mInstanceDatas);
+								}
+							}
+							else {
+								CreateCube("mat_dirt", { x, y, z }, true, mBlocks, mInstanceDatas);
+							}
+						}
+						else {
+							CreateCube("mat_bedrock", { x, y, z }, true, mBlocks, mInstanceDatas);
+						}
+					}
+					else if (worldY + pos.y * WorldManager::sChunkDimension == noise) {
+						CreateCube("mat_grass", { x, y, z }, true, mBlocks, mInstanceDatas);
+						//As this is the highest block at this x and z coordinate, then a tree can spawn here
+						if (worldX == WorldManager::sChunkDimension / 2 && worldZ == WorldManager::sChunkDimension / 2) {
+							treeLocationHeight = y + 1;
+						}
+					}
+					else {
+						CreateCube("mat_grass", { x, y, z }, false, mBlocks, mInstanceDatas);
+					}
+				}
+			}
+			//As we have seeded the rand function already, this will return the same value each time that seed is used.
+			int trees = rand() % 100;
+
+			//If the treeLocationHeight is 0 or less then this chunk has no grass in it
+			if (treeLocationHeight >= 0 && trees > 90) {
+				sTreeStartPositions.push_back({ pos.x * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2), treeLocationHeight, pos.z * WorldManager::sChunkDimension + (WorldManager::sChunkDimension / 2) });
+			}
+
 		}
-
 	}
 }
 

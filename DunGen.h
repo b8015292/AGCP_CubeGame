@@ -2,6 +2,7 @@
 
 #include "WorldManager.h"
 #include "DGPathfinding.h"
+#include "PerlinNoise.h"
 
 struct TempChunk {
 public:
@@ -18,6 +19,7 @@ public:
 private:
 	std::shared_ptr<WorldManager> mWorldMgr;
 	DGPathfinding mPathFinding;
+	PerlinNoise mNoise;
 
 	Vec3I mStartPoint;
 	Vec3I mEndPoint;

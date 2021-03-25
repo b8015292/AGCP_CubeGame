@@ -60,13 +60,13 @@ DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr) {
 }
 
 void DunGen::GenerateStartAndEnd() {
-	mStartPoint.x = 40;
-	mStartPoint.y = 7;
-	mStartPoint.z = 40;
+	mStartPoint.x = 50;
+	mStartPoint.y = 5;
+	mStartPoint.z = 50;
 
-	mEndPoint.x = 43;
-	mEndPoint.y = 7;
-	mEndPoint.z = 43;
+	mEndPoint.x = 53;
+	mEndPoint.y = 5;
+	mEndPoint.z = 53;
 }
 
 
@@ -78,7 +78,8 @@ void DunGen::GenerateObsticales() {
 
 void DunGen::GenerateDungeon() {
 	mPathFinding.Init(mWorldMgr, mObstacles);
-	mPaths.push_back(mPathFinding.AStar(mStartPoint, mEndPoint));
+	std::vector<Vec3I> main = mPathFinding.AStar(mStartPoint, mEndPoint);
+	mPaths.push_back(main);
 }
 
 void DunGen::SplitPathsIntoChunks() {
