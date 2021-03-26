@@ -20,24 +20,24 @@ void DGPathfinding::Init(std::shared_ptr<WorldManager> wmgr, bool obstacles[MAX_
 }
 
 void DGPathfinding::CreateBounds(Vec3I start, Vec3I dest) {
-	mBoundsMax = Vec3I(abs(start.x - dest.x), abs(start.y - dest.y), abs(start.z - dest.z));
+	//mBoundsMax = Vec3I(abs(start.x - dest.x), abs(start.y - dest.y), abs(start.z - dest.z));
 
-	//If the distance between the start and end is small enough, figure out the ratio to put them into the array
-	if (mBoundsMax.x < MAX_AR_X || mBoundsMax.y < MAX_AR_Y || mBoundsMax.z < MAX_AR_Z) {
+	////If the distance between the start and end is small enough, figure out the ratio to put them into the array
+	//if (mBoundsMax.x < MAX_AR_X || mBoundsMax.y < MAX_AR_Y || mBoundsMax.z < MAX_AR_Z) {
 
-		float xRatio = (float)(mBoundsMax.x) / (float)(start.x + dest.x);
-		float yRatio = (float)(mBoundsMax.y) / (float)(start.y + dest.y);
-		float zRatio = (float)(mBoundsMax.z) / (float)(start.z + dest.z);
+	//	float xRatio = (float)(mBoundsMax.x) / (float)(start.x + dest.x);
+	//	float yRatio = (float)(mBoundsMax.y) / (float)(start.y + dest.y);
+	//	float zRatio = (float)(mBoundsMax.z) / (float)(start.z + dest.z);
 
-		DirectX::XMFLOAT3 startPos(start.x * xRatio, start.y * yRatio, start.z * zRatio);
-		DirectX::XMFLOAT3 endPos(dest.x * xRatio, dest.y * yRatio, dest.z * zRatio);
-
-
+	//	DirectX::XMFLOAT3 startPos(start.x * xRatio, start.y * yRatio, start.z * zRatio);
+	//	DirectX::XMFLOAT3 endPos(dest.x * xRatio, dest.y * yRatio, dest.z * zRatio);
 
 
 
-		int a = mBoundsMax.x;
-	}
+
+
+	//	int a = mBoundsMax.x;
+	//}
 }
 
 bool DGPathfinding::IsValidIndex(size_t arrayI, size_t arrayJ, size_t arrayK) {
@@ -85,8 +85,7 @@ std::vector<Vec3I> DGPathfinding::MakePath(std::array<std::array<std::array<Node
 	int worldY = destination.y;
 	int worldZ = destination.z;
 
-	std::stack<Node>* path = new std::stack<Node>();
-	//std::vector<Node> path;
+	std::vector<Node> path;
 	std::vector<Node> usablePath;
 	std::vector<Vec3I> ret;
 
@@ -94,7 +93,7 @@ std::vector<Vec3I> DGPathfinding::MakePath(std::array<std::array<std::array<Node
 	while (!(map[x][y][z].parentX == worldX && map[x][y][z].parentY == worldY && map[x][y][z].parentZ == worldZ)
 		&& map[x][y][z].x != -1 && map[x][y][z].y != -1 && map[x][y][z].z != -1)
 	{
-		path->push(map[x][y][z]);
+		path.push_back(map[x][y][z]);
 		worldX = map[x][y][z].parentX;
 		worldY = map[x][y][z].parentY;
 		worldZ = map[x][y][z].parentZ;
@@ -103,14 +102,13 @@ std::vector<Vec3I> DGPathfinding::MakePath(std::array<std::array<std::array<Node
 		z = map[x][y][z].parentIndexZ;
 
 	}
-	path->push(map[x][y][z]);
+	path.push_back(map[x][y][z]);
 
-	while (!path->empty()) {
-		Node top = path->top();
-		path->pop();
+	for (size_t i = path.size() - 1; i != 0; i--) {
+		Node top = path.at(i);
 		ret.push_back({ top.x + 1, top.y + 1, top.z + 1 });
 	}
-	delete path;
+
 	return ret;
 }
 
@@ -130,34 +128,51 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 
 	{
 		//Fill in allMap with the correct coords
-		const size_t halfX = MAX_AR_X / 2.f;
-		const size_t halfY = MAX_AR_Y / 2.f;
-		const size_t halfZ = MAX_AR_Z / 2.f;
+		const int halfX = MAX_AR_X / 2;
+		const int halfY = MAX_AR_Y / 2;
+		const int halfZ = MAX_AR_Z / 2;
+		const size_t halfXT = MAX_AR_X / 2;
+		const size_t halfYT = MAX_AR_Y / 2;
+		const size_t halfZT = MAX_AR_Z / 2;
 
-		for (size_t x = -halfX; x < halfX; x++) {
-			for (size_t y = -halfY; y < halfY; y++) {
-				for (size_t z = -halfZ; z < halfZ; z++) {
-					allMap[x + halfX][y + halfY][z + halfZ].SetCoords((int)(start.x + x - 1), (int)(start.y + y - 1), (int)(start.z + z - 1));
-					allMap[x + halfX][y + halfY][z + halfZ].SetIndex(x + halfX, y + halfY, z + halfZ);
+		size_t tempX, tempY, tempZ;
+
+		for (int x = -halfX; x < halfX; x++) {
+			tempX = (size_t)x + halfXT;
+			for (int y = -halfY; y < halfY; y++) {
+				tempY = (size_t)y + halfYT;
+				for (int z = -halfZ; z < halfZ; z++) {
+
+					tempZ = (size_t)z + halfZT;
+
+
+					allMap[tempX][tempY][tempZ].fCost = 2.f;
+					allMap[tempX][tempY][tempZ].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
+					allMap[tempX][tempY][tempZ].SetIndex(tempX, tempY, tempZ);
+
+					/*allMap[tempX][tempY][tempZ].fCost = 2.f;
+					allMap[tempX][tempY][tempZ].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
+					allMap[tempX][tempY][tempZ].SetIndex(tempX, tempY, tempZ);*/
 				}
 			}
 		}
 
 		//Initialize our starting position
-		allMap[halfX][halfY][halfZ].SetParent(start.x, start.y, start.z, halfX, halfY, halfZ);
-		allMap[halfX][halfY][halfZ].SetCosts(0, 0, 0);
+
+		allMap[halfXT][halfYT][halfZT].SetParent(start.x, start.y, start.z, halfX, halfY, halfZ);
+		allMap[halfXT][halfYT][halfZT].SetCosts(0, 0, 0);
 
 		//Initialize the end position
 		{
-			size_t destX = halfX + (size_t)(dest.x - start.x);
-			size_t destY = halfY + (size_t)(dest.y - start.y);
-			size_t destZ = halfZ + (size_t)(dest.z - start.z);
+			size_t destX = halfXT + (size_t)dest.x - (size_t)start.x;
+			size_t destY = halfYT + (size_t)dest.y - (size_t)start.y;
+			size_t destZ = halfZT + (size_t)dest.z - (size_t)start.z;
 			destination.SetIndex(destX, destY, destZ);
 			destination.SetCoords(dest.x, dest.y, dest.z);
 		}
 
 		//Add the start position to the open list
-		openList.emplace_back(allMap[halfX][halfY][halfZ]);
+		openList.emplace_back(allMap[halfXT][halfYT][halfZT]);
 	}
 
 	bool destinationFound = false;
