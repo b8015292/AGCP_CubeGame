@@ -64,9 +64,8 @@ void DunGen::GenerateStartAndEnd() {
 	mStartPoint.y = 5;
 	mStartPoint.z = 50;
 
-	mEndPoint.x = 53;
-	mEndPoint.y = 5;
-	mEndPoint.z = 53;
+	mEndPoint = mStartPoint;
+	mEndPoint.x += 5;
 }
 
 

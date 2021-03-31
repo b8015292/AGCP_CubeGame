@@ -10,9 +10,10 @@
 #include "WorldManager.h"
 
 //Maximum size of the array - not world size
-#define MAX_AR_X 12
-#define MAX_AR_Y 12
-#define MAX_AR_Z 12
+#define MAX_AR_X 128
+#define MAX_AR_Y 1
+#define MAX_AR_Z 128
+#define MAX_TOTAL MAX_AR_X * MAX_AR_Y * MAX_AR_Z
 
 //const int intmax = 32767;
 //const float floatmax = 3.402823466e+38F;
@@ -134,21 +135,23 @@ private:
 	bool IsDestination(int x, int y, int z, Node destination);
 	int CalculateH(int x, int y, int z, Node destination);
 
-	std::vector<Vec3I> MakePath(std::array<std::array<std::array<Node, MAX_AR_Z>, MAX_AR_Y>, MAX_AR_X> map, Node destination);
+	//std::vector<Vec3I> MakePath(std::array<Node, MAX_AR_Z * MAX_AR_Y * MAX_AR_X> map, Node destination);
+	std::vector<Vec3I> MakePath(Node map[MAX_TOTAL], Node destination);
 
 	void CreateBounds(Vec3I start, Vec3I destination);
+	size_t GetIndexOf3DArray(size_t x, size_t y, size_t z);
 
-	std::array<std::array<std::array<Node, MAX_AR_Z>, MAX_AR_Y>, MAX_AR_X> mPath;
+	std::array<Node, MAX_TOTAL> mPath;
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z];
 	Vec3I mBoundsMax;
 	Vec3I mBoundsMin;
 
-	DirectX::XMINT3 mNeighbors[6] = {
-		{-1, 0, 0},
+	DirectX::XMINT3 mNeighbors[4] = {
 		{1, 0, 0},
-		{0, -1, 0},
-		{0, 1, 0},
-		{0, 0, -1},
+		{-1, 0, 0},
 		{0, 0, 1},
+		{0, 0, -1},
+		//{0, 1, 0},
+		//{0, -1, 0},
 	};
 };

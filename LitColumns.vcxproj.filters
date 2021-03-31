@@ -260,5 +260,8 @@
     <ClInclude Include="DGPathfinding.h">
       <Filter>GameData\Header Files\AI</Filter>
     </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
