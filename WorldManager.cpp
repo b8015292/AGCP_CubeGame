@@ -509,8 +509,10 @@ std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunkFromWorldCoords(Direc
 	int y = (int)floorf(pos.y / sChunkDimension);
 	int z = (int)floorf(pos.z / sChunkDimension);
 
-	if (!IsChunkCoordValid(x, y, z))
+	if (!IsChunkCoordValid(x, y, z)) {
+		assert(true);
 		return GetChunk(0, 0, 0);
+	}
 
 	return GetChunk(x, y, z);
 }
@@ -745,5 +747,5 @@ int WorldManager::GetTotalAmountOfBlocks() {
 
 
 WorldManager::Pos WorldManager::GetWorldSize() {
-	return { sChunkSize * mMaxLength, sChunkSize * mMaxHeight, sChunkSize * mMaxLength };
+	return { sChunkDimension * mMaxLength, sChunkDimension * mMaxHeight, sChunkDimension * mMaxLength };
 }

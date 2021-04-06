@@ -3,6 +3,8 @@
 #include "WorldManager.h"
 #include "DGPathfinding.h"
 #include "PerlinNoise.h"
+#include <ctime>
+
 
 struct TempChunk {
 public:
@@ -21,6 +23,7 @@ private:
 	DGPathfinding mPathFinding;
 	PerlinNoise mNoise;
 
+	Vec3I mWorldSize;
 	Vec3I mStartPoint;
 	Vec3I mEndPoint;
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z] = { false };
@@ -29,7 +32,7 @@ private:
 	std::vector<TempChunk> mSplitPath;
 
 	void GenerateStartAndEnd();
-	void GenerateObsticales();
+	void GenerateObsticales(double chance);
 	void GenerateDungeon();
 	void SplitPathsIntoChunks();
 

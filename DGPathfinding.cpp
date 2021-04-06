@@ -79,12 +79,12 @@ size_t DGPathfinding::GetIndexOf3DArray(size_t x, size_t y, size_t z) {
 	return (x * MAX_AR_Y * MAX_AR_Z) + (y * MAX_AR_Z) + z;
 }
 
-//std::vector<Vec3I> DGPathfinding::MakePath(std::array<Node, MAX_AR_Z * MAX_AR_Y * MAX_AR_X> map, Node destination)
-std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_AR_Z * MAX_AR_Y * MAX_AR_X] , Node destination)
+std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination)
 {
 	size_t x = destination.indexX;
 	size_t y = destination.indexY;
 	size_t z = destination.indexZ;
+	size_t index = GetIndexOf3DArray(x, y, z);
 
 	int worldX = destination.x;
 	int worldY = destination.y;
@@ -95,19 +95,19 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_AR_Z * MAX_AR_Y * MAX_AR
 	std::vector<Vec3I> ret;
 
 	//From the end point, this iterates through its parents, making a path from the end to the start
-	while (!(map[x][y][z].parentX == worldX && map[x][y][z].parentY == worldY && map[x][y][z].parentZ == worldZ)
-		&& map[x][y][z].x != -1 && map[x][y][z].y != -1 && map[x][y][z].z != -1)
+	while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
+		&& map[index].x != -1 && map[index].y != -1 && map[index].z != -1)
 	{
-		path.push_back(map[x][y][z]);
-		worldX = map[x][y][z].parentX;
-		worldY = map[x][y][z].parentY;
-		worldZ = map[x][y][z].parentZ;
-		x = map[x][y][z].parentIndexX;
-		y = map[x][y][z].parentIndexY;
-		z = map[x][y][z].parentIndexZ;
-
+		path.push_back(map[index]);
+		worldX = map[index].parentX;
+		worldY = map[index].parentY;
+		worldZ = map[index].parentZ;
+		x = map[index].parentIndexX;
+		y = map[index].parentIndexY;
+		z = map[index].parentIndexZ;
+		index = GetIndexOf3DArray(x, y, z);
 	}
-	path.push_back(map[x][y][z]);
+	path.push_back(map[index]);
 
 	for (size_t i = path.size() - 1; i != 0; i--) {
 		Node top = path.at(i);
@@ -119,17 +119,17 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_AR_Z * MAX_AR_Y * MAX_AR
 
 std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 	//Are the start and end points valid?
-
 	if (!IsValidWorldCoord(start) || !IsValidWorldCoord(dest)) {
 		std::vector<Vec3I> empty;
 		return empty;
 	}
 
-	bool closedList[MAX_AR_X][MAX_AR_Y][MAX_AR_Z] = { false };
-	std::array<std::array<std::array<Node, MAX_AR_Z>, MAX_AR_Y>, MAX_AR_X> allMap;
-	std::vector<Node> openList;
-	Node destination;
 
+	bool closedList[MAX_AR_X * MAX_AR_Y * MAX_AR_Z] = { false };
+	Node allMap[MAX_TOTAL];
+	std::vector<Node> openList;
+	Node destination, tempNode;
+	size_t tempX, tempY, tempZ, index;
 
 	{
 		//Fill in allMap with the correct coords
@@ -139,34 +139,28 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 		const size_t halfXT = MAX_AR_X / 2;
 		const size_t halfYT = MAX_AR_Y / 2;
 		const size_t halfZT = MAX_AR_Z / 2;
-
-		size_t tempX, tempY, tempZ;
-
+		tempY = 0;
+		int y = 1;
 		for (int x = -halfX; x < halfX; x++) {
 			tempX = (size_t)x + halfXT;
 			//for (int y = -halfY; y < halfY; y++) {
 				//tempY = (size_t)y + halfYT;
-				tempY = 0;
 				for (int z = -halfZ; z < halfZ; z++) {
 
 					tempZ = (size_t)z + halfZT;
+					index = GetIndexOf3DArray(tempX, tempY, tempZ);
 
-
-					allMap[tempX][tempY][tempZ].fCost = 2.f;
-					allMap[tempX][tempY][tempZ].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
-					allMap[tempX][tempY][tempZ].SetIndex(tempX, tempY, tempZ);
-
-					/*allMap[tempX][tempY][tempZ].fCost = 2.f;
-					allMap[tempX][tempY][tempZ].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
-					allMap[tempX][tempY][tempZ].SetIndex(tempX, tempY, tempZ);*/
+					allMap[index].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
+					allMap[index].SetIndex(tempX, tempY, tempZ);
 				}
 			//}
 		}
 
-		//Initialize our starting position
-
-		allMap[halfXT][halfYT][halfZT].SetParent(start.x, start.y, start.z, halfX, halfY, halfZ);
-		allMap[halfXT][halfYT][halfZT].SetCosts(0, 0, 0);
+		//Initialize our starting position and add it to the open list
+		index = GetIndexOf3DArray(halfXT, halfYT, halfZT);
+		allMap[index].SetParent(start.x, start.y, start.z, halfX, halfY, halfZ);
+		allMap[index].SetCosts(0, 0, 0);
+		openList.emplace_back(allMap[index]);
 
 		//Initialize the end position
 		{
@@ -176,23 +170,18 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 			destination.SetIndex(destX, destY, destZ);
 			destination.SetCoords(dest.x, dest.y, dest.z);
 		}
-
-		//Add the start position to the open list
-		openList.emplace_back(allMap[halfXT][halfYT][halfZT]);
 	}
 
 	bool destinationFound = false;
-	size_t x, y, z;
+	int gNew, hNew, fNew, x, y, z;
+	Node parentNode;
+	Vec3I pos;
 
-	int iterations = 0;
 
-	while (!openList.empty() && openList.size() < MAX_TOTAL) {
-
-		GameData::Print("\nIteration: " + std::to_string(iterations++));
+	while (!openList.empty() && openList.size() < MAX_AR_X * MAX_AR_Y * MAX_AR_Z) {
 
 		//Find a valid node. Each iteration removes the cheapest node
-		Node node;
-		do {
+		{
 			//Set the comparison cost to the max value
 			float temp = floatmax;
 			std::vector<Node>::iterator itNode;
@@ -205,59 +194,62 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 					itNode = it;
 				}
 			}
-			
+
 			//Save a local copy of the cheapest node, while erasing it from the list
 			if (itNode._Ptr != nullptr) {
-				node = *itNode;
+				tempNode = *itNode;
 				openList.erase(itNode);
 			}
-
-		} while (IsValidIndex(node.indexX, node.indexY, node.indexZ) == false);
+		}
 
 		//Add the node to the closed list
-		x = node.indexX;
-		y = node.indexY;
-		z = node.indexZ;
-		Node parentNode = allMap[x][y][z];
-		closedList[x][y][z] = true;
+		index = GetIndexOf3DArray(tempNode.indexX, tempNode.indexY, tempNode.indexZ);
+		parentNode = allMap[index];
+		closedList[index] = true;
+		pos = { (int)tempNode.indexX, (int)tempNode.indexY, (int)tempNode.indexZ };
 
-		Vec3I pos{ x, y, z };
 		for each (DirectX::XMINT3 dir in mNeighbors) {
-			size_t currX = (size_t)(pos.x + dir.x);
-			size_t currY = (size_t)(pos.y + dir.y);
-			size_t currZ = (size_t)(pos.z + dir.z);
-			int gNew, hNew, fNew;
+			x = pos.x + dir.x;
+			y = pos.y + dir.y;
+			z = pos.z + dir.z;
+			tempX = (size_t)x;
+			tempY = (size_t)y;
+			tempZ = (size_t)z;
+
+
 
 			//Check if the neighbor is valid
-			if (IsValidIndex(currX, currY, currZ)) {
-				Node tempNode = allMap[currX][currY][currZ];
+			if (IsValidIndex(tempX, tempY, tempZ)) {
+				index = GetIndexOf3DArray(tempX, tempY, tempZ);
+				tempNode = allMap[index];
 
 				//Check if the neighbor is the destination, if so, return.
-				if (IsDestination((int)currX, (int)currY, (int)currZ, destination))
+				if (IsDestination(x, y, z, destination))
 				{
 					//Destination found - make path
-					allMap[currX][currY][currZ].SetParent(parentNode.x, parentNode.y,parentNode.z, parentNode.indexX, parentNode.indexY, parentNode.indexZ);
+					allMap[index].SetParent(parentNode.x, parentNode.y, parentNode.z, parentNode.indexX, parentNode.indexY, parentNode.indexZ);
 					destination.SetParent(parentNode.x, parentNode.y, parentNode.z, parentNode.indexX, parentNode.indexY, parentNode.indexZ);
 					destinationFound = true;
 					return MakePath(allMap, destination);
 				}
 
 				//Check neighbor is not closed (so is an option)
-				else if (closedList[currX][currY][currZ] == false)
+				else if (closedList[index] == false)
 				{
 					//Calculate the new costs
-					gNew = node.gCost + 1;
-					hNew = CalculateH((int)currX, (int)currY, (int)currZ, destination);
+					gNew = tempNode.gCost + 1;
+					hNew = CalculateH(x, y, z, destination);
 					fNew = gNew + hNew;
 
-					int a = allMap[currX][currY][currZ].fCost - floatmax;
+					int a = allMap[index].fCost - floatmax;
 					// Check if this path is better than the one already present. If it is, add it to the open list and keep iterating the while loop
-					if (a == 0 || a == -2147483648 || allMap[currX][currY][currZ].fCost == floatmax || allMap[currX][currY][currZ].fCost > fNew)
+					if (a == 0 || a == -2147483648 || allMap[index].fCost == floatmax || allMap[index].fCost > fNew)
 					{
 						// Update the details of this neighbour node
-						allMap[currX][currY][currZ].SetCosts(gNew, hNew, fNew);
-						allMap[currX][currY][currZ].SetParent(parentNode.x, parentNode.y, parentNode.z, parentNode.indexX, parentNode.indexY, parentNode.indexZ);
-						openList.emplace_back(allMap[currX][currY][currZ]);
+						allMap[index].SetCosts(gNew, hNew, fNew);
+						allMap[index].SetParent(parentNode.x, parentNode.y, parentNode.z, parentNode.indexX, parentNode.indexY, parentNode.indexZ);
+						openList.emplace_back(allMap[index]);
+						closedList[index] = true;
 					}
 				}
 			}
@@ -265,7 +257,7 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 		}
 	}
 
-	//If the function has not already returned, it has not found a destination. So return an empty list
+	//No path found
 	std::vector<Vec3I> empty;
 	return empty;
 }

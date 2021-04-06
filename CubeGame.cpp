@@ -709,10 +709,10 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 		}
 		break;
 	case GameStates::STARTUP:
-		if (keySpaceDown) {
+		//if (keySpaceDown) {
 			changeState(GameStates::LOADWORLD);
 			SetUIString("Loading", 10, 8, TextLayers::DEBUG);
-		}
+		//}
 		if (keyCDown && (actionComplete == false)) {
 			mUI_Controls->GetRI()->active = !mUI_Controls->GetRI()->active;
 			actionComplete = true;
