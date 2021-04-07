@@ -4,12 +4,14 @@ DGPathfinding::DGPathfinding() {
 
 }
 
-void DGPathfinding::Init(std::shared_ptr<WorldManager> wmgr, bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
+void DGPathfinding::Init(std::shared_ptr<WorldManager> wmgr) {
 	mWorldManager = wmgr;
 
 	WorldManager::Pos p = mWorldManager->GetWorldSize();
 	mWorldSize = Vec3I(p.x, p.y, p.z);
+}
 
+void DGPathfinding::SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
 	for (int i = 0; i < MAX_AR_X; i++) {
 		for (int j = 0; j < MAX_AR_Y; j++) {
 			for (int k = 0; k < MAX_AR_Z; k++) {
@@ -19,25 +21,34 @@ void DGPathfinding::Init(std::shared_ptr<WorldManager> wmgr, bool obstacles[MAX_
 	}
 }
 
-void DGPathfinding::CreateBounds(Vec3I start, Vec3I dest) {
-	//mBoundsMax = Vec3I(abs(start.x - dest.x), abs(start.y - dest.y), abs(start.z - dest.z));
+void DGPathfinding::SetMainPath(Vec3I start, Vec3I end) {
+	//Fill in allMap with the correct coords
+	const int halfX = MAX_AR_X / 2;
+	const int halfY = MAX_AR_Y / 2;
+	const int halfZ = MAX_AR_Z / 2;
+	const size_t halfXT = MAX_AR_X / 2;
+	const size_t halfYT = MAX_AR_Y / 2;
+	const size_t halfZT = MAX_AR_Z / 2;
 
-	////If the distance between the start and end is small enough, figure out the ratio to put them into the array
-	//if (mBoundsMax.x < MAX_AR_X || mBoundsMax.y < MAX_AR_Y || mBoundsMax.z < MAX_AR_Z) {
+	size_t tempX, tempY, tempZ, index;
 
-	//	float xRatio = (float)(mBoundsMax.x) / (float)(start.x + dest.x);
-	//	float yRatio = (float)(mBoundsMax.y) / (float)(start.y + dest.y);
-	//	float zRatio = (float)(mBoundsMax.z) / (float)(start.z + dest.z);
+	tempY = 0;
+	int y = 1;
 
-	//	DirectX::XMFLOAT3 startPos(start.x * xRatio, start.y * yRatio, start.z * zRatio);
-	//	DirectX::XMFLOAT3 endPos(dest.x * xRatio, dest.y * yRatio, dest.z * zRatio);
+	for (int x = -halfX; x < halfX; x++) {
+		tempX = (size_t)x + halfXT;
+		//for (int y = -halfY; y < halfY; y++) {
+			//tempY = (size_t)y + halfYT;
+		for (int z = -halfZ; z < halfZ; z++) {
 
+			tempZ = (size_t)z + halfZT;
+			index = GetIndexOf3DArray(tempX, tempY, tempZ);
 
-
-
-
-	//	int a = mBoundsMax.x;
-	//}
+			mAllMap[index].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
+			mAllMap[index].SetIndex(tempX, tempY, tempZ);
+		}
+		//}
+	}
 }
 
 bool DGPathfinding::IsValidIndex(size_t arrayI, size_t arrayJ, size_t arrayK) {
@@ -139,21 +150,10 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 		const size_t halfXT = MAX_AR_X / 2;
 		const size_t halfYT = MAX_AR_Y / 2;
 		const size_t halfZT = MAX_AR_Z / 2;
-		tempY = 0;
-		int y = 1;
-		for (int x = -halfX; x < halfX; x++) {
-			tempX = (size_t)x + halfXT;
-			//for (int y = -halfY; y < halfY; y++) {
-				//tempY = (size_t)y + halfYT;
-				for (int z = -halfZ; z < halfZ; z++) {
 
-					tempZ = (size_t)z + halfZT;
-					index = GetIndexOf3DArray(tempX, tempY, tempZ);
-
-					allMap[index].SetCoords(start.x + x - 1, start.y + y - 1, start.z + z - 1);
-					allMap[index].SetIndex(tempX, tempY, tempZ);
-				}
-			//}
+		//Copy the mAllMap into the local version
+		for (size_t i = 0; i < MAX_TOTAL; i++) {
+			allMap[i] = mAllMap[i];
 		}
 
 		//Initialize our starting position and add it to the open list
@@ -163,20 +163,17 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 		openList.emplace_back(allMap[index]);
 
 		//Initialize the end position
-		{
-			size_t destX = halfXT + (size_t)dest.x - (size_t)start.x;
-			size_t destY = halfYT + (size_t)dest.y - (size_t)start.y;
-			size_t destZ = halfZT + (size_t)dest.z - (size_t)start.z;
-			destination.SetIndex(destX, destY, destZ);
-			destination.SetCoords(dest.x, dest.y, dest.z);
-		}
+		tempX = halfXT + (size_t)dest.x - (size_t)start.x;
+		tempY = halfYT + (size_t)dest.y - (size_t)start.y;
+		tempZ = halfZT + (size_t)dest.z - (size_t)start.z;
+		destination.SetIndex(tempX, tempY, tempZ);
+		destination.SetCoords(dest.x, dest.y, dest.z);
 	}
 
 	bool destinationFound = false;
 	int gNew, hNew, fNew, x, y, z;
 	Node parentNode;
 	Vec3I pos;
-
 
 	while (!openList.empty() && openList.size() < MAX_AR_X * MAX_AR_Y * MAX_AR_Z) {
 
@@ -215,8 +212,6 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 			tempX = (size_t)x;
 			tempY = (size_t)y;
 			tempZ = (size_t)z;
-
-
 
 			//Check if the neighbor is valid
 			if (IsValidIndex(tempX, tempY, tempZ)) {

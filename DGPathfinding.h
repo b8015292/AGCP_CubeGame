@@ -122,7 +122,9 @@ class DGPathfinding
 public:
 	DGPathfinding();
 
-	void Init(std::shared_ptr<WorldManager>, bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]);
+	void Init(std::shared_ptr<WorldManager>);
+	void SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]);
+	void SetMainPath(Vec3I start, Vec3I end);
 
 	std::vector<Vec3I> AStar(Vec3I start, Vec3I destination);
 
@@ -138,11 +140,11 @@ private:
 	//std::vector<Vec3I> MakePath(std::array<Node, MAX_AR_Z * MAX_AR_Y * MAX_AR_X> map, Node destination);
 	std::vector<Vec3I> MakePath(Node map[MAX_TOTAL], Node destination);
 
-	void CreateBounds(Vec3I start, Vec3I destination);
 	size_t GetIndexOf3DArray(size_t x, size_t y, size_t z);
 
 	std::array<Node, MAX_TOTAL> mPath;
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z];
+	Node mAllMap[MAX_TOTAL];
 	Vec3I mBoundsMax;
 	Vec3I mBoundsMin;
 

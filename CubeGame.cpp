@@ -885,8 +885,11 @@ void CubeGame::DestroySelectedBlock() {
 }
 
 void CubeGame::RespawnPlayer() {
-	mWorldMgr.RelocatePlayer(mSpawnPoint);
-	mPlayer->SetPosition(mSpawnPoint);
+	DirectX::XMFLOAT3 spawn = mSpawnPoint;
+	//spawn.y += 15.f;
+
+	mWorldMgr.RelocatePlayer(spawn);
+	mPlayer->SetPosition(spawn);
 	mPlayerChangedView = true;
 }
 

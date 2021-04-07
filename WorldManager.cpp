@@ -511,7 +511,7 @@ std::shared_ptr<WorldManager::Chunk> WorldManager::GetChunkFromWorldCoords(Direc
 
 	if (!IsChunkCoordValid(x, y, z)) {
 		assert(true);
-		return GetChunk(0, 0, 0);
+ 		return GetChunk(0, 0, 0);
 	}
 
 	return GetChunk(x, y, z);
