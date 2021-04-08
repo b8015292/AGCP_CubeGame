@@ -132,21 +132,19 @@ private:
 	std::shared_ptr<WorldManager> mWorldManager;
 	Vec3I mWorldSize;
 
+	size_t GetIndexOf3DArray(size_t x, size_t y, size_t z);
 	bool IsValidIndex(size_t x, size_t y, size_t z);
 	bool IsValidWorldCoord(Vec3I pos);
 	bool IsDestination(int x, int y, int z, Node destination);
 	int CalculateH(int x, int y, int z, Node destination);
 
-	//std::vector<Vec3I> MakePath(std::array<Node, MAX_AR_Z * MAX_AR_Y * MAX_AR_X> map, Node destination);
 	std::vector<Vec3I> MakePath(Node map[MAX_TOTAL], Node destination);
 
-	size_t GetIndexOf3DArray(size_t x, size_t y, size_t z);
 
-	std::array<Node, MAX_TOTAL> mPath;
+
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z];
 	Node mAllMap[MAX_TOTAL];
-	Vec3I mBoundsMax;
-	Vec3I mBoundsMin;
+	Vec3I mStartPoint;
 
 	DirectX::XMINT3 mNeighbors[4] = {
 		{1, 0, 0},

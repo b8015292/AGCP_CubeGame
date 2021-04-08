@@ -22,6 +22,8 @@ void DGPathfinding::SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
 }
 
 void DGPathfinding::SetMainPath(Vec3I start, Vec3I end) {
+	mStartPoint = start;
+
 	//Fill in allMap with the correct coords
 	const int halfX = MAX_AR_X / 2;
 	const int halfY = MAX_AR_Y / 2;
@@ -87,7 +89,8 @@ int DGPathfinding::CalculateH(int x, int y, int z, Node destination)
 }
 
 size_t DGPathfinding::GetIndexOf3DArray(size_t x, size_t y, size_t z) {
-	return (x * MAX_AR_Y * MAX_AR_Z) + (y * MAX_AR_Z) + z;
+	//return (x * MAX_AR_Y * MAX_AR_Z) + (y * MAX_AR_Z) + z;
+	return (x * MAX_AR_Y * MAX_AR_Z) + z;
 }
 
 std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination)
@@ -118,7 +121,7 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination
 		z = map[index].parentIndexZ;
 		index = GetIndexOf3DArray(x, y, z);
 	}
-	path.push_back(map[index]);
+	//path.push_back(map[index]);
 
 	for (size_t i = path.size() - 1; i != 0; i--) {
 		Node top = path.at(i);
@@ -134,7 +137,6 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 		std::vector<Vec3I> empty;
 		return empty;
 	}
-
 
 	bool closedList[MAX_AR_X * MAX_AR_Y * MAX_AR_Z] = { false };
 	Node allMap[MAX_TOTAL];
@@ -156,18 +158,41 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 			allMap[i] = mAllMap[i];
 		}
 
-		//Initialize our starting position and add it to the open list
-		index = GetIndexOf3DArray(halfXT, halfYT, halfZT);
-		allMap[index].SetParent(start.x, start.y, start.z, halfX, halfY, halfZ);
-		allMap[index].SetCosts(0, 0, 0);
-		openList.emplace_back(allMap[index]);
+		//If this is the main path
+		if (start == mStartPoint) {
+			//Initialize our starting position and add it to the open list
+			index = GetIndexOf3DArray(halfXT, halfYT, halfZT);
+			allMap[index].SetParent(start.x, start.y, start.z, halfX, halfY, halfZ);
+			allMap[index].SetCosts(0, 0, 0);
+			openList.emplace_back(allMap[index]);
 
-		//Initialize the end position
-		tempX = halfXT + (size_t)dest.x - (size_t)start.x;
-		tempY = halfYT + (size_t)dest.y - (size_t)start.y;
-		tempZ = halfZT + (size_t)dest.z - (size_t)start.z;
-		destination.SetIndex(tempX, tempY, tempZ);
-		destination.SetCoords(dest.x, dest.y, dest.z);
+			//Initialize the end position
+			tempX = halfXT + (size_t)dest.x - (size_t)start.x;
+			tempY = halfYT + (size_t)dest.y - (size_t)start.y;
+			tempZ = halfZT + (size_t)dest.z - (size_t)start.z;
+			destination.SetIndex(tempX, tempY, tempZ);
+			destination.SetCoords(dest.x, dest.y, dest.z);
+		}
+		//If this is a side path
+		else {
+			//get the array position of the current start and add it to the open list
+			tempX = halfXT + ((size_t)start.x - (size_t)mStartPoint.x);
+			tempY = halfYT + ((size_t)start.y - (size_t)mStartPoint.y);
+			tempZ = halfZT + ((size_t)start.z - (size_t)mStartPoint.z);
+			index = GetIndexOf3DArray(tempX, tempY, tempZ);
+
+			allMap[index].SetCosts(0, 0, 0);
+			openList.emplace_back(allMap[index]);
+
+			//Set the destination
+			tempX = halfXT + ((size_t)dest.x - (size_t)mStartPoint.x);
+			tempY = halfYT + ((size_t)dest.y - (size_t)mStartPoint.y);
+			tempZ = halfZT + ((size_t)dest.z - (size_t)mStartPoint.z);
+			index = GetIndexOf3DArray(tempX, tempY, tempZ);
+
+			destination.SetIndex(tempX, tempY, tempZ);
+			destination.SetCoords(dest.x, dest.y, dest.z);
+		}
 	}
 
 	bool destinationFound = false;

@@ -77,6 +77,7 @@ void DunGen::GenerateMainPath(int minLength) {
 
 	//Add an empty path
 	Path p;
+	p.index = 0;
 	mPaths.push_back(p);
 
 	int obsticalAttempts;
@@ -208,8 +209,6 @@ void DunGen::GenerateObsticales(double chance) {
 			}
 		}
 	}
-
-
 }
 
 void DunGen::GeneratePath(size_t index) {
