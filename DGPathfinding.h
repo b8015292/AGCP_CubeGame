@@ -46,29 +46,29 @@ public:
 struct Node
 {
 public:
-	size_t indexX = 0;
-	size_t indexY = 0;
-	size_t indexZ = 0;
-	size_t parentIndexX = 0;
-	size_t parentIndexY = 0;
-	size_t parentIndexZ = 0;
-	size_t buffer1 = 0;
-	size_t buffer2 = 0;
-
 	int x = 0;
 	int y = 0;
 	int z = 0;
 	int parentX = -1;
 	int parentY = -1;
 	int parentZ = -1;
-	int buffer3 = -1;
-	int buffer4 = -1;
+	//int buffer3 = -1;
+	//int buffer4 = -1;
+
+	size_t indexX = 0;
+	size_t indexY = 0;
+	size_t indexZ = 0;
+	size_t parentIndexX = 0;
+	size_t parentIndexY = 0;
+	size_t parentIndexZ = 0;
+	//size_t buffer1 = 0;
+	//size_t buffer2 = 0;
 
 	//float gCost = FLT_MAX;
 	float gCost = floatmax;
 	float hCost = floatmax;
 	float fCost = floatmax;
-	float buffer5 = floatmax;
+	//float buffer5 = floatmax;
 
 	void SetNode(size_t ix, size_t iy, size_t iz, int nx, int ny, int nz, size_t pix, size_t piy, size_t piz, int npx, int npy, int npz, float ngc = floatmax, float nhc = floatmax, float nfc = floatmax) {
 		indexX = ix;
@@ -125,6 +125,7 @@ public:
 	void Init(std::shared_ptr<WorldManager>);
 	void SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]);
 	void SetMainPath(Vec3I start, Vec3I end);
+	void AddPathToObstacles(std::vector<Vec3I> path);
 
 	std::vector<Vec3I> AStar(Vec3I start, Vec3I destination);
 

@@ -64,6 +64,9 @@ DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr) {
 
 	GenerateMainPath(30);
 	GenerateSidePath(0, true, 20);
+	GenerateSidePath(0, true, 20);
+	GenerateSidePath(0, false, 20);
+	GenerateSidePath(0, false, 20);
 
 
 	FillFloor();
@@ -105,6 +108,8 @@ void DunGen::GenerateMainPath(int minLength) {
 
 		}
 	} while (mPaths.at(0).positions.empty());
+
+	mPathFinding.AddPathToObstacles(mPaths.at(0).positions);
 }
 
 void DunGen::GenerateSidePath(size_t parentPath, bool deadend, int minLength) {
@@ -123,7 +128,26 @@ void DunGen::GenerateSidePath(size_t parentPath, bool deadend, int minLength) {
 		GenerateSideLinkEnd(p.index, minLength);
 	}
 
-	GeneratePath(p.index);
+	int obsticalAttempts = 0;
+	int maxObsticalAttempts = 10;
+	double obsticalChanceInitial = 0.5;
+	double obsticalChance = obsticalChanceInitial;
+	double obsticalChanceDecrement = obsticalChance / (double)maxObsticalAttempts;
+
+	//Keep trying new obstacle sets until a path is found
+	do {
+		//Generate new obstacles, and add the main path to that list
+		GenerateObsticales(obsticalChance);
+		mPathFinding.SetObstcales(mObstacles);
+		mPathFinding.AddPathToObstacles(mPaths.at(0).positions);
+
+		GeneratePath(p.index);
+
+		obsticalAttempts++;
+		obsticalChance -= obsticalChanceDecrement;
+	} while (mPaths.at(p.index).positions.empty() && obsticalAttempts < maxObsticalAttempts);
+
+	mPathFinding.AddPathToObstacles(mPaths.at(0).positions);
 }
 
 void DunGen::GenerateSideStart(size_t index) {
@@ -150,7 +174,8 @@ void DunGen::GenerateSideDeadEnd(size_t index, int minLength) {
 	} while (mPaths.at(index).end == mPaths.at(index).start
 		|| mPaths.at(index).end.x < 0 || mPaths.at(index).end.z < 0
 		|| mPaths.at(index).end.x >= mWorldSize.x || mPaths.at(index).end.z >= mWorldSize.z
-		|| distance < minLength
+		|| distance < minLength || distance > minLength + 5
+
 		);
 }
 
@@ -159,11 +184,11 @@ void DunGen::GenerateSideLinkEnd(size_t index, int minLength) {
 
 	do {
 		//Exclude the first and last index
-		size_t endIndex = 1 + (((size_t)rand() % size) - 3);
+		size_t endIndex = 1 + (((size_t)rand() % size) - 2);
 
 		//Set the start of this path to a position in its parents path
-		mPaths.at(index).start = mPaths.at(mPaths.at(index).parentIndex).positions.at(endIndex);
-	} while (mPaths.at(index).start == mPaths.at(index).end);
+		mPaths.at(index).end = mPaths.at(mPaths.at(index).parentIndex).positions.at(endIndex);
+	} while (mPaths.at(index).start == mPaths.at(index).end );
 }
 
 void DunGen::GenerateMainStartAndEnd(int minDistance) {

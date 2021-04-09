@@ -9,6 +9,8 @@ void DGPathfinding::Init(std::shared_ptr<WorldManager> wmgr) {
 
 	WorldManager::Pos p = mWorldManager->GetWorldSize();
 	mWorldSize = Vec3I(p.x, p.y, p.z);
+
+	mStartPoint = { -1, -1, -1 };
 }
 
 void DGPathfinding::SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
@@ -18,6 +20,24 @@ void DGPathfinding::SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
 				mObstacles[i][j][k] = obstacles[i][j][k];
 			}
 		}
+	}
+}
+
+void DGPathfinding::AddPathToObstacles(std::vector<Vec3I> path) {
+	if (mStartPoint.x == -1 || mStartPoint.z == -1)
+		return;
+
+	const size_t halfXT = MAX_AR_X / 2;
+	const size_t halfYT = MAX_AR_Y / 2;
+	const size_t halfZT = MAX_AR_Z / 2;
+	size_t x, y, z;
+
+	for each (Vec3I pos in path) {
+		x = MAX_AR_X / 2 + ((size_t)pos.x - (size_t)mStartPoint.x);
+		y = halfYT + ((size_t)pos.y - (size_t)mStartPoint.y);
+		z = halfZT + ((size_t)pos.z - (size_t)mStartPoint.z);
+
+		mObstacles[x][0][z] = true;
 	}
 }
 
@@ -76,7 +96,8 @@ bool DGPathfinding::IsValidWorldCoord(Vec3I pos) {
 
 bool DGPathfinding::IsDestination(int x, int y, int z, Node destination)
 {
-	if (x == destination.indexX && y == destination.indexY && z == destination.indexZ) {
+	//if (x == destination.indexX && y == destination.indexY && z == destination.indexZ) {
+	if (x == destination.indexX && z == destination.indexZ) {
 		return true;
 	}
 	return false;
@@ -141,8 +162,12 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 	bool closedList[MAX_AR_X * MAX_AR_Y * MAX_AR_Z] = { false };
 	Node allMap[MAX_TOTAL];
 	std::vector<Node> openList;
-	Node destination, tempNode;
+	Node destination, startNode, tempNode;
 	size_t tempX, tempY, tempZ, index;
+
+	//Used for side paths:
+	bool startAndFinishRemovedFromObstacles = false;
+	bool wasStartAnObstacle, wasDestAnObstacle;
 
 	{
 		//Fill in allMap with the correct coords
@@ -183,6 +208,8 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 
 			allMap[index].SetCosts(0, 0, 0);
 			openList.emplace_back(allMap[index]);
+			wasStartAnObstacle = mObstacles[tempX][tempY][tempZ];
+			mObstacles[tempX][tempY][tempZ] = false;
 
 			//Set the destination
 			tempX = halfXT + ((size_t)dest.x - (size_t)mStartPoint.x);
@@ -192,6 +219,10 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 
 			destination.SetIndex(tempX, tempY, tempZ);
 			destination.SetCoords(dest.x, dest.y, dest.z);
+			wasDestAnObstacle = mObstacles[tempX][tempY][tempZ];
+			mObstacles[tempX][tempY][tempZ] = false;
+
+			startAndFinishRemovedFromObstacles = true;
 		}
 	}
 
@@ -274,6 +305,28 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 				}
 			}
 
+		}
+	}
+
+	//If a side path was not found, and positions from its parent path were removed 
+	//from the obstacle list, return them to their previous state
+	if (startAndFinishRemovedFromObstacles) {
+		const size_t halfXT = MAX_AR_X / 2;
+		const size_t halfYT = MAX_AR_Y / 2;
+		const size_t halfZT = MAX_AR_Z / 2;
+
+		if (wasStartAnObstacle) {
+			tempX = halfXT + ((size_t)start.x - (size_t)mStartPoint.x);
+			tempY = halfYT + ((size_t)start.y - (size_t)mStartPoint.y);
+			tempZ = halfZT + ((size_t)start.z - (size_t)mStartPoint.z);
+			mObstacles[tempX][tempY][tempZ] = true;
+		}
+
+		if (wasDestAnObstacle) {
+			tempX = halfXT + ((size_t)dest.x - (size_t)mStartPoint.x);
+			tempY = halfYT + ((size_t)dest.y - (size_t)mStartPoint.y);
+			tempZ = halfZT + ((size_t)dest.z - (size_t)mStartPoint.z);
+			mObstacles[tempX][tempY][tempZ] = true;
 		}
 	}
 
