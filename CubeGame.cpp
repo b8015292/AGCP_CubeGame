@@ -1878,9 +1878,7 @@ void CubeGame::GenerateWorld() {
 	mWorldMgr.LoadFirstChunks(mSpawnPoint);
 
 	//DunGen
-	DunGen dun(std::make_shared<WorldManager>(mWorldMgr));
-	dun.test();
-
+	GeneticAlgo GA(std::make_shared<WorldManager>(mWorldMgr), 10);
 }
 
 void CubeGame::GenerateListOfActiveItems() {

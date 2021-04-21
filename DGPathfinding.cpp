@@ -9,15 +9,30 @@ void DGPathfinding::Init(std::shared_ptr<WorldManager> wmgr) {
 
 	WorldManager::Pos p = mWorldManager->GetWorldSize();
 	mWorldSize = Vec3I(p.x, p.y, p.z);
+	mMaxBounds = mWorldSize;
 
 	mStartPoint = { -1, -1, -1 };
 }
 
 void DGPathfinding::SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
+	bool outsideX = false;
+	bool outsideY = false;
+	bool outsideZ = false;
+
 	for (int i = 0; i < MAX_AR_X; i++) {
+		//if (i < mMinBounds.x || i > mMaxBounds.x) outsideX = true;
+
 		for (int j = 0; j < MAX_AR_Y; j++) {
 			for (int k = 0; k < MAX_AR_Z; k++) {
-				mObstacles[i][j][k] = obstacles[i][j][k];
+
+				////If its outside the bounds, set it to false, otherwise set it to the obstacle value
+				//if (outsideX || k < mMinBounds.z || k > mMaxBounds.z) {
+				//	mObstacles[i][j][k] = true;
+				//}
+				//else {
+					mObstacles[i][j][k] = obstacles[i][j][k];
+				//}
+
 			}
 		}
 	}
@@ -79,6 +94,11 @@ bool DGPathfinding::IsValidIndex(size_t arrayI, size_t arrayJ, size_t arrayK) {
 		return false;
 	}
 
+	//Is the coor within bounds
+	if (arrayI < mMinBounds.x || arrayJ < mMinBounds.y || arrayK < mMinBounds.z
+		|| arrayI >= mMaxBounds.x || arrayJ >= mMaxBounds.y || arrayK >= mMaxBounds.z)
+		return false;
+
 	//Is coord an obstacle
 	if (mObstacles[arrayI][arrayJ][arrayK]) {
 		return false;
@@ -88,7 +108,8 @@ bool DGPathfinding::IsValidIndex(size_t arrayI, size_t arrayJ, size_t arrayK) {
 }
 
 bool DGPathfinding::IsValidWorldCoord(Vec3I pos) {
-	if (pos.x < 0 || pos.y < 0 || pos.z < 0 || pos.x >= mWorldSize.x || pos.y >= mWorldSize.y || pos.z >= mWorldSize.z)
+	if (pos.x < 0 || pos.y < 0 || pos.z < 0
+		|| pos.x >= mWorldSize.x || pos.y >= mWorldSize.y || pos.z >= mWorldSize.z)
 		return false;
 
 	return true;
@@ -112,6 +133,43 @@ int DGPathfinding::CalculateH(int x, int y, int z, Node destination)
 size_t DGPathfinding::GetIndexOf3DArray(size_t x, size_t y, size_t z) {
 	//return (x * MAX_AR_Y * MAX_AR_Z) + (y * MAX_AR_Z) + z;
 	return (x * MAX_AR_Y * MAX_AR_Z) + z;
+}
+
+void DGPathfinding::SetWorldBounds(int minX, int maxX, int minZ, int maxZ) {
+	if (minX < 0 || minZ < 0 || maxX >= mWorldSize.x || maxZ >= mWorldSize.z) {
+		if (minX < 0) {
+			minX = abs(minX);
+		}
+		else {
+			minX = 0;
+		}
+
+		if (minZ < 0) {
+			minZ = abs(minZ);
+		}
+		else {
+			minZ = 0;
+		}
+
+		if (maxX > mWorldSize.x) {
+			maxX = MAX_AR_X - (maxX - mWorldSize.x);
+		}
+		else {
+			maxX = mWorldSize.x + 1;
+		}
+
+		if (maxZ > mWorldSize.z) {
+			maxZ = MAX_AR_Z - (maxZ = mWorldSize.z);
+		}
+		else {
+			maxZ = mWorldSize.z + 1;
+		}
+
+		mMinBounds = { (int)minX, 0, (int)minZ };
+		mMaxBounds = { (int)maxX, mWorldSize.y, (int)maxZ };
+	}
+
+
 }
 
 std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination)
@@ -144,6 +202,7 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination
 	}
 	//path.push_back(map[index]);
 
+	//Reverse the list, so the first becomes the last
 	for (size_t i = path.size() - 1; i != 0; i--) {
 		Node top = path.at(i);
 		ret.push_back({ top.x + 1, top.y + 1, top.z + 1 });
@@ -197,6 +256,10 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 			tempZ = halfZT + (size_t)dest.z - (size_t)start.z;
 			destination.SetIndex(tempX, tempY, tempZ);
 			destination.SetCoords(dest.x, dest.y, dest.z);
+
+			//If any of the local map is outside of world bounds, set all the outer space to be an obstacle
+			SetWorldBounds(start.x - halfX, start.x + halfX, start.z - halfZ, start.z + halfZ);
+
 		}
 		//If this is a side path
 		else {

@@ -19,7 +19,7 @@
 #include "SoundSystem.h"
 #include "Common/FileUtils.h"
 
-#include "DunGen.h"
+#include "GeneticAlgo.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX::PackedVector;

@@ -108,6 +108,9 @@
     <ClCompile Include="DGPathfinding.cpp">
       <Filter>GameData\Source Files\AI</Filter>
     </ClCompile>
+    <ClCompile Include="GeneticAlgo.cpp">
+      <Filter>GameData\Source Files\AI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FrameResource.h">
@@ -258,6 +261,15 @@
       <Filter>GameData\Header Files\AI</Filter>
     </ClInclude>
     <ClInclude Include="DGPathfinding.h">
+      <Filter>GameData\Header Files\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Inventory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneticAlgo.h">
       <Filter>GameData\Header Files\AI</Filter>
     </ClInclude>
     <ClInclude Include="Inventory.h">

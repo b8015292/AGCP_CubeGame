@@ -129,10 +129,10 @@ public:
 
 	std::vector<Vec3I> AStar(Vec3I start, Vec3I destination);
 
-private:
-	std::shared_ptr<WorldManager> mWorldManager;
-	Vec3I mWorldSize;
+	Vec3I GetMinBounds() { return mMinBounds; };
+	Vec3I GetMaxBounds() { return mMaxBounds; };
 
+private:
 	size_t GetIndexOf3DArray(size_t x, size_t y, size_t z);
 	bool IsValidIndex(size_t x, size_t y, size_t z);
 	bool IsValidWorldCoord(Vec3I pos);
@@ -141,9 +141,15 @@ private:
 
 	std::vector<Vec3I> MakePath(Node map[MAX_TOTAL], Node destination);
 
+	void SetWorldBounds(int minX, int maxX, int minZ, int maxZ);
 
+	std::shared_ptr<WorldManager> mWorldManager;
+	Vec3I mWorldSize;
 
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z];
+	Vec3I mMinBounds = { -1, -1, -1 };
+	Vec3I mMaxBounds = { -1, -1, -1 };
+
 	Node mAllMap[MAX_TOTAL];
 	Vec3I mStartPoint;
 
