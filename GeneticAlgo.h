@@ -78,6 +78,7 @@ private:
 
 	std::shared_ptr<WorldManager> mWorldMgr;
 	std::vector<std::vector<Genes>> mGenetics;
+	std::vector<std::vector<DunGen>> mDungeons;
 
 	const std::string mConstOutputFolder = "output";
 	std::string mOutputFolder;

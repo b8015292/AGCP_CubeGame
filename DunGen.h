@@ -74,12 +74,15 @@ class DunGen {
 public:
 	DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di);
 
+	void Spawn(bool walls);
 	void Output();
 
 	//For fitness funciton
 	bool IsValid() { return mValid; };
 	int NumberOfParallelPathSpaces();
 	int TotalLength();
+
+	//A negative return means there are more bends, positive means more straight
 	int NumberOfStraightSectionsToBends();
 
 private:
@@ -89,7 +92,7 @@ private:
 	DGPathfinding mPathFinding;
 	PerlinNoise mNoise;
 
-	Vec3I mWorldSize;
+	const Vec3I mWorldSize;
 	//Vec3I mStartPoint;
 	//Vec3I mEndPoint;
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z] = { false };
@@ -105,6 +108,7 @@ private:
 
 	void Init(std::shared_ptr<WorldManager> worldMgr, unsigned int  noiseSeed);
 	bool IsValidDungeonInfo(DungeonInfo& di);
+	size_t GetIndex(int x, int z, Vec3I size);
 
 	void GenerateMainStartAndEnd(int minDistance, int maxDistance);
 	void GenerateObsticales(double chance);
@@ -120,7 +124,6 @@ private:
 
 	void AddPathsToPathList(size_t index);
 
-	void FillFloor();
 	void SetBlock(Vec3I pos, std::string material, bool active = true);
 
 	bool IsPositionValid(size_t index, int minDistance, int maxDistance);

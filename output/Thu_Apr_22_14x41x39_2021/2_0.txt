@@ -1,0 +1,18 @@
+DUNGEON UNFIT
+
+DUNGEON INVALID
+
+
+Generation:	2
+Noise seed:	2964289
+Parent A:	0
+Parent B:	1
+
+Alleles:
+Noise:									2964289
+Minimum distance of the main path:					0
+Maximum distance of the main path:					0
+Ratio of the length of the main path to the length of side paths:	0
+Minimum distance before a branch:					58
+Ratio of deadends to reconnecting paths:				inf
+Ratio of length of the main path to the number of side paths:		0.100000

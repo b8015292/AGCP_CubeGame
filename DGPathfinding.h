@@ -124,7 +124,8 @@ public:
 
 	void Init(std::shared_ptr<WorldManager>);
 	void SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]);
-	void SetMainPath(Vec3I start, Vec3I end);
+	//Returns false if end is out of bounds
+	bool SetMainPath(Vec3I start, Vec3I end);
 	void AddPathToObstacles(std::vector<Vec3I> path);
 
 	std::vector<Vec3I> AStar(Vec3I start, Vec3I destination);
