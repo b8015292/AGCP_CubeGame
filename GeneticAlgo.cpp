@@ -1,13 +1,77 @@
 #include "GeneticAlgo.h"
+std::string GeneticAlgo::mOutputFolder;
+
+Genes::Genes(DungeonInfo ndi, float nFertility, float nFertilityDom, float nFertilityVol, float nDominance[GeneIndex::count], float nVolatility[GeneIndex::count]) {
+	di = ndi;
+
+	fertility = nFertility;
+	fertilityDominance = nFertilityDom;
+	fertilityVolatility = nFertilityVol;
+
+	for (int i = 0; i < GeneIndex::count; i++) {
+		dominance[i] = nDominance[i];
+		volatility[i] = nVolatility[i];
+	}
+};
+
+Genes::Genes(Genes* parentA, Genes* parentB, size_t childIndex) : di(GeneticAlgo::mOutputFolder, childIndex, parentA->di.generation++, parentA->di.index, parentB->di.index){
+	GenerateDungeonInfo(parentA, parentB);
+	GenerateDominance(parentA, parentB);
+	GenerateMutation(parentA, parentB);
+
+	fertility = Middle(parentA->fertility, parentB->fertility,
+		parentA->fertilityDominance, parentB->fertilityDominance);
+	fertilityDominance = Middle(parentA->fertilityDominance, parentB->fertilityDominance,
+		parentA->fertilityDominance, parentB->fertilityDominance);
+	fertilityVolatility = Middle(parentA->fertilityVolatility, parentB->fertilityVolatility,
+		parentA->fertilityDominance, parentB->fertilityDominance);
+}
+
+void Genes::GenerateDungeonInfo(Genes* parentA, Genes* parentB) {
+	di.noiseSeed = Middle(parentA->di.noiseSeed, parentB->di.noiseSeed, parentA->dominance[GeneIndex::noiseSeed], parentB->dominance[GeneIndex::noiseSeed]);
+	di.maxDistanceOfMainPath = Middle(parentA->di.maxDistanceOfMainPath, parentB->di.maxDistanceOfMainPath, parentA->dominance[GeneIndex::maxDistanceOfMainPath], parentB->dominance[GeneIndex::maxDistanceOfMainPath]);
+	di.minDistanceBeforeBranch = Middle(parentA->di.minDistanceBeforeBranch, parentB->di.minDistanceBeforeBranch, parentA->dominance[GeneIndex::minDistanceBeforeBranch], parentB->dominance[GeneIndex::minDistanceBeforeBranch]);
+	di.minDistanceOfMainPath = Middle(parentA->di.minDistanceOfMainPath, parentB->di.minDistanceOfMainPath, parentA->dominance[GeneIndex::minDistanceOfMainPath], parentB->dominance[GeneIndex::minDistanceOfMainPath]);
+	di.ratioOfDeadEndsToReconnectingBranches = Middle(parentA->di.ratioOfDeadEndsToReconnectingBranches, parentB->di.ratioOfDeadEndsToReconnectingBranches, parentA->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentB->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches]);
+	di.ratioOfLengthOfMainPathToNumberOfSidePaths = Middle(parentA->di.ratioOfLengthOfMainPathToNumberOfSidePaths, parentB->di.ratioOfLengthOfMainPathToNumberOfSidePaths, parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]);
+	di.ratioOfLengthOfMainPathToSidePaths = Middle(parentA->di.ratioOfLengthOfMainPathToSidePaths, parentB->di.ratioOfLengthOfMainPathToSidePaths, parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths]);
+}
+
+void Genes::GenerateDominance(Genes* parentA, Genes* parentB) {
+
+	dominance[GeneIndex::noiseSeed] = Middle(parentA->dominance[GeneIndex::noiseSeed], parentB->dominance[GeneIndex::noiseSeed], parentA->dominance[GeneIndex::noiseSeed], parentB->dominance[GeneIndex::noiseSeed]);
+	dominance[GeneIndex::maxDistanceOfMainPath] = Middle(parentA->dominance[GeneIndex::maxDistanceOfMainPath], parentB->dominance[GeneIndex::maxDistanceOfMainPath], parentA->dominance[GeneIndex::maxDistanceOfMainPath], parentB->dominance[GeneIndex::maxDistanceOfMainPath]);
+	dominance[GeneIndex::minDistanceBeforeBranch] = Middle(parentA->dominance[GeneIndex::minDistanceBeforeBranch], parentB->dominance[GeneIndex::minDistanceBeforeBranch], parentA->dominance[GeneIndex::minDistanceBeforeBranch], parentB->dominance[GeneIndex::minDistanceBeforeBranch]);
+	dominance[GeneIndex::minDistanceOfMainPath] = Middle(parentA->dominance[GeneIndex::minDistanceOfMainPath], parentB->dominance[GeneIndex::minDistanceOfMainPath], parentA->dominance[GeneIndex::minDistanceOfMainPath], parentB->dominance[GeneIndex::minDistanceOfMainPath]);
+	dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches] = Middle(parentA->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentB->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentA->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentB->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches]);
+	dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths] = Middle(parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]);
+	dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths] = Middle(parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths]);
+}
+
+void Genes::GenerateMutation(Genes* parentA, Genes* parentB) {
+	volatility[GeneIndex::noiseSeed] = Middle(parentA->volatility[GeneIndex::noiseSeed], parentB->volatility[GeneIndex::noiseSeed], parentA->dominance[GeneIndex::noiseSeed], parentB->dominance[GeneIndex::noiseSeed]);
+	volatility[GeneIndex::maxDistanceOfMainPath] = Middle(parentA->volatility[GeneIndex::maxDistanceOfMainPath], parentB->volatility[GeneIndex::maxDistanceOfMainPath], parentA->dominance[GeneIndex::maxDistanceOfMainPath], parentB->dominance[GeneIndex::maxDistanceOfMainPath]);
+	volatility[GeneIndex::minDistanceBeforeBranch] = Middle(parentA->volatility[GeneIndex::minDistanceBeforeBranch], parentB->volatility[GeneIndex::minDistanceBeforeBranch], parentA->dominance[GeneIndex::minDistanceBeforeBranch], parentB->dominance[GeneIndex::minDistanceBeforeBranch]);
+	volatility[GeneIndex::minDistanceOfMainPath] = Middle(parentA->volatility[GeneIndex::minDistanceOfMainPath], parentB->volatility[GeneIndex::minDistanceOfMainPath], parentA->dominance[GeneIndex::minDistanceOfMainPath], parentB->dominance[GeneIndex::minDistanceOfMainPath]);
+	volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches] = Middle(parentA->volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentB->volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentA->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], parentB->dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches]);
+	volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths] = Middle(parentA->volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentB->volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]);
+	volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths] = Middle(parentA->volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentB->volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentA->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], parentB->dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths]);
+}
+
+float Genes::RandZeroToOne() {
+	return (float)rand() / RAND_MAX;
+}
 
 void Genes::Mutate() {
-	float r = rand() % 1;
+	//float r = fmodf((float)rand(), 1.f);
+	//float r = 1.f / (float)rand();
+	float random = RandZeroToOne();
 	float mutation;
 
 	//Fertility
-	if (r >= fertilityVolatility) {
-		mutation = 1.f / (float)(rand());
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= fertilityVolatility) {
+		mutation = fertility * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		fertility += mutation;
@@ -15,86 +79,141 @@ void Genes::Mutate() {
 
 	//Dominance & Volitility
 	for (int i = 0; i < GeneIndex::count; i++) {
-		r = rand() % 1;
-		if (r >= volatility[i]) {
-			mutation = 1.f / (float)(rand());
-			if (fmodf((float)rand(), 2.f) == 1)
+		if (random >= volatility[i]) {
+			mutation = dominance[i] * (RandZeroToOne() * 0.1);
+			if (RandZeroToOne() > 0.5)
 				mutation *= -1;
 
 			dominance[i] += mutation;
 		}
-
-		r = rand() % 1;
-		if (r >= volatility[i]) {
-			mutation = 1.f / (float)(rand());
-			if (fmodf((float)rand(), 2.f) == 1)
+		if (random >= volatility[i]) {
+			mutation = volatility[i] * (RandZeroToOne() * 0.1);
+			if (RandZeroToOne() > 0.5)
 				mutation *= -1;
 
 			volatility[i] += mutation;
 		}
 	}
 
-	MutateDungeonInfo();
+	MutateDungeonInfo(random);
 }
-void Genes::MutateDungeonInfo() {
-	float r = rand() % 1;
+void Genes::MutateDungeonInfo(float random) {
+	float mutation;
+	if (random >= volatility[GeneIndex::noiseSeed]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
+			mutation *= -1;
 
-	if (r >= volatility[GeneIndex::noiseSeed]) {
-		unsigned int mutation = rand() % 100;
-		if (fmodf((float)rand(), 2.f) == 1)
-			di.noiseSeed -= mutation;
-		else
-			di.noiseSeed += mutation;
+		di.noiseSeed += mutation;
 	}
-
-	if (r >= volatility[GeneIndex::maxDistanceOfMainPath]) {
-		int mutation = rand() % 100;
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= volatility[GeneIndex::maxDistanceOfMainPath]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		di.maxDistanceOfMainPath += mutation;
 	}
-
-	if (r >= volatility[GeneIndex::minDistanceBeforeBranch]) {
-		int mutation = rand() % 100;
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= volatility[GeneIndex::minDistanceBeforeBranch]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		di.minDistanceBeforeBranch += mutation;
 	}
-
-	if (r >= volatility[GeneIndex::minDistanceOfMainPath]) {
-		int mutation = rand() % 100;
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= volatility[GeneIndex::minDistanceOfMainPath]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		di.minDistanceOfMainPath += mutation;
 	}
-
-	if (r >= volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches]) {
-		float mutation = fmodf((float)(rand()), 100);
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		di.ratioOfDeadEndsToReconnectingBranches += mutation;
 	}
-
-	if (r >= volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]) {
-		float mutation = fmodf((float)(rand()), 100);
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		di.ratioOfLengthOfMainPathToNumberOfSidePaths += mutation;
 	}
-
-	if (r >= volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths]) {
-		float mutation = fmodf((float)(rand()), 100);
-		if (fmodf((float)rand(), 2.f) == 1)
+	if (random >= volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths]) {
+		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
+		if (RandZeroToOne() > 0.5)
 			mutation *= -1;
 
 		di.ratioOfLengthOfMainPathToSidePaths += mutation;
 	}
 }
+
+float Genes::Crossover(float a, float b, float aDom, float bDom) {
+	//Find number of digits
+
+	//Get dominance
+
+	//Take aDom number of digits from a, 
+
+
+	float toOne = 1 - aDom + bDom;
+	aDom *= toOne;
+	bDom *= toOne;
+
+	return 1;
+}
+
+float Genes::Middle(float a, float b, float aDom, float bDom) {
+	float toOne = 1.f / (aDom + bDom);
+	aDom *= toOne;
+	bDom *= toOne;
+
+	a *= aDom;
+	b *= bDom;
+
+	return a + b;
+}
+
+float Genes::Middle(double a, double b, float aDom, float bDom) {
+	float toOne = 1.f / (aDom + bDom);
+	aDom *= toOne;
+	bDom *= toOne;
+
+	a *= (double)aDom;
+	b *= (double)bDom;
+
+	return a + b;
+}
+
+float Genes::Middle(int a, int b, float aDom, float bDom) {
+	float toOne = 1.f / (aDom + bDom);
+	aDom *= toOne;
+	bDom *= toOne;
+
+	a = (float)a * aDom;
+	b = (float)b * bDom;
+
+	return a + b;
+}
+
+float Genes::Middle(unsigned int a, unsigned int b, float aDom, float bDom) {
+	double toOne = 1.0 / ((double)aDom + (double)bDom);
+	aDom *= toOne;
+	bDom *= toOne;
+
+	a = (double)a * aDom;
+	b = (double)b * bDom;
+
+	return a + b;
+}
+
+
+
+
+
+
 
 GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGenerations) {
 	mWorldMgr = wrldmgr;
@@ -227,19 +346,15 @@ void GeneticAlgo::GenerateFirstGen() {
 		float mutation2[GeneIndex::count] = { 0.1234f, 0.64834f, 0.32478f, 0.8983f, 0.34322311f, 0.938437f, 0.8432f, 0.1324f};
 
 		Genes g1({ mOutputFolder, 0, 0, 0, 0, 192u, 30, 90, 0.5, 10, 0.5f, 0.1f }, 1.f, 0.453f, 0.2342f, dominance1, mutation1);
-		g1.Mutate();
 		firstGen.push_back(g1);
 
 		Genes g2({ mOutputFolder, firstGen.size(), mGenetics.size(), 0, 0, 43534u, 11, 10, 0.9, 3, 0.8f, 0.1f }, 0.5f, 0.6543f, 0.123f, mutation1, dominance1);
-		g2.Mutate();
 		firstGen.push_back(g2);
 
 		Genes g3({ mOutputFolder, firstGen.size(), mGenetics.size(), 0, 0, 16632u, 66, 100, 0.3, 99, 0.2f, 0.1f }, 2.f, 0.96f, 0.1342f, dominance2, mutation2);
-		g3.Mutate();
 		firstGen.push_back(g3);
 
 		Genes g4({ mOutputFolder, firstGen.size(), mGenetics.size(), 0, 0, 13421244u, 1, 32, 0.6, 20, 0.4f, 0.1f }, 1.f, 0.324f, 0.5433f, mutation2, dominance2);
-		g4.Mutate();
 		firstGen.push_back(g4);
 
 		mGenetics.push_back(firstGen);
@@ -308,138 +423,9 @@ void GeneticAlgo::GenerateOffspring(size_t parentGeneration) {
 		takenParents.at(parentA) = true;
 		takenParents.at(parentB) = true;
 
-		newGeneration.push_back(CreateChild(parentGeneration, validParents.at(parentA), validParents.at(parentB), i));
+		newGeneration.push_back({ &mGenetics.at(parentGeneration).at(validParents.at(parentA)), &mGenetics.at(parentGeneration).at(validParents.at(parentB)), i });
+		newGeneration.at(newGeneration.size() - 1).Mutate();
 	}
 
 	mGenetics.push_back(newGeneration);
-}
-
-Genes GeneticAlgo::CreateChild(size_t parentGeneration, size_t parentA, size_t parentB, size_t childIndex) {
-	DungeonInfo childDI(mOutputFolder, childIndex, mGenetics.size(), parentA, parentB);
-	GenerateDungeonInfo(&childDI);
-
-	float* dominance = GenerateDominance(&childDI);
-	float* mutation = GenerateMutation(&childDI);
-
-	float fertility = Middle(mGenetics.at(childDI.generation - 1).at(childDI.parentA).fertility, mGenetics.at(childDI.generation - 1).at(childDI.parentB).fertility, 
-		mGenetics.at(childDI.generation - 1).at(childDI.parentA).fertilityDominance, mGenetics.at(childDI.generation - 1).at(childDI.parentB).fertilityDominance);
-	float fertilityDom = Middle(mGenetics.at(childDI.generation - 1).at(childDI.parentA).fertilityDominance, mGenetics.at(childDI.generation - 1).at(childDI.parentB).fertilityDominance,
-		mGenetics.at(childDI.generation - 1).at(childDI.parentA).fertilityDominance, mGenetics.at(childDI.generation - 1).at(childDI.parentB).fertilityDominance);
-	float fertilityVol = Middle(mGenetics.at(childDI.generation - 1).at(childDI.parentA).fertilityVolatility, mGenetics.at(childDI.generation - 1).at(childDI.parentB).fertilityVolatility,
-		mGenetics.at(childDI.generation - 1).at(childDI.parentA).fertilityDominance, mGenetics.at(childDI.generation - 1).at(childDI.parentB).fertilityDominance);
-
-	Genes childGenes(childDI, fertility, fertilityDom, fertilityVol, dominance, mutation);
-	return childGenes;
-}
-
-void GeneticAlgo::GenerateDungeonInfo(DungeonInfo* di) {
-	Genes pA = mGenetics.at(di->generation - 1).at(di->parentA);
-	Genes pB = mGenetics.at(di->generation - 1).at(di->parentB);
-
-	di->noiseSeed = Middle(pA.di.noiseSeed, pB.di.noiseSeed, pA.dominance[GeneIndex::noiseSeed], pB.dominance[GeneIndex::noiseSeed]);
-	di->maxDistanceOfMainPath = Middle(pA.di.maxDistanceOfMainPath, pB.di.maxDistanceOfMainPath, pA.dominance[GeneIndex::maxDistanceOfMainPath], pB.dominance[GeneIndex::maxDistanceOfMainPath]);
-	di->minDistanceBeforeBranch = Middle(pA.di.minDistanceBeforeBranch, pB.di.minDistanceBeforeBranch, pA.dominance[GeneIndex::minDistanceBeforeBranch], pB.dominance[GeneIndex::minDistanceBeforeBranch]);
-	di->minDistanceOfMainPath = Middle(pA.di.minDistanceOfMainPath, pB.di.minDistanceOfMainPath, pA.dominance[GeneIndex::minDistanceOfMainPath], pB.dominance[GeneIndex::minDistanceOfMainPath]);
-	di->ratioOfDeadEndsToReconnectingBranches = Middle(pA.di.ratioOfDeadEndsToReconnectingBranches, pB.di.ratioOfDeadEndsToReconnectingBranches, pA.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pB.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches]);
-	di->ratioOfLengthOfMainPathToNumberOfSidePaths = Middle(pA.di.ratioOfLengthOfMainPathToNumberOfSidePaths, pB.di.ratioOfLengthOfMainPathToNumberOfSidePaths, pA.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]);
-	di->ratioOfLengthOfMainPathToSidePaths = Middle(pA.di.ratioOfLengthOfMainPathToSidePaths, pB.di.ratioOfLengthOfMainPathToSidePaths, pA.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths]);
-}
-
-float* GeneticAlgo::GenerateDominance(DungeonInfo* di) {
-	float ret[GeneIndex::count];
-
-	Genes pA = mGenetics.at(di->generation - 1).at(di->parentA);
-	Genes pB = mGenetics.at(di->generation - 1).at(di->parentB);
-
-	ret[GeneIndex::noiseSeed] = Middle(pA.dominance[GeneIndex::noiseSeed], pB.dominance[GeneIndex::noiseSeed], pA.dominance[GeneIndex::noiseSeed], pB.dominance[GeneIndex::noiseSeed]);
-	ret[GeneIndex::maxDistanceOfMainPath] = Middle(pA.dominance[GeneIndex::maxDistanceOfMainPath], pB.dominance[GeneIndex::maxDistanceOfMainPath], pA.dominance[GeneIndex::maxDistanceOfMainPath], pB.dominance[GeneIndex::maxDistanceOfMainPath]);
-	ret[GeneIndex::minDistanceBeforeBranch] = Middle(pA.dominance[GeneIndex::minDistanceBeforeBranch], pB.dominance[GeneIndex::minDistanceBeforeBranch], pA.dominance[GeneIndex::minDistanceBeforeBranch], pB.dominance[GeneIndex::minDistanceBeforeBranch]);
-	ret[GeneIndex::minDistanceOfMainPath] = Middle(pA.dominance[GeneIndex::minDistanceOfMainPath], pB.dominance[GeneIndex::minDistanceOfMainPath], pA.dominance[GeneIndex::minDistanceOfMainPath], pB.dominance[GeneIndex::minDistanceOfMainPath]);
-	ret[GeneIndex::ratioOfDeadEndsToReconnectingBranches] = Middle(pA.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pB.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pA.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pB.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches]);
-	ret[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths] = Middle(pA.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pA.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]);
-	ret[GeneIndex::ratioOfLengthOfMainPathToSidePaths] = Middle(pA.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pA.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths]);
-
-	return ret;
-}
-
-float* GeneticAlgo::GenerateMutation(DungeonInfo* di) {
-	float ret[GeneIndex::count];
-
-	Genes pA = mGenetics.at(di->generation - 1).at(di->parentA);
-	Genes pB = mGenetics.at(di->generation - 1).at(di->parentB);
-
-	ret[GeneIndex::noiseSeed] = Middle(pA.volatility[GeneIndex::noiseSeed], pB.volatility[GeneIndex::noiseSeed], pA.dominance[GeneIndex::noiseSeed], pB.dominance[GeneIndex::noiseSeed]);
-	ret[GeneIndex::maxDistanceOfMainPath] = Middle(pA.volatility[GeneIndex::maxDistanceOfMainPath], pB.volatility[GeneIndex::maxDistanceOfMainPath], pA.dominance[GeneIndex::maxDistanceOfMainPath], pB.dominance[GeneIndex::maxDistanceOfMainPath]);
-	ret[GeneIndex::minDistanceBeforeBranch] = Middle(pA.volatility[GeneIndex::minDistanceBeforeBranch], pB.volatility[GeneIndex::minDistanceBeforeBranch], pA.dominance[GeneIndex::minDistanceBeforeBranch], pB.dominance[GeneIndex::minDistanceBeforeBranch]);
-	ret[GeneIndex::minDistanceOfMainPath] = Middle(pA.volatility[GeneIndex::minDistanceOfMainPath], pB.volatility[GeneIndex::minDistanceOfMainPath], pA.dominance[GeneIndex::minDistanceOfMainPath], pB.dominance[GeneIndex::minDistanceOfMainPath]);
-	ret[GeneIndex::ratioOfDeadEndsToReconnectingBranches] = Middle(pA.volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pB.volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pA.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches], pB.dominance[GeneIndex::ratioOfDeadEndsToReconnectingBranches]);
-	ret[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths] = Middle(pA.volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pB.volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pA.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]);
-	ret[GeneIndex::ratioOfLengthOfMainPathToSidePaths] = Middle(pA.volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pB.volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pA.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths], pB.dominance[GeneIndex::ratioOfLengthOfMainPathToSidePaths]);
-
-	return ret;
-}
-
-
-
-
-
-
-
-float GeneticAlgo::Crossover(float a, float b, float aDom, float bDom) {
-	//Find number of digits
-
-	//Get dominance
-
-	//Take aDom number of digits from a, 
-
-
-	float toOne = 1 - aDom + bDom;
-	aDom *= toOne;
-	bDom *= toOne;
-
-	return 1;
-}
-
-float GeneticAlgo::Middle(float a, float b, float aDom, float bDom) {
-	float toOne = 1.f / (aDom + bDom);
-	aDom *= toOne;
-	bDom *= toOne;
-
-	a *= aDom;
-	b *= bDom;
-
-	return a + b;
-}
-
-float GeneticAlgo::Middle(double a, double b, float aDom, float bDom) {
-	float toOne = 1.f / (aDom + bDom);
-	aDom *= toOne;
-	bDom *= toOne;
-
-	a *= (double)aDom;
-	b *= (double)bDom;
-
-	return a + b;
-}
-
-float GeneticAlgo::Middle(int a, int b, float aDom, float bDom) {
-	float toOne = 1.f / (aDom + bDom);
-	aDom *= toOne;
-	bDom *= toOne;
-
-	a = (float)a * aDom;
-	b = (float)b * bDom;
-
-	return a + b;
-}
-
-float GeneticAlgo::Middle(unsigned int a, unsigned int b, float aDom, float bDom) {
-	double toOne = 1.0 / ((double)aDom + (double)bDom);
-	aDom *= toOne;
-	bDom *= toOne;
-
-	a = (double)a * aDom;
-	b = (double)b * bDom;
-
-	return a + b;
 }

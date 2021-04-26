@@ -250,7 +250,7 @@ void DunGen::GenerateMainStartAndEnd(int minDistance, int maxDistance) {
 		mPaths.at(0).end.z += ((rand() % MAX_AR_Z) - MAX_AR_Z * 0.5f) - 1;
 		distance = abs(mPaths.at(0).start.x - mPaths.at(0).end.x) + abs(mPaths.at(0).start.z - mPaths.at(0).end.z);
 
-	} while (IsPositionValid(0, minDistance, maxDistance) && mPathFinding.SetMainPath(mPaths.at(0).start, mPaths.at(0).end));
+	} while (IsPositionValid(0, minDistance, maxDistance) && !mPathFinding.SetMainPath(mPaths.at(0).start, mPaths.at(0).end));
 }
 
 

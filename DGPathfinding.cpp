@@ -196,8 +196,10 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination
 	std::vector<Vec3I> ret;
 
 	//From the end point, this iterates through its parents, making a path from the end to the start
+	//while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
+	//	&& map[index].x != -1 && map[index].y != -1 && map[index].z != -1)
 	while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
-		&& map[index].x != -1 && map[index].y != -1 && map[index].z != -1)
+		&& map[index].x >= 0 && map[index].y >= 0 && map[index].z >= 0)
 	{
 		path.push_back(map[index]);
 		worldX = map[index].parentX;
@@ -209,6 +211,9 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination
 		index = GetIndexOf3DArray(x, y, z);
 	}
 	//path.push_back(map[index]);
+
+	if (path.size() == 0)
+		return ret;
 
 	//Reverse the list, so the first becomes the last
 	for (size_t i = path.size() - 1; i != 0; i--) {
