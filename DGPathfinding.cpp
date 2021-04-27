@@ -174,29 +174,33 @@ void DGPathfinding::SetWorldBounds(int minX, int maxX, int minZ, int maxZ) {
 
 std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination)
 {
-	Vec3I currWorldPos(destination.x, destination.y, destination.z);
-	Node* currNode = &map[GetIndexOf3DArray(destination.indexX, destination.indexY, destination.indexZ)];
+	size_t x = destination.indexX;
+	size_t y = destination.indexY;
+	size_t z = destination.indexZ;
+	size_t index = GetIndexOf3DArray(x, y, z);
 
-	std::vector<Node*> path;
+	int worldX = destination.x;
+	int worldY = destination.y;
+	int worldZ = destination.z;
+
+	std::vector<Node> path;
+	std::vector<Node> usablePath;
 	std::vector<Vec3I> ret;
 
-	{
-		Node* nextNode = &map[GetIndexOf3DArray(currNode->parentIndexX, currNode->parentIndexY, currNode->parentIndexZ)];
-		nextNode = &map[GetIndexOf3DArray(nextNode->parentIndexX, nextNode->parentIndexY, nextNode->parentIndexZ)];
-
-		if (currNode == nextNode) {
-			return ret;
-		}
-
-	}
-
 	//From the end point, this iterates through its parents, making a path from the end to the start
-	while (!(currNode->parentX == currWorldPos.x && currNode->parentY == currWorldPos.y && currNode->parentZ == currWorldPos.z)
-		&& currNode->x >= 0 && currNode->y >= 0 && currNode->z >= 0)
+	//while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
+	//	&& map[index].x != -1 && map[index].y != -1 && map[index].z != -1)
+	while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
+		&& map[index].x >= 0 && map[index].y >= 0 && map[index].z >= 0)
 	{
-		path.emplace_back(currNode);
-		currWorldPos = { currNode->parentX, currNode->parentY, currNode->parentZ };
-		currNode = &map[GetIndexOf3DArray(currNode->parentIndexX, currNode->parentIndexY, currNode->parentIndexZ)];
+		path.push_back(map[index]);
+		worldX = map[index].parentX;
+		worldY = map[index].parentY;
+		worldZ = map[index].parentZ;
+		x = map[index].parentIndexX;
+		y = map[index].parentIndexY;
+		z = map[index].parentIndexZ;
+		index = GetIndexOf3DArray(x, y, z);
 	}
 	//path.push_back(map[index]);
 
@@ -205,8 +209,8 @@ std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination
 
 	//Reverse the list, so the first becomes the last
 	for (size_t i = path.size() - 1; i != 0; i--) {
-		currNode = path.at(i);
-		ret.push_back({ currNode->x + 1, currNode->y + 1, currNode->z + 1 });
+		Node top = path.at(i);
+		ret.push_back({ top.x + 1, top.y + 1, top.z + 1 });
 	}
 
 	return ret;
