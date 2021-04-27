@@ -61,8 +61,6 @@ DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di) {
 		mNumberOfSidePaths = (int)((float)mPaths.at(0).positions.size() * di.ratioOfLengthOfMainPathToNumberOfSidePaths);
 		GenerateSidePaths(mNumberOfSidePaths, mMinDistanceOfSidePath, mMaxDistanceOfSidePath, di.minDistanceBeforeBranch, di.ratioOfDeadEndsToReconnectingBranches);
 
-		FillFloor();
-
 		mValid = true;
 	}
 }

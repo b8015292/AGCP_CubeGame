@@ -74,6 +74,7 @@ class DunGen {
 public:
 	DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di);
 
+	void Spawn(bool walls);
 	void Output();
 
 	//For fitness funciton
@@ -120,10 +121,10 @@ private:
 
 	void AddPathsToPathList(size_t index);
 
-	void FillFloor();
 	void SetBlock(Vec3I pos, std::string material, bool active = true);
 
 	bool IsPositionValid(size_t index, int minDistance, int maxDistance);
+	size_t GetIndex(int x, int z, Vec3I size);
 
 	void PrintInfo(DungeonInfo di, int minDistanceOfSidePath, int maxDistanceOfSidePath, int numberOfSidePaths, int lengthOfMainPath);
 	void PrintDungeon(DungeonInfo di);
