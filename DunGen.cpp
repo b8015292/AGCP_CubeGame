@@ -161,11 +161,10 @@ void DunGen::GenerateSidePath(size_t parentPath, bool deadend, int minDistance, 
 		GenerateSideLinkEnd(p.index, minDistance, maxDistance);
 	}
 
-	int obsticalAttempts = 0;
-	int maxObsticalAttempts = 10;
+	int obsticalAttempts = 10;
 	double obsticalChanceInitial = 0.5;
 	double obsticalChance = obsticalChanceInitial;
-	double obsticalChanceDecrement = obsticalChance / (double)maxObsticalAttempts;
+	double obsticalChanceDecrement = obsticalChance / (double)obsticalAttempts;
 
 	//Keep trying new obstacle sets until a path is found
 	do {
@@ -176,9 +175,9 @@ void DunGen::GenerateSidePath(size_t parentPath, bool deadend, int minDistance, 
 
 		GeneratePath(p.index);
 
-		obsticalAttempts++;
+		obsticalAttempts--;
 		obsticalChance -= obsticalChanceDecrement;
-	} while (mPaths.at(p.index).positions.empty() && obsticalAttempts < maxObsticalAttempts);
+	} while (mPaths.at(p.index).positions.empty() && obsticalAttempts > 0);
 
 	mPathFinding.AddPathToObstacles(mPaths.at(0).positions);
 }
