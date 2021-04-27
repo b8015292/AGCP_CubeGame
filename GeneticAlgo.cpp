@@ -226,7 +226,6 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 		
 		//Create children from parents - crossover and mutation
 		GenerateOffspring(index);
-		std::vector<DunGen> dunGens;
 		index++;
 
 		//Generate dungeons from new genes and alayse them
@@ -243,33 +242,8 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 			}
 
 			dg.Output();
-			dunGens.push_back(dg);
-		}
-		mDungeons.push_back(dunGens);
-	}
-
-	//Spawn the most recent fit dungeon into the world
-	bool spawned = false;
-	int geneIndex = mGenetics.size() - 1;
-	int index2 = mGenetics.at(geneIndex).size() - 1;
-	while (index2 == -1) {
-		geneIndex--;
-		index2 = mGenetics.at(geneIndex).size() - 1;
-	}
-	do {
-		if (mGenetics.at(geneIndex).at(index2).fit) {
-			spawned = true;
-			mDungeons.at(geneIndex).at(index2).Spawn(true);
-		}
-		else {
-			index2--;
-			if (index2 == -1) {
-				geneIndex--;
-				index2 = mGenetics.at(geneIndex).size() - 1;
-			}
 		}
 	}
-	while (!spawned && geneIndex != -1);
 }
 
 void GeneticAlgo::CreateFolder() {
@@ -316,13 +290,13 @@ bool GeneticAlgo::FitnessFunction(DunGen& d) {
 	if(!d.IsValid())
 		return false;
 
-	const float mRatioOfStraightToBends = 0.4f;		//for every 4 straight sections there should be 10 bends
-	const float mRatioOfTotalLengthToNumberOfParallelSections= 0.5f; //If more than half of the paths are parralel
+	const float mRatioOfStraightToBends = 0.2f;
+	const float mRatioOfTotalLengthToNumberOfParallelSections= 0.2f;
 
 	float length = (float)d.TotalLength();
 
 	float a = (float)d.NumberOfParallelPathSpaces();
-	float b = (float)d.NumberOfStraightSectionsToBends();	//Can return negative value so always less than mRatio
+	float b = (float)d.NumberOfStraightSectionsToBends();
 
 	if ((float)d.NumberOfParallelPathSpaces() / length >= mRatioOfTotalLengthToNumberOfParallelSections
 		|| (float)d.NumberOfStraightSectionsToBends() / length >= mRatioOfStraightToBends)
@@ -360,15 +334,12 @@ void GeneticAlgo::GenerateFirstGen() {
 		mGenetics.push_back(firstGen);
 	}
 
-	std::vector<DunGen> dunGens;
 	//Generate and analyse each of the first generation dungeons
 	for (size_t i = 0; i < mGenetics.at(0).size(); i++) {
 		DunGen dg(mWorldMgr, mGenetics.at(0).at(i).di);
 		mGenetics.at(0).at(i).fit = FitnessFunction(dg);
 		dg.Output();
-		dunGens.push_back(dg);
 	}
-	mDungeons.push_back(dunGens);
 }
 
 void GeneticAlgo::GenerateOffspring(size_t parentGeneration) {

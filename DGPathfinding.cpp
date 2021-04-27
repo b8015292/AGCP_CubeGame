@@ -56,7 +56,7 @@ void DGPathfinding::AddPathToObstacles(std::vector<Vec3I> path) {
 	}
 }
 
-bool DGPathfinding::SetMainPath(Vec3I start, Vec3I end) {
+void DGPathfinding::SetMainPath(Vec3I start, Vec3I end) {
 	mStartPoint = start;
 
 	//Fill in allMap with the correct coords
@@ -86,14 +86,6 @@ bool DGPathfinding::SetMainPath(Vec3I start, Vec3I end) {
 		}
 		//}
 	}
-
-	//If any of the local map is outside of world bounds, set all the outer space to be an obstacle
-	SetWorldBounds(start.x - halfX, start.x + halfX, start.z - halfZ, start.z + halfZ);
-
-	tempX = halfXT + (size_t)end.x - (size_t)start.x;
-	tempY = halfYT + (size_t)end.y - (size_t)start.y;
-	tempZ = halfZT + (size_t)end.z - (size_t)start.z;
-	return IsValidIndex(tempX, tempY, tempZ);
 }
 
 bool DGPathfinding::IsValidIndex(size_t arrayI, size_t arrayJ, size_t arrayK) {
@@ -267,7 +259,8 @@ std::vector<Vec3I> DGPathfinding::AStar(Vec3I start, Vec3I dest) {
 			destination.SetCoords(dest.x, dest.y, dest.z);
 
 			//If any of the local map is outside of world bounds, set all the outer space to be an obstacle
-			//SetWorldBounds(start.x - halfX, start.x + halfX, start.z - halfZ, start.z + halfZ);
+			SetWorldBounds(start.x - halfX, start.x + halfX, start.z - halfZ, start.z + halfZ);
+
 		}
 		//If this is a side path
 		else {

@@ -48,7 +48,7 @@ bool Vec3I::operator!=(const Vec3I& v) {
 //							DunGen
 //***************************************************************
 
-DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di) : mWorldSize({ wrlmgr->GetWorldSize().x, wrlmgr->GetWorldSize().y, wrlmgr->GetWorldSize().z }) {
+DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di) {
 	Init(wrlmgr, di.noiseSeed);
 	mDungeonInfo = di;
 
@@ -61,7 +61,7 @@ DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di) : mWorldSiz
 		mNumberOfSidePaths = (int)((float)mPaths.at(0).positions.size() * di.ratioOfLengthOfMainPathToNumberOfSidePaths);
 		GenerateSidePaths(mNumberOfSidePaths, mMinDistanceOfSidePath, mMaxDistanceOfSidePath, di.minDistanceBeforeBranch, di.ratioOfDeadEndsToReconnectingBranches);
 
-		//FillFloor();
+		FillFloor();
 
 		mValid = true;
 	}
@@ -87,6 +87,8 @@ bool DunGen::IsValidDungeonInfo(DungeonInfo& di) {
 void DunGen::Init(std::shared_ptr<WorldManager> worldMgr, unsigned int noiseSeed) {
 	//Set the world manager and world size
 	mWorldMgr = worldMgr;
+	WorldManager::Pos maxSize = mWorldMgr->GetWorldSize();
+	mWorldSize = { maxSize.x, maxSize.y, maxSize.z };
 
 	mPathFinding.Init(mWorldMgr);
 
@@ -249,7 +251,9 @@ void DunGen::GenerateMainStartAndEnd(int minDistance, int maxDistance) {
 		mPaths.at(0).end.z += ((rand() % MAX_AR_Z) - MAX_AR_Z * 0.5f) - 1;
 		distance = abs(mPaths.at(0).start.x - mPaths.at(0).end.x) + abs(mPaths.at(0).start.z - mPaths.at(0).end.z);
 
-	} while (IsPositionValid(0, minDistance, maxDistance) && !mPathFinding.SetMainPath(mPaths.at(0).start, mPaths.at(0).end));
+	} while (IsPositionValid(0, minDistance, maxDistance));
+
+	mPathFinding.SetMainPath(mPaths.at(0).start, mPaths.at(0).end);
 }
 
 
@@ -373,122 +377,6 @@ void DunGen::Spawn(bool walls) {
 		}
 	}
 }
-
-//void DunGen::Spawn(bool walls) {
-//	Vec3I previousPos = {-1, -1, -1};
-//	Vec3I dir, pos, tempPos, tempPos2;
-//
-//	std::string material = "mat_oak_log";
-//	std::map<size_t, bool> taken;
-//
-//	//Loop through each position in each path
-//	for each (Path p in mPaths) {
-//		for (size_t i = 0; i < p.positions.size(); i++){
-//			pos = p.positions.at(i);
-//
-//			//Make the path three blocks wide
-//			//Find the direction the path is going
-//			if (!(previousPos.x == -1 || previousPos.y == -1 || previousPos.z == -1)) {
-//				dir = previousPos - pos;
-//			}	
-//			//If it is the first block
-//			else {
-//				dir = p.positions.at(i + 1) - pos;
-//			}
-//
-//			//Reverse the direction, to get the side direction instead of the forward direction
-//			if (dir.x != 0) {
-//				dir.z = 1;
-//				dir.x = 0;
-//			}
-//			else if (dir.z != 0) {
-//				dir.x = 1;
-//				dir.z = 0;
-//			}
-//
-//			//Get the position 2 blocks away, to the side, from the current position
-//			//tempPos is the distance from the current pos, tempPos2 is the actual position (pos + tempPos)
-//			tempPos = dir;
-//			tempPos.x *= -2;
-//			tempPos.z *= -2;
-//			tempPos2 = tempPos + pos;
-//
-//			//If the position is too close to the world edges, reduse the size of the path
-//			int width = 5;
-//			int height = 5;
-//			int start = 0;
-//			if (tempPos2.x < 0) {
-//				start += abs(tempPos.x);
-//				tempPos2.x = 0;
-//			}
-//			else if (tempPos2.z < 0) {
-//				start += abs(tempPos.z);
-//				tempPos2.z = 0;
-//			}
-//			else if (tempPos2.x + width >= mWorldSize.x) {
-//				width += mWorldSize.x - (tempPos2.x + width);
-//			}
-//			else if (tempPos2.z + width >= mWorldSize.z) {
-//				width += mWorldSize.z - (tempPos2.z + width);
-//			}
-//
-//			tempPos = tempPos2;
-//			for (int j = start; j < width; j++) {
-//				tempPos2 = tempPos;
-//
-//				size_t index = GetIndex(tempPos2.x, tempPos2.z, mWorldSize);
-//
-//				//If this position has not been filled in
-//				if (taken.count(index) == 0) {
-//					for (int k = 0; k < height; k++) {
-//						//If its an edge, make the walls
-//						if (j == start || j == width - 1) {
-//							SetBlock(tempPos2, material);
-//						}
-//						//If its the floor or ceiling
-//						else if (k == 0 || k == height - 1) {
-//							SetBlock(tempPos2, material);
-//						}
-//						//Otherwise its the middle, empty, space
-//						else {
-//							SetBlock(tempPos2, material, false);
-//						}
-//
-//						tempPos2.y++;
-//					}
-//
-//					taken[index] = true;
-//				}
-//				//If the position has been filled already, deactivate the walls while leaveing the floor and ceiling
-//				else {
-//					tempPos2.y++;
-//					for (int k = 0; k < height - 2; k++) {
-//
-//						SetBlock(tempPos2, material, false);
-//						tempPos2.y++;
-//					}
-//				}
-//
-//				tempPos += dir;
-//			}
-//
-//			//Fill in the end with a solid wall
-//			{
-//				//If this position has not been filled in
-//				for (int j = start; j < width; j++) {
-//					tempPos2 = tempPos;
-//					for (int k = 0; k < height; k++) {
-//						SetBlock(tempPos2, material);
-//						tempPos2.y++;
-//					}
-//					tempPos += dir;
-//				}
-//			}
-//
-//			previousPos = pos;
-//		}
-//	}
-//}
 
 void DunGen::SetBlock(Vec3I pos, std::string material, bool active) {
 	std::shared_ptr<WorldManager::Chunk> chunk = mWorldMgr->GetChunkFromWorldCoords({ (float)pos.x, (float)pos.y, (float)pos.z });
