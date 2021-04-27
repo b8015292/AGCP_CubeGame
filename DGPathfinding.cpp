@@ -168,39 +168,32 @@ void DGPathfinding::SetWorldBounds(int minX, int maxX, int minZ, int maxZ) {
 		mMinBounds = { (int)minX, 0, (int)minZ };
 		mMaxBounds = { (int)maxX, mWorldSize.y, (int)maxZ };
 	}
-
-
 }
 
 std::vector<Vec3I> DGPathfinding::MakePath(Node map[MAX_TOTAL], Node destination)
 {
-	size_t x = destination.indexX;
-	size_t y = destination.indexY;
-	size_t z = destination.indexZ;
-	size_t index = GetIndexOf3DArray(x, y, z);
-
-	int worldX = destination.x;
-	int worldY = destination.y;
-	int worldZ = destination.z;
-
 	std::vector<Node> path;
-	std::vector<Node> usablePath;
 	std::vector<Vec3I> ret;
+
+	Node* currNode = &map[GetIndexOf3DArray(destination.indexX, destination.indexY, destination.indexZ)];
+	Vec3I worldPos(destination.x, destination.y, destination.z);
+
+	{
+		Node* nextNode = &map[GetIndexOf3DArray(currNode->parentIndexX, currNode->parentIndexY, currNode->parentIndexZ)];
+		nextNode = &map[GetIndexOf3DArray(nextNode->parentIndexX, nextNode->parentIndexY, nextNode->parentIndexZ)];
+		if (nextNode == currNode)
+			return ret;
+	}
 
 	//From the end point, this iterates through its parents, making a path from the end to the start
 	//while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
 	//	&& map[index].x != -1 && map[index].y != -1 && map[index].z != -1)
-	while (!(map[index].parentX == worldX && map[index].parentY == worldY && map[index].parentZ == worldZ)
-		&& map[index].x >= 0 && map[index].y >= 0 && map[index].z >= 0)
+	while (!(currNode->parentX == worldPos.x && currNode->parentY == worldPos.y && currNode->parentZ == worldPos.z)
+		&& currNode->x >= 0 && currNode->y >= 0 && currNode->z >= 0)
 	{
-		path.push_back(map[index]);
-		worldX = map[index].parentX;
-		worldY = map[index].parentY;
-		worldZ = map[index].parentZ;
-		x = map[index].parentIndexX;
-		y = map[index].parentIndexY;
-		z = map[index].parentIndexZ;
-		index = GetIndexOf3DArray(x, y, z);
+		path.push_back(*currNode);
+		worldPos = { currNode->parentX, currNode->parentY, currNode->parentZ };
+		currNode = &map[GetIndexOf3DArray(currNode->parentIndexX, currNode->parentIndexY, currNode->parentIndexZ)];
 	}
 	//path.push_back(map[index]);
 

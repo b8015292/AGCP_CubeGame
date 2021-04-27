@@ -199,10 +199,10 @@ void DunGen::GenerateSideStart(size_t index) {
 bool DunGen::IsPositionValid(size_t index, int minDistance, int maxDistance) {
 	int distance = abs(mPaths.at(index).start.x - mPaths.at(index).end.x) + abs(mPaths.at(index).start.z - mPaths.at(index).end.z);
 
-	return mPaths.at(index).end == mPaths.at(index).start
+	return !(mPaths.at(index).end == mPaths.at(index).start
 		|| mPaths.at(index).end.x < 0 || mPaths.at(index).end.z < 0
 		|| mPaths.at(index).end.x >= mWorldSize.x || mPaths.at(index).end.z >= mWorldSize.z
-		|| distance < minDistance || distance > maxDistance;
+		|| distance < minDistance || distance > maxDistance);
 }
 
 void DunGen::GenerateSideDeadEnd(size_t index, int minDistance, int maxDistance) {
@@ -276,11 +276,6 @@ void DunGen::GenerateObsticales(double chance) {
 void DunGen::GeneratePath(size_t index) {
 	mPaths.at(index).positions = mPathFinding.AStar(mPaths.at(index).start, mPaths.at(index).end);
 }
-
-void DunGen::AddPathsToPathList(size_t index) {
-
-}
-
 
 void DunGen::Spawn(bool walls) {
 	//World size X and Z is 64

@@ -221,13 +221,14 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 	CreateFolder();
 	GenerateFirstGen();
 
+	//Generate all the offspring
 	size_t index = 0;
 	while (index <= numbOfGenerations && mGenetics.at(index).size() != 0) {
 		
 		//Create children from parents - crossover and mutation
 		GenerateOffspring(index);
 		index++;
-
+		std::vector<DunGen> dungeons;
 		//Generate dungeons from new genes and alayse them
 		for (size_t i = 0; i < mGenetics.at(index).size(); i++) {
 			DunGen dg(mWorldMgr, mGenetics.at(index).at(i).di);
@@ -242,8 +243,31 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 			}
 
 			dg.Output();
+			dungeons.push_back(dg);
 		}
+		mDungeons.push_back(dungeons);
 	}
+
+	//Spawn the most recent fit offspring into the world
+	size_t genIndex = mGenetics.size() - 1;
+	index = mGenetics.at(genIndex).size() - 1;
+	bool spawned = false;
+	while (!spawned && genIndex >= 0) {
+		if (index == (size_t)0 - 1) {
+			genIndex--;
+			if (genIndex == (size_t)0 - 1)
+				break;
+			index = mGenetics.at(genIndex).size() - 1;
+		}
+
+		if (mGenetics.at(genIndex).at(index).fit) {
+			mDungeons.at(genIndex).at(index).Spawn(true);
+			spawned = true;
+		}
+		
+		index--;
+	}
+
 }
 
 void GeneticAlgo::CreateFolder() {
@@ -335,11 +359,14 @@ void GeneticAlgo::GenerateFirstGen() {
 	}
 
 	//Generate and analyse each of the first generation dungeons
+	std::vector<DunGen> dungeons;
 	for (size_t i = 0; i < mGenetics.at(0).size(); i++) {
 		DunGen dg(mWorldMgr, mGenetics.at(0).at(i).di);
 		mGenetics.at(0).at(i).fit = FitnessFunction(dg);
 		dg.Output();
+		dungeons.push_back(dg);
 	}
+	mDungeons.push_back(dungeons);
 }
 
 void GeneticAlgo::GenerateOffspring(size_t parentGeneration) {
