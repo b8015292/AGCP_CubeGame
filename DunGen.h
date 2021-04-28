@@ -72,7 +72,8 @@ public:
 
 class DunGen {
 public:
-	DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di);
+	DunGen(std::shared_ptr<WorldManager> wrlmgr);
+	void Init(DungeonInfo di);
 
 	void Spawn(bool walls);
 	void Output();

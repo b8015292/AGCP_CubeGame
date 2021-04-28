@@ -20,19 +20,9 @@ void DGPathfinding::SetObstcales(bool obstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z]) {
 	bool outsideZ = false;
 
 	for (int i = 0; i < MAX_AR_X; i++) {
-		//if (i < mMinBounds.x || i > mMaxBounds.x) outsideX = true;
-
 		for (int j = 0; j < MAX_AR_Y; j++) {
 			for (int k = 0; k < MAX_AR_Z; k++) {
-
-				////If its outside the bounds, set it to false, otherwise set it to the obstacle value
-				//if (outsideX || k < mMinBounds.z || k > mMaxBounds.z) {
-				//	mObstacles[i][j][k] = true;
-				//}
-				//else {
 					mObstacles[i][j][k] = obstacles[i][j][k];
-				//}
-
 			}
 		}
 	}

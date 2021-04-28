@@ -48,9 +48,24 @@ bool Vec3I::operator!=(const Vec3I& v) {
 //							DunGen
 //***************************************************************
 
-DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr, DungeonInfo di) {
-	Init(wrlmgr, di.noiseSeed);
+DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr) {
+	//Set the world manager and world size
+	mWorldMgr = wrlmgr;
+	WorldManager::Pos maxSize = mWorldMgr->GetWorldSize();
+	mWorldSize = { maxSize.x, maxSize.y, maxSize.z };
+
+	mPathFinding.Init(mWorldMgr);
+}
+
+void DunGen::Init(DungeonInfo di) {
 	mDungeonInfo = di;
+	mValid = false;
+	
+	//Randomize the obstacle noise generation
+	srand(mDungeonInfo.noiseSeed);
+	unsigned int seed = rand() % 10000;
+	mNoise = PerlinNoise(mDungeonInfo.noiseSeed);
+	srand(mNoise.GetSeed());
 
 	if (IsValidDungeonInfo(di)) {
 
@@ -80,22 +95,6 @@ bool DunGen::IsValidDungeonInfo(DungeonInfo& di) {
 		return false;
 
 	return true;
-}
-
-void DunGen::Init(std::shared_ptr<WorldManager> worldMgr, unsigned int noiseSeed) {
-	//Set the world manager and world size
-	mWorldMgr = worldMgr;
-	WorldManager::Pos maxSize = mWorldMgr->GetWorldSize();
-	mWorldSize = { maxSize.x, maxSize.y, maxSize.z };
-
-	mPathFinding.Init(mWorldMgr);
-
-	//Randomize the obstacle noise generation
-	//srand(std::time(NULL));
-	srand(noiseSeed);
-	unsigned int seed = rand() % 10000;
-	mNoise = PerlinNoise(noiseSeed);
-	srand(mNoise.GetSeed());
 }
 
 void DunGen::GenerateMainPath(int minDistance, int maxDistance) {

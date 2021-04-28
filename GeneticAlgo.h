@@ -26,9 +26,12 @@ public:
 	void GenerateDominance(Genes* parentA, Genes* ParentB);
 	void GenerateMutation(Genes* parentA, Genes* ParentB);
 
+	void ForceMutate();
 	void Mutate();
 	void MutateDungeonInfo(float random);
 	float RandZeroToOne();
+
+	void ValidateVariables();
 
 	static float Crossover(float a, float b, float aDom, float bDom);
 	static float Middle(float a, float b, float aDom, float bDom);
@@ -52,6 +55,8 @@ public:
 	float volatility[GeneIndex::count];
 	//Dominance of the volitily (Change this mutation value will be passed to the child)
 	//float mutationDominance[GeneIndex::count];
+
+	int numberOfUnfitOffspring = 0;
 };
 
 class GeneticAlgo {
@@ -62,7 +67,10 @@ public:
 private:
 	void CreateFolder();
 	void GenerateFirstGen();
-	void GenerateOffspring(size_t parentGeneration);
+	void GenerateOffspringGenes(size_t parentGeneration);
+	void ReGenerateOffspringGenes(size_t parentGeneration);
+	void MutateUnfitParents(size_t parentGeneration);
+	std::vector<DunGen> GenerateOffspringDungeons(size_t generation);
 	bool FitnessFunction(DunGen& d);
 
 	std::shared_ptr<WorldManager> mWorldMgr;
