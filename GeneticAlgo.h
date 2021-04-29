@@ -20,7 +20,7 @@ struct Genes {
 public:
 
 	Genes(DungeonInfo ndi, float nFertility, float nFertilityDom, float nFertilityVol, float nDominance[GeneIndex::count], float nVolatility[GeneIndex::count]);
-	Genes(Genes* parentA, Genes* parentB, size_t childIndex);
+	Genes(Genes* parentA, Genes* parentB, size_t childIndex, size_t generation);
 
 	void GenerateDungeonInfo(Genes* parentA, Genes* parentB);
 	void GenerateDominance(Genes* parentA, Genes* ParentB);

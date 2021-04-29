@@ -14,7 +14,7 @@ Genes::Genes(DungeonInfo ndi, float nFertility, float nFertilityDom, float nFert
 	}
 };
 
-Genes::Genes(Genes* parentA, Genes* parentB, size_t childIndex) : di(GeneticAlgo::mOutputFolder, childIndex, parentA->di.generation + 1, parentA->di.index, parentB->di.index){
+Genes::Genes(Genes* parentA, Genes* parentB, size_t childIndex, size_t generation) : di(GeneticAlgo::mOutputFolder, childIndex, generation, parentA->di.index, parentB->di.index){
 	GenerateDungeonInfo(parentA, parentB);
 	GenerateDominance(parentA, parentB);
 	GenerateMutation(parentA, parentB);
@@ -327,7 +327,7 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 		}
 
 		//If there are too many unfit offspring, re-pair the parents
-		while ((float)dungeons.size() / (float)numberOfUnfitOffspring >= 0.4f && attempts >= 0) {
+		while (numberOfUnfitOffspring != 0 && (float)dungeons.size() / (float)numberOfUnfitOffspring >= 0.4f && attempts >= 0) {
 			numberOfUnfitOffspring = 0;
 
 			MutateUnfitParents(index - 1);
@@ -340,6 +340,8 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 					numberOfUnfitOffspring++;
 				}
 			}
+
+			attempts--;
 		}
 
 		mDungeons.push_back(dungeons);
@@ -468,66 +470,89 @@ void GeneticAlgo::GenerateFirstGen() {
 }
 
 void GeneticAlgo::GenerateOffspringGenes(size_t parentGeneration) {
-	std::vector<size_t> validParents;
-	std::vector<bool> takenParents;
+	std::unordered_map<size_t, int> validParents;
+	//std::vector<bool> takenParents;
 	std::vector<Genes> newGeneration;
 
+	int count;
+	int total = 0;
 	//Find which genes from the previous generation are valid parents
 	for (size_t i = 0; i < mGenetics.at(parentGeneration).size(); i++) {
 		if (mGenetics.at(parentGeneration).at(i).fit) {
+			count = 0;
 			for (float j = 0; j < mGenetics.at(parentGeneration).at(i).fertility; j += 0.2f) {
-				validParents.push_back(i);
+				count++;
 			}
+			validParents[i] = count;
+			total += count;
 		}
 	}
 
-	//If there is an odd number of parents, add a second instance of one of the parents
-	if ((int)(validParents.size()) % 2 != 0) {
-		if (validParents.size() > 1) {
-			validParents.push_back((size_t)rand() % validParents.size());
+	if (validParents.size() != 0) {
+		//If there is an odd number of parents, add a second instance of one of the parents
+		if (total % 2 != 0) {
+			if (validParents.size() > 1) {
+				validParents.at((size_t)rand() % validParents.size())++;;
+			}
+			else {
+				validParents.at(0)++;
+			}
 		}
-		else {
-			validParents.push_back(0);
+
+		//Set all the parents taken value to be false
+		//takenParents.insert(takenParents.begin(), validParents.size(), false);
+
+		//Match up two random parents and create their child
+		for (size_t i = 0; i < total / 2 && i > 1; i++) {
+			size_t parentA;
+			size_t parentB;
+			std::unordered_map<size_t, int>::iterator it;
+
+			//If there are more than two parents, select 2 randomly
+			if (validParents.size() > 2) {
+				do {
+					parentA = (size_t)(rand() % (validParents.size() - 1));
+					parentB = (size_t)(rand() % (validParents.size() - 1));
+				} while (parentA == parentB);
+
+				//Get the correct Keys for the parents
+				it = validParents.begin();
+				for (int temp = 0; temp < parentA; temp++, it++);
+				parentA = it->first;
+
+				it = validParents.begin();
+				for (int temp = 0; temp < parentB; temp++, it++);
+				parentB = it->first;
+
+			}
+			//Otherwise find the two remaining and choose them
+			else {
+				it = validParents.begin();
+				parentA = it->first;
+
+				if (validParents.size() != 1) {
+					it++;
+					parentB = it->first;
+				}
+				else {
+					parentB = parentA;
+				}
+			}
+
+			validParents.at(parentA)--;
+			validParents.at(parentB)--;
+			if (validParents.at(parentA) <= 0)
+				validParents.erase(parentA);
+			if (validParents.at(parentB) <= 0)
+				validParents.erase(parentB);
+
+			newGeneration.push_back({ &mGenetics.at(parentGeneration).at(parentA), &mGenetics.at(parentGeneration).at(parentB), i, mGenetics.size() });
+			newGeneration.at(newGeneration.size() - 1).Mutate();
+			newGeneration.at(newGeneration.size() - 1).ValidateVariables();
 		}
 	}
-
-	//Set all the parents taken value to be false
-	takenParents.insert(takenParents.begin(), validParents.size(), false);
-
-	//Match up two random parents and create their child
-	for (size_t i = 0; i < validParents.size() / 2; i++) {
-		size_t parentA;
-		size_t parentB;
-
-		//If there are more than two parents, select 2 randomly
-		if (i < (validParents.size() / 2) - 1) {
-			do {
-				parentA = (size_t)(rand() % (validParents.size() - 1));
-				parentB = (size_t)(rand() % (validParents.size() - 1));
-			} while (validParents.at(parentA) == validParents.at(parentB) || takenParents.at(parentA) == true || takenParents.at(parentB) == true);
-		}
-		//Otherwise find the two remaining and choose them
-		else {
-			size_t j = 0;
-			while (takenParents.at(j)) {
-				j++;
-			}
-			parentA = j;
-
-			j++;
-			while (takenParents.at(j)) {
-				j++;
-			}
-			parentB = j;
-		}
-
-
-		takenParents.at(parentA) = true;
-		takenParents.at(parentB) = true;
-
-		newGeneration.push_back({ &mGenetics.at(parentGeneration).at(validParents.at(parentA)), &mGenetics.at(parentGeneration).at(validParents.at(parentB)), i });
-		newGeneration.at(newGeneration.size() - 1).Mutate();
-		newGeneration.at(newGeneration.size() - 1).ValidateVariables();
+	else {
+		return;
 	}
 
 	mGenetics.push_back(newGeneration);
@@ -570,7 +595,7 @@ std::vector<DunGen> GeneticAlgo::GenerateOffspringDungeons(size_t generation) {
 
 
 		if (!mGenetics.at(generation).at(i).fit) {
-			std::ofstream output(mGenetics.at(generation).at(i).di.filePath, std::ofstream::binary);
+			std::ofstream output(mGenetics.at(generation).at(i).di.filePath, std::ofstream::out);
 			output << "DUNGEON UNFIT\n";
 			output.close();
 			numberOfUnfitOffspring++;

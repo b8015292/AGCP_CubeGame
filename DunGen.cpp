@@ -601,7 +601,7 @@ int DunGen::NumberOfStraightSectionsToBends() {
 	int bentSections = 0;
 
 	for each (Path p in mPaths) {
-		if (p.positions.size() != 0) {
+		if (p.positions.size() > 2) {
 
 			Vec3I prevPrevPos = p.positions.at(0);
 			Vec3I prevPos = p.positions.at(1);
