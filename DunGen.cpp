@@ -53,6 +53,7 @@ DunGen::DunGen(std::shared_ptr<WorldManager> wrlmgr) {
 	mWorldMgr = wrlmgr;
 	WorldManager::Pos maxSize = mWorldMgr->GetWorldSize();
 	mWorldSize = { maxSize.x, maxSize.y, maxSize.z };
+	mBoundsMax = mWorldSize;
 
 	mPathFinding.Init(mWorldMgr);
 }
@@ -134,6 +135,8 @@ void DunGen::GenerateMainPath(int minDistance, int maxDistance) {
 	} while (mPaths.at(0).positions.empty());
 
 	mPathFinding.AddPathToObstacles(mPaths.at(0).positions);
+	mBoundsMin = mPathFinding.GetMinBounds();
+	mBoundsMax = mPathFinding.GetMaxBounds();
 }
 
 void DunGen::GenerateSidePaths(int numberToGenerate, int minDistance, int maxDistance, int minDistanceBeforeBranch, float ratioOfDeadEndsToReconnectingBranches) {
@@ -178,7 +181,7 @@ void DunGen::GenerateSidePath(size_t parentPath, bool deadend, int minDistance, 
 		obsticalAttempts++;
 		obsticalChance -= obsticalChanceDecrement;
 	} while (mPaths.at(p.index).positions.empty() && obsticalAttempts < maxObsticalAttempts);
-
+	//Returned path is of size 0!!!!!!!!!!!
 	mPathFinding.AddPathToObstacles(mPaths.at(0).positions);
 }
 
@@ -198,25 +201,32 @@ void DunGen::GenerateSideStart(size_t index) {
 bool DunGen::IsPositionValid(size_t index, int minDistance, int maxDistance) {
 	int distance = abs(mPaths.at(index).start.x - mPaths.at(index).end.x) + abs(mPaths.at(index).start.z - mPaths.at(index).end.z);
 
-	return !(mPaths.at(index).end == mPaths.at(index).start
-		|| mPaths.at(index).end.x < 0 || mPaths.at(index).end.z < 0
-		|| mPaths.at(index).end.x >= mWorldSize.x || mPaths.at(index).end.z >= mWorldSize.z
-		|| distance < minDistance || distance > maxDistance);
+
+	return mPaths.at(index).end != mPaths.at(index).start
+		&& mPaths.at(index).end.x > 0 && mPaths.at(index).end.z > 0
+		&& mPaths.at(index).end.x < mWorldSize.x && mPaths.at(index).end.z < mWorldSize.z
+		&& distance > minDistance && distance < maxDistance;
+
+	//return mPaths.at(index).end != mPaths.at(index).start
+	//	&& mPaths.at(index).end.x > mBoundsMin.x && mPaths.at(index).end.z > mBoundsMin.z
+	//	&& mPaths.at(index).end.x < mBoundsMax.x && mPaths.at(index).end.z < mBoundsMax.z
+	//	&& distance > minDistance&& distance < maxDistance;
 }
 
 void DunGen::GenerateSideDeadEnd(size_t index, int minDistance, int maxDistance) {
-	int distance = -1;
 	do {
 		mPaths.at(index).end = mPaths.at(0).start;
 		mPaths.at(index).end.x += ((rand() % MAX_AR_X) - MAX_AR_X * 0.5f) - 1;
 		mPaths.at(index).end.z += ((rand() % MAX_AR_Z) - MAX_AR_Z * 0.5f) - 1;
 
-	} while (IsPositionValid(index, minDistance, maxDistance));
+	} while (!IsPositionValid(index, minDistance, maxDistance));
 }
 
 void DunGen::GenerateSideLinkEnd(size_t index, int minDistance, int maxDistance) {
 	size_t size = mPaths.at(mPaths.at(index).parentIndex).positions.size();
-	int distance;
+	
+	int attempts = 20;
+	int localMinDistance = minDistance;
 
 	do {
 		//Exclude the first and last index
@@ -226,9 +236,19 @@ void DunGen::GenerateSideLinkEnd(size_t index, int minDistance, int maxDistance)
 
 		//Set the start of this path to a position in its parents path
 		mPaths.at(index).end = mPaths.at(mPaths.at(index).parentIndex).positions.at(endIndex);
-		distance = abs(mPaths.at(index).start.x - mPaths.at(index).end.x) + abs(mPaths.at(index).start.z - mPaths.at(index).end.z);
 
-	} while (IsPositionValid(index, minDistance, maxDistance));
+		//If the minDistance is too big, reduce by a tenth
+		int distance = abs(mPaths.at(index).start.x - mPaths.at(index).end.x) + abs(mPaths.at(index).start.z - mPaths.at(index).end.z);
+		if (distance < localMinDistance) {
+			localMinDistance -= localMinDistance / 10;
+		}
+
+		attempts--;
+	} while (!IsPositionValid(index, localMinDistance, maxDistance) && attempts > 0);
+
+	if (attempts <= 0) {
+		GenerateSideDeadEnd(index, minDistance, maxDistance);
+	}
 }
 
 void DunGen::GenerateMainStartAndEnd(int minDistance, int maxDistance) {
@@ -242,14 +262,17 @@ void DunGen::GenerateMainStartAndEnd(int minDistance, int maxDistance) {
 	//mPaths.at(0).start.z = (rand() % mWorldSize.z);
 
 	//Randomize the end. Cannot be more than half of MAX_AR_X or MAX_AR_Z away from the start
-	int distance = -1;
 	do {
 		mPaths.at(0).end = mPaths.at(0).start;
 		mPaths.at(0).end.x += ((rand() % MAX_AR_X) - MAX_AR_X * 0.5f) - 1;
 		mPaths.at(0).end.z += ((rand() % MAX_AR_Z) - MAX_AR_Z * 0.5f) - 1;
-		distance = abs(mPaths.at(0).start.x - mPaths.at(0).end.x) + abs(mPaths.at(0).start.z - mPaths.at(0).end.z);
 
-	} while (IsPositionValid(0, minDistance, maxDistance));
+		//if (mPaths.at(0).end.x < 0)
+		//	mPaths.at(0).end.x = 0;
+		//if (mPaths.at(0).end.z < 0)
+		//	mPaths.at(0).end.z = 0;
+
+	} while (!IsPositionValid(0, minDistance, maxDistance));
 
 	mPathFinding.SetMainPath(mPaths.at(0).start, mPaths.at(0).end);
 }
@@ -444,10 +467,6 @@ void DunGen::PrintDungeon(DungeonInfo di) {
 	//Display the axis
 	output << "\n\n0 Z+\nX\n+\n";
 
-
-	Vec3I minBounds = mPathFinding.GetMinBounds();
-	Vec3I maxBounds = mPathFinding.GetMaxBounds();
-
 	std::string cBounds = "!!";
 	std::string cEmpty = "  ";
 
@@ -483,7 +502,7 @@ void DunGen::PrintDungeon(DungeonInfo di) {
 
 		for (int z = 0; z < MAX_AR_Z; z++) {
 
-			if (x < minBounds.x  || x >= maxBounds.x || z < minBounds.z || z >= maxBounds.z) {
+			if (x < mBoundsMin.x  || x >= mBoundsMax.x || z < mBoundsMin.z || z >= mBoundsMax.z) {
 				output << cBounds;
 			}
 			else {

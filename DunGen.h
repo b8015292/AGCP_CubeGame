@@ -92,6 +92,8 @@ private:
 	PerlinNoise mNoise;
 
 	Vec3I mWorldSize;
+	Vec3I mBoundsMin = {0.f, 0.f, 0.f};
+	Vec3I mBoundsMax;
 	//Vec3I mStartPoint;
 	//Vec3I mEndPoint;
 	bool mObstacles[MAX_AR_X][MAX_AR_Y][MAX_AR_Z] = { false };

@@ -33,6 +33,11 @@ public:
 
 	void ValidateVariables();
 
+	void IncrementNumbOfUnfit() {
+		numberOfUnfitOffspring++;
+		totalNumberOfUnfitOffspring++;
+	}
+
 	static float Crossover(float a, float b, float aDom, float bDom);
 	static float Middle(float a, float b, float aDom, float bDom);
 	static float Middle(double a, double b, float aDom, float bDom);
@@ -57,6 +62,9 @@ public:
 	//float mutationDominance[GeneIndex::count];
 
 	int numberOfUnfitOffspring = 0;
+	int totalNumberOfUnfitOffspring = 0;
+
+	const float mMutationMultiplier = 0.1f;
 };
 
 class GeneticAlgo {
@@ -67,9 +75,12 @@ public:
 private:
 	void CreateFolder();
 	void GenerateFirstGen();
+
 	void GenerateOffspringGenes(size_t parentGeneration);
 	void ReGenerateOffspringGenes(size_t parentGeneration);
 	void MutateUnfitParents(size_t parentGeneration);
+	void DiscardUnfitParents(size_t parentGeneration);
+
 	std::vector<DunGen> GenerateOffspringDungeons(size_t generation);
 	bool FitnessFunction(DunGen& d);
 
@@ -77,5 +88,16 @@ private:
 	std::vector<std::vector<Genes>> mGenetics;
 	std::vector<std::vector<DunGen>> mDungeons;
 
+	const bool mSaveAllDungeons = false;
+	DunGen mPreviousFitDungeon;
+
 	const std::string mConstOutputFolder = "output";
+	const char mDoubleBackslash = 92;
+
+	const float mRatioOfStraightToBends = 0.2f;
+	const float mRatioOfTotalLengthToNumberOfParallelSections = 0.5f;
+
+	const float mFertilityCostPerOffspring = 0.4f;
+	const int mMaxNumbOfUnfitOffspringBeforeForceMutate = 4;
+	const int mMaxNumbOfUnfitOffspringBeforeDiscarding = 20;
 };

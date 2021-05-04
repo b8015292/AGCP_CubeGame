@@ -120,8 +120,8 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>fmodex64_vc.lib;fmodex64L_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <StackReserveSize>50000000</StackReserveSize>
-      <StackCommitSize>50000000</StackCommitSize>
+      <StackReserveSize>100000000</StackReserveSize>
+      <StackCommitSize>100000000</StackCommitSize>
     </Link>
     <PostBuildEvent>
       <Command>XCOPY "$(SolutionDir)"\fmod\lib\x64\*.DLL "$(TargetDir)" /D /K /Y</Command>
@@ -159,6 +159,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\fmod\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -166,8 +167,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>fmodex64_vc.lib;fmodex64L_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <StackReserveSize>50000000</StackReserveSize>
-      <StackCommitSize>50000000</StackCommitSize>
+      <StackReserveSize>100000000</StackReserveSize>
+      <StackCommitSize>100000000</StackCommitSize>
     </Link>
     <PostBuildEvent>
       <Command>XCOPY "$(SolutionDir)"\fmod\lib\x64\*.DLL "$(TargetDir)" /D /K /Y</Command>

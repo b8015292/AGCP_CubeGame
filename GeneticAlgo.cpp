@@ -65,57 +65,69 @@ float Genes::RandZeroToOne() {
 void Genes::ForceMutate() {
 	float mutation;
 
-	mutation = fertility * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
-	fertility += mutation;
+	mutation = fertility * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+
+	if(fertility + mutation > 0)
+		fertility += mutation;
 
 	//Dominance & Volitility
 	for (int i = 0; i < GeneIndex::count; i++) {
-		mutation = dominance[i] * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
-		dominance[i] += mutation;
+		mutation = dominance[i] * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
+		if(dominance[i] + mutation > 0)
+			dominance[i] += mutation;
 
-		mutation = volatility[i] * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
-		volatility[i] += mutation;
+		mutation = volatility[i] * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
+
+		if(volatility[i] + mutation > 0)
+			volatility[i] += mutation;
 	}
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
-	di.noiseSeed += mutation;
+	mutation = di.noiseSeed * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if(di.noiseSeed + mutation > 0)
+		di.noiseSeed += mutation;
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
+	mutation = di.maxDistanceOfMainPath * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if (di.maxDistanceOfMainPath + mutation > 0)
 	di.maxDistanceOfMainPath += mutation;
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
+	mutation = di.minDistanceBeforeBranch * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if (di.minDistanceBeforeBranch + mutation > 0)
 	di.minDistanceBeforeBranch += mutation;
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
+	mutation = di.minDistanceOfMainPath * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if (di.minDistanceOfMainPath + mutation > 0)
 	di.minDistanceOfMainPath += mutation;
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
+	mutation = di.ratioOfDeadEndsToReconnectingBranches * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if (di.ratioOfDeadEndsToReconnectingBranches + mutation > 0)
 	di.ratioOfDeadEndsToReconnectingBranches += mutation;
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
+	mutation = di.ratioOfLengthOfMainPathToNumberOfSidePaths * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if (di.ratioOfLengthOfMainPathToNumberOfSidePaths + mutation > 0)
 	di.ratioOfLengthOfMainPathToNumberOfSidePaths += mutation;
 
-	mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-	if (RandZeroToOne() > 0.5)
-		mutation *= -1;
+	mutation = di.ratioOfLengthOfMainPathToSidePaths * (RandZeroToOne() * mMutationMultiplier);
+	if (RandZeroToOne() > 0.5f)
+		mutation *= -1.f;
+	if (di.ratioOfLengthOfMainPathToSidePaths + mutation > 0)
 	di.ratioOfLengthOfMainPathToSidePaths += mutation;
 }
 
@@ -127,28 +139,31 @@ void Genes::Mutate() {
 
 	//Fertility
 	if (random >= fertilityVolatility) {
-		mutation = fertility * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = fertility * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
-		fertility += mutation;
+		if(fertility + mutation > 0)
+			fertility += mutation;
 	}
 
 	//Dominance & Volitility
 	for (int i = 0; i < GeneIndex::count; i++) {
 		if (random >= volatility[i]) {
-			mutation = dominance[i] * (RandZeroToOne() * 0.1);
-			if (RandZeroToOne() > 0.5)
-				mutation *= -1;
+			mutation = dominance[i] * (RandZeroToOne() * mMutationMultiplier);
+			if (RandZeroToOne() > 0.5f)
+				mutation *= -1.f;
 
-			dominance[i] += mutation;
+			if(dominance[i] + mutation > 0)
+				dominance[i] += mutation;
 		}
 		if (random >= volatility[i]) {
-			mutation = volatility[i] * (RandZeroToOne() * 0.1);
-			if (RandZeroToOne() > 0.5)
-				mutation *= -1;
+			mutation = volatility[i] * (RandZeroToOne() * mMutationMultiplier);
+			if (RandZeroToOne() > 0.5f)
+				mutation *= -1.f;
 
-			volatility[i] += mutation;
+			if(volatility[i] + mutation > 0)
+				volatility[i] += mutation;
 		}
 	}
 
@@ -157,51 +172,51 @@ void Genes::Mutate() {
 void Genes::MutateDungeonInfo(float random) {
 	float mutation;
 	if (random >= volatility[GeneIndex::noiseSeed]) {
-		mutation = di.noiseSeed * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.noiseSeed * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.noiseSeed += mutation;
 	}
 	if (random >= volatility[GeneIndex::maxDistanceOfMainPath]) {
-		mutation = di.maxDistanceOfMainPath * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.maxDistanceOfMainPath * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.maxDistanceOfMainPath += mutation;
 	}
 	if (random >= volatility[GeneIndex::minDistanceBeforeBranch]) {
-		mutation = di.minDistanceBeforeBranch * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.minDistanceBeforeBranch * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.minDistanceBeforeBranch += mutation;
 	}
 	if (random >= volatility[GeneIndex::minDistanceOfMainPath]) {
-		mutation = di.minDistanceOfMainPath * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.minDistanceOfMainPath * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.minDistanceOfMainPath += mutation;
 	}
 	if (random >= volatility[GeneIndex::ratioOfDeadEndsToReconnectingBranches]) {
-		mutation = di.ratioOfDeadEndsToReconnectingBranches * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.ratioOfDeadEndsToReconnectingBranches * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.ratioOfDeadEndsToReconnectingBranches += mutation;
 	}
 	if (random >= volatility[GeneIndex::ratioOfLengthOfMainPathToNumberOfSidePaths]) {
-		mutation = di.ratioOfLengthOfMainPathToNumberOfSidePaths * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.ratioOfLengthOfMainPathToNumberOfSidePaths * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.ratioOfLengthOfMainPathToNumberOfSidePaths += mutation;
 	}
 	if (random >= volatility[GeneIndex::ratioOfLengthOfMainPathToSidePaths]) {
-		mutation = di.ratioOfLengthOfMainPathToSidePaths * (RandZeroToOne() * 0.1);
-		if (RandZeroToOne() > 0.5)
-			mutation *= -1;
+		mutation = di.ratioOfLengthOfMainPathToSidePaths * (RandZeroToOne() * mMutationMultiplier);
+		if (RandZeroToOne() > 0.5f)
+			mutation *= -1.f;
 
 		di.ratioOfLengthOfMainPathToSidePaths += mutation;
 	}
@@ -298,7 +313,7 @@ float Genes::Middle(unsigned int a, unsigned int b, float aDom, float bDom) {
 
 
 
-GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGenerations) {
+GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGenerations) : mPreviousFitDungeon(wrldmgr){
 	mWorldMgr = wrldmgr;
 
 	CreateFolder();
@@ -307,7 +322,9 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 	//Generate all the offspring
 	size_t index = 0;
 	const int maxAttempts = 5;
-	int attempts, numberOfUnfitOffspring;
+	int attempts;
+	float numberOfUnfitOffspring;
+
 	while (index <= numbOfGenerations && mGenetics.at(index).size() != 0) {
 		numberOfUnfitOffspring = 0;
 		attempts = maxAttempts;
@@ -327,9 +344,10 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 		}
 
 		//If there are too many unfit offspring, re-pair the parents
-		while (numberOfUnfitOffspring != 0 && (float)dungeons.size() / (float)numberOfUnfitOffspring >= 0.4f && attempts >= 0) {
+		while (numberOfUnfitOffspring != 0 && ((float)dungeons.size() / numberOfUnfitOffspring) >= 0.4f && attempts >= 0) {
 			numberOfUnfitOffspring = 0;
 
+			DiscardUnfitParents(index - 1);
 			MutateUnfitParents(index - 1);
 			ReGenerateOffspringGenes(index);
 			dungeons = GenerateOffspringDungeons(index);
@@ -344,30 +362,39 @@ GeneticAlgo::GeneticAlgo(std::shared_ptr<WorldManager> wrldmgr, size_t numbOfGen
 			attempts--;
 		}
 
-		mDungeons.push_back(dungeons);
+		if (mSaveAllDungeons) {
+			mDungeons.push_back(dungeons);
+		} 
+		else {
+			dungeons.clear();
+		}
 
 	}
 
 	//Spawn the most recent fit offspring into the world
-	size_t genIndex = mGenetics.size() - 1;
-	index = mGenetics.at(genIndex).size() - 1;
-	bool spawned = false;
-	while (!spawned && genIndex >= 0) {
-		if (index == (size_t)0 - 1) {
-			genIndex--;
-			if (genIndex == (size_t)0 - 1)
-				break;
-			index = mGenetics.at(genIndex).size() - 1;
-		}
-
-		if (mGenetics.at(genIndex).at(index).fit) {
-			mDungeons.at(genIndex).at(index).Spawn(true);
-			spawned = true;
-		}
-		
-		index--;
+	if (!mSaveAllDungeons) {
+		mPreviousFitDungeon.Spawn(true);
 	}
+	else {
+		size_t genIndex = mGenetics.size() - 1;
+		index = mGenetics.at(genIndex).size() - 1;
+		bool spawned = false;
+		while (!spawned && genIndex >= 0) {
+			if (index == (size_t)0 - 1) {
+				genIndex--;
+				if (genIndex == (size_t)0 - 1)
+					break;
+				index = mGenetics.at(genIndex).size() - 1;
+			}
 
+			if (mGenetics.at(genIndex).at(index).fit) {
+				mDungeons.at(genIndex).at(index).Spawn(true);
+				spawned = true;
+			}
+			
+			index--;
+		}
+	}
 }
 
 void GeneticAlgo::CreateFolder() {
@@ -391,7 +418,7 @@ void GeneticAlgo::CreateFolder() {
 	//92 is double backslash
 	int count = 3;
 	while (count != 0) {
-		if (*(projectPath.end() - 1) == 92) {
+		if (*(projectPath.end() - 1) == mDoubleBackslash) {
 			projectPath.pop_back();
 			count--;
 		}
@@ -400,11 +427,11 @@ void GeneticAlgo::CreateFolder() {
 		}
 	}
 
-	mOutputFolder = projectPath + char(92) + mConstOutputFolder + "/" + folderName;
+	mOutputFolder = projectPath + mDoubleBackslash + mConstOutputFolder + "/" + folderName;
 	std::filesystem::create_directory(mOutputFolder);
 
 	for (size_t i = 0; i < mOutputFolder.size(); i++) {
-		if (mOutputFolder.at(i) == 92)
+		if (mOutputFolder.at(i) == mDoubleBackslash)
 			mOutputFolder.at(i) = '/';
 	}
 	mOutputFolder += "/";
@@ -413,9 +440,6 @@ void GeneticAlgo::CreateFolder() {
 bool GeneticAlgo::FitnessFunction(DunGen& d) {
 	if(!d.IsValid())
 		return false;
-
-	const float mRatioOfStraightToBends = 0.2f;
-	const float mRatioOfTotalLengthToNumberOfParallelSections= 0.2f;
 
 	float length = (float)d.TotalLength();
 
@@ -440,16 +464,16 @@ void GeneticAlgo::GenerateFirstGen() {
 		float dominance2[GeneIndex::count] = { 0.23445f, 0.3545f, 0.974358f, 0.982345f, 0.1234f, 0.1f, 0.485344f, 0.234324f };
 		float mutation2[GeneIndex::count] = { 0.1234f, 0.64834f, 0.32478f, 0.8983f, 0.34322311f, 0.938437f, 0.8432f, 0.1324f};
 
-		Genes g1({ mOutputFolder, 0, 0, 0, 0, 192u, 30, 90, 0.5, 10, 0.5f, 0.1f }, 1.f, 0.453f, 0.2342f, dominance1, mutation1);
+		Genes g1({ mOutputFolder, 0, 0, 0, 0, 192u, 30, 90, 0.5, 10, 0.5f, 0.7f }, 1.f, 0.453f, 0.2342f, dominance1, mutation1);
 		firstGen.push_back(g1);
 
-		Genes g2({ mOutputFolder, firstGen.size(), mGenetics.size(), 0, 0, 43534u, 11, 10, 0.9, 3, 0.8f, 0.1f }, 0.5f, 0.6543f, 0.123f, mutation1, dominance1);
+		Genes g2({ mOutputFolder, firstGen.size(), 0, 0, 0, 43534u, 50, 200, 0.9, 3, 0.8f, 0.1f }, 0.5f, 0.6543f, 0.123f, mutation1, dominance1);
 		firstGen.push_back(g2);
 
-		Genes g3({ mOutputFolder, firstGen.size(), mGenetics.size(), 0, 0, 16632u, 66, 100, 0.3, 99, 0.2f, 0.1f }, 2.f, 0.96f, 0.1342f, dominance2, mutation2);
+		Genes g3({ mOutputFolder, firstGen.size(), 0, 0, 0, 16632u, 66, 100, 0.3, 99, 0.2f, 0.9f }, 2.f, 0.96f, 0.1342f, dominance2, mutation2);
 		firstGen.push_back(g3);
 
-		Genes g4({ mOutputFolder, firstGen.size(), mGenetics.size(), 0, 0, 13421244u, 1, 32, 0.6, 20, 0.4f, 0.1f }, 1.f, 0.324f, 0.5433f, mutation2, dominance2);
+		Genes g4({ mOutputFolder, firstGen.size(), 0, 0, 0, 13421244u, 50, 200, 0.6, 20, 0.4f, 0.531f }, 1.f, 0.324f, 0.5433f, mutation2, dominance2);
 		firstGen.push_back(g4);
 
 		mGenetics.push_back(firstGen);
@@ -464,9 +488,13 @@ void GeneticAlgo::GenerateFirstGen() {
 		mGenetics.at(0).at(i).fit = FitnessFunction(dg);
 
 		dg.Output();
-		dungeons.push_back(dg);
+
+		if(mSaveAllDungeons)
+			dungeons.push_back(dg);
 	}
-	mDungeons.push_back(dungeons);
+
+	if (mSaveAllDungeons)
+		mDungeons.push_back(dungeons);
 }
 
 void GeneticAlgo::GenerateOffspringGenes(size_t parentGeneration) {
@@ -480,7 +508,7 @@ void GeneticAlgo::GenerateOffspringGenes(size_t parentGeneration) {
 	for (size_t i = 0; i < mGenetics.at(parentGeneration).size(); i++) {
 		if (mGenetics.at(parentGeneration).at(i).fit) {
 			count = 0;
-			for (float j = 0; j < mGenetics.at(parentGeneration).at(i).fertility; j += 0.2f) {
+			for (float j = 0; j < mGenetics.at(parentGeneration).at(i).fertility; j += mFertilityCostPerOffspring) {
 				count++;
 			}
 			validParents[i] = count;
@@ -503,7 +531,7 @@ void GeneticAlgo::GenerateOffspringGenes(size_t parentGeneration) {
 		//takenParents.insert(takenParents.begin(), validParents.size(), false);
 
 		//Match up two random parents and create their child
-		for (size_t i = 0; i < total / 2 && i > 1; i++) {
+		for (size_t i = 0; i < total / 2 && total > 1; i++) {
 			size_t parentA;
 			size_t parentB;
 			std::unordered_map<size_t, int>::iterator it;
@@ -536,6 +564,9 @@ void GeneticAlgo::GenerateOffspringGenes(size_t parentGeneration) {
 				}
 				else {
 					parentB = parentA;
+				}
+				if (parentA == parentB) {
+					break;
 				}
 			}
 
@@ -589,8 +620,8 @@ std::vector<DunGen> GeneticAlgo::GenerateOffspringDungeons(size_t generation) {
 			mGenetics.at(generation).at(i).fit = FitnessFunction(dg);
 			attempts--;
 
-			mGenetics.at(generation - 1).at(mGenetics.at(generation).at(i).di.parentA).numberOfUnfitOffspring++;
-			mGenetics.at(generation - 1).at(mGenetics.at(generation).at(i).di.parentB).numberOfUnfitOffspring++;
+			mGenetics.at(generation - 1).at(mGenetics.at(generation).at(i).di.parentA).IncrementNumbOfUnfit();
+			mGenetics.at(generation - 1).at(mGenetics.at(generation).at(i).di.parentB).IncrementNumbOfUnfit();
 		}
 
 
@@ -599,6 +630,9 @@ std::vector<DunGen> GeneticAlgo::GenerateOffspringDungeons(size_t generation) {
 			output << "DUNGEON UNFIT\n";
 			output.close();
 			numberOfUnfitOffspring++;
+		}
+		else if (!mSaveAllDungeons) {
+			mPreviousFitDungeon = dg;
 		}
 
 		dg.Output();
@@ -610,9 +644,17 @@ std::vector<DunGen> GeneticAlgo::GenerateOffspringDungeons(size_t generation) {
 
 void GeneticAlgo::MutateUnfitParents(size_t parentGeneration) {
 	for each (Genes g in mGenetics.at(parentGeneration)) {
-		if (g.numberOfUnfitOffspring >= 4) {
+		if (g.numberOfUnfitOffspring >= mMaxNumbOfUnfitOffspringBeforeForceMutate) {
 			g.ForceMutate();
 			g.numberOfUnfitOffspring = 0;
+		}
+	}
+}
+
+void GeneticAlgo::DiscardUnfitParents(size_t parentGeneration) {
+	for (size_t i = 0; i < mGenetics.at(parentGeneration).size(); i++) {
+		if (mGenetics.at(parentGeneration).at(i).totalNumberOfUnfitOffspring >= mMaxNumbOfUnfitOffspringBeforeDiscarding) {
+			mGenetics.at(parentGeneration).at(i).fit = false;
 		}
 	}
 }

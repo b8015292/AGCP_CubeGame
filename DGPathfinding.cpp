@@ -100,6 +100,8 @@ bool DGPathfinding::IsValidIndex(size_t arrayI, size_t arrayJ, size_t arrayK) {
 bool DGPathfinding::IsValidWorldCoord(Vec3I pos) {
 	if (pos.x < 0 || pos.y < 0 || pos.z < 0
 		|| pos.x >= mWorldSize.x || pos.y >= mWorldSize.y || pos.z >= mWorldSize.z)
+	//if (pos.x < mMinBounds.x || mMinBounds.y < 0 || mMinBounds.z < 0
+	//	|| pos.x >= mMaxBounds.x || pos.y >= mMaxBounds.y || pos.z >= mMaxBounds.z)
 		return false;
 
 	return true;
@@ -145,14 +147,14 @@ void DGPathfinding::SetWorldBounds(int minX, int maxX, int minZ, int maxZ) {
 			maxX = MAX_AR_X - (maxX - mWorldSize.x);
 		}
 		else {
-			maxX = mWorldSize.x + 1;
+			maxX = mWorldSize.x;
 		}
 
 		if (maxZ > mWorldSize.z) {
-			maxZ = MAX_AR_Z - (maxZ = mWorldSize.z);
+			maxZ = MAX_AR_Z - (maxZ - mWorldSize.z);
 		}
 		else {
-			maxZ = mWorldSize.z + 1;
+			maxZ = mWorldSize.z;
 		}
 
 		mMinBounds = { (int)minX, 0, (int)minZ };
