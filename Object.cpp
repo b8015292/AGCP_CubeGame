@@ -1,4 +1,7 @@
 #include "Object.h"
+#include "Pathfinding.h"
+#include "Player.h"
+#include "LivingEntity.h"
 
 const float GameData::sGrav = -9.71f;
 int GameObject::sMaxID = 0;
@@ -6,6 +9,7 @@ int GameObject::sMaxID = 0;
 std::shared_ptr<std::vector<std::shared_ptr<GameObject>>> GameObject::sAllGObjs = std::make_shared<std::vector<std::shared_ptr<GameObject>>>();
 std::shared_ptr<std::vector<std::shared_ptr<Entity>>> Entity::sAllEntities = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
 std::shared_ptr<std::vector<std::shared_ptr<ItemEntity>>> ItemEntity::sAllItemEntities = std::make_shared<std::vector<std::shared_ptr<ItemEntity>>>();
+std::shared_ptr<std::vector<std::shared_ptr<LivingEntity>>> LivingEntity::sAllLivingEntities = std::make_shared<std::vector<std::shared_ptr<LivingEntity>>>();
 std::shared_ptr<std::vector<std::shared_ptr<Block>>> Block::sAllBlocks = std::make_shared<std::vector<std::shared_ptr<Block>>>();
 std::shared_ptr<RenderItemInstance> Block::sBlockInstance = std::make_shared<RenderItemInstance>();
 
@@ -249,6 +253,17 @@ void ItemEntity::AddStack() {
 int ItemEntity::GetStackAmount() {
 	return stackedAmount;
 }
+
+
+
+//************************************************************************************************************
+// ItemEntity
+//************************************************************************************************************
+
+
+
+
+
 
 
 //************************************************************************************************************

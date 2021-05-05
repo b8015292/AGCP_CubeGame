@@ -154,9 +154,9 @@ private:
 	//The unqiue ID for chunks
 	static int sChunkMaxID;
 	//The height of the world (in chunks)
-	const int mMaxHeight = 10;
+	const int mMaxHeight = 2; //10
 	//The length and depth of the world (in chunks)
-	const int mMaxLength = 20;
+	const int mMaxLength = 10;//20
 
 	int mLoadedChunksAroundCurrentChunk = 2; //If 0, 1 chunk is loaded. if 1, 9 chunks are loaded, if 2, 25.
 	int mChunkRowsToLoad = 1 + 2 * mLoadedChunksAroundCurrentChunk;

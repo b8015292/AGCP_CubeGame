@@ -8,6 +8,8 @@
 #include "Camera.h"
 #include "Item.h"
 
+class Player;
+
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
 

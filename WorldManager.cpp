@@ -473,7 +473,7 @@ std::shared_ptr<Block> WorldManager::GetBlock(DirectX::XMFLOAT3 pos) {
 	int by = (int)floorf(pos.y)	- cy * sChunkDimension;
 	int bz = (int)floorf(pos.z) - cz * sChunkDimension;
 
-	return c->GetBlocks()->at((size_t)(by + (bx * sChunkDimension) + (bz * sChunkDimension * sChunkDimension) - 1));
+	return c->GetBlocks()->at((size_t)(by + (bx * sChunkDimension) + (bz * sChunkDimension * sChunkDimension)));
 }
 
 int WorldManager::GetPlayerChunkIndex(DirectX::XMFLOAT3 pos) {

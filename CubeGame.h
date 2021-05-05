@@ -118,6 +118,8 @@ private:
 
     void RespawnPlayer();
 
+    void SpawnEnemy();
+
 private:
     GameStates currentState;
     bool actionComplete = false;

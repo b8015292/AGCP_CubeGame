@@ -596,6 +596,8 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 	bool keyEDown = GetAsyncKeyState('E') & 0x8000;
 	bool keyCDown = GetAsyncKeyState('C') & 0x8000;
 	bool keyQDown = GetAsyncKeyState('Q') & 0x8000;
+	bool keyGDown = GetAsyncKeyState('G') & 0x8000;
+	bool keyHDown = GetAsyncKeyState('H') & 0x8000;
 	bool keySpaceDown = GetAsyncKeyState(VK_SPACE) & 0x8000;
 	if (!keyWDown && !keySDown && !keyADown && !keyDDown && !keyPDown && !keySpaceDown && !keyEDown && !keyCDown)
 	{
@@ -642,6 +644,12 @@ void CubeGame::OnKeyboardInput(const GameTimer& gt)
 
 				mPlayerChangedView = true;
 				mPlayer->SetMovement(playerX, playerZ, playerJump);
+			}
+			if (keyGDown) {
+				SpawnEnemy();
+			}
+			if (keyHDown) {
+				LivingEntity::sAllLivingEntities->at(0)->DebugPath();
 			}
 		}
 		else {	
@@ -899,6 +907,18 @@ void CubeGame::RespawnPlayer() {
 	mWorldMgr.RelocatePlayer(mSpawnPoint);
 	mPlayer->SetPosition(mSpawnPoint);
 	mPlayerChangedView = true;
+}
+
+void CubeGame::SpawnEnemy() {
+	if (LivingEntity::sAllLivingEntities->size() == 0) {
+		auto geo = mGeometries->at("geo_shape").get();
+		auto itemEntityRI = std::make_shared<RenderItem>(geo, "mesh_player", GameData::sMaterials->at("mat_player").get(), XMMatrixTranslation(mPlayer->GetBoundingBox().Center.x + 2, mPlayer->GetBoundingBox().Center.y + 3, mPlayer->GetBoundingBox().Center.z));	//Make a render item
+		auto itemEntity = std::make_shared<LivingEntity>(std::make_shared<GameObject>(itemEntityRI), mPlayer, std::make_shared<WorldManager>(mWorldMgr));
+		GameObject::sAllGObjs->push_back(itemEntity);
+		LivingEntity::sAllEntities->push_back(itemEntity);
+		LivingEntity::sAllLivingEntities->push_back(itemEntity);
+		mRitemLayer[(int)GameData::RenderLayer::Main]->push_back(itemEntity->GetRI());
+	}
 }
 
 void CubeGame::UpdateHotbar() {
